@@ -205,10 +205,10 @@ class RouterAgent:
         task_type = intent_to_task.get(result.intent, TaskType.KNOWLEDGE_QA)
 
         # KNOWLEDGE_QA 进一步判断复杂度，可能升级为 REASONING
-        if task_type == TaskType.KNOWLEDGE_QA:
-            complexity = self.classify_complexity(input_text)
-            if complexity == "complex":
-                return TaskType.REASONING
+#         if task_type == TaskType.KNOWLEDGE_QA:
+#             complexity = self.classify_complexity(input_text)
+#             if complexity == "complex":
+#                 return TaskType.REASONING
 
         return task_type
 

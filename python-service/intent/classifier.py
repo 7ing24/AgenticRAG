@@ -180,7 +180,7 @@ class IntentClassifier:
 6. unknown - 无法确定
 
 请返回JSON格式：
-{"intent": "意图类型", "confidence": 0.0-1.0, "reasoning": "判断理由"}
+{{"intent": "意图类型", "confidence": 0.0-1.0, "reasoning": "判断理由"}}
 
 只返回JSON，不要其他内容。
 """

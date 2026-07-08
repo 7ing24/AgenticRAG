@@ -87,7 +87,9 @@ public class AiServiceImpl implements AiService {
             "无法连接",
             "网络错误",
             "暂时无法回答",
-            "稍后再试"
+            "稍后再试",
+            "Tool not found",
+            "处理问题时遇到错误"
         };
         for (String keyword : errorKeywords) {
             if (answer.contains(keyword)) {

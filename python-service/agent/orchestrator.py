@@ -285,7 +285,9 @@ class Orchestrator:
             "knowledge_search": StepType.KNOWLEDGE_SEARCH,
             "result_evaluation": StepType.RESULT_EVALUATION,
             "answer_generation": StepType.ANSWER_GENERATION,
+            "memory_read": StepType.MEMORY_READ,
             "memory_write": StepType.MEMORY_WRITE,
+            "memory_compress": StepType.MEMORY_COMPRESS,
             "identity_answer": StepType.ANSWER_GENERATION,
             "admin_operation": StepType.TOOL_CALL
         }
