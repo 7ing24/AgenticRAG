@@ -78,7 +78,9 @@ class KnowledgeQAAgent:
             complexity = self.router.classify_complexity(question)
             logger.info(f"[KnowledgeQAAgent] Complexity: {complexity}")
 
-            if complexity == "medium":
+            if complexity == "complex":
+                return self._ask_with_orchestrator(question, conversation_id, user_id, full_context)
+            elif complexity == "medium":
                 return self._ask_l2(question, conversation_id, full_context)
             else:
                 return self._ask_l1(question, conversation_id, full_context)

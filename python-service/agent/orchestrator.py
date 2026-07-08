@@ -42,14 +42,18 @@ class Orchestrator:
             goal: Optional[str] = None, run_id: Optional[str] = None,
             trace_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
         """同步执行Agent"""
+        
+        # 创建 AgentState（run_id、goal、status=PENDING）
         state = self.create_state(input_text, conversation_id, user_id, goal, run_id, trace_id)
         state.context = context
 
+        # 输入验证（敏感词/敏感话题）
         is_valid, error_msg = self.policies.validate_input(input_text)
         if not is_valid:
             state.fail(error_msg or "输入验证失败", "INPUT_VALIDATION_ERROR")
             return self._build_error_response(state)
 
+        # status → RUNNING，发 RunStartedEvent    
         state.start()
         self.event_bus.publish(RunStartedEvent(
             run_id=state.run_id,
@@ -58,13 +62,17 @@ class Orchestrator:
         ))
 
         try:
+            # 生成步骤列表，如: ["question_rewrite", "knowledge_search", "answer_generation"]
             planned_steps = self.planner.plan_steps(state)
             state.planned_steps = planned_steps
 
+            # 逐个执行步骤
             for step_name in planned_steps:
                 step_type = self._get_step_type(step_name)
+                # 注册步骤到 State 
                 step = state.add_step(step_type, step_name, {"input": input_text})
 
+                # 发 StepStartedEvent
                 self.event_bus.publish(StepStartedEvent(
                     run_id=state.run_id,
                     step_id=step.step_id,
@@ -77,8 +85,10 @@ class Orchestrator:
 
                 while not step_done:
                     try:
+                        # 真正执行步骤
                         self.executor.execute_step(state, step)
-
+                        
+                        # 成功 → 发 StepCompletedEvent
                         self.event_bus.publish(StepCompletedEvent(
                             run_id=state.run_id,
                             step_id=step.step_id,
@@ -90,16 +100,21 @@ class Orchestrator:
 
                         step_done = True
 
+                        # 检查特殊状态
+                        # WAITING → 需要向用户追问（clarification），直接结束 
                         if state.status == AgentStatus.WAITING:
                             clarification_output = self._handle_clarification(state)
                             state.complete(clarification_output)
                             break
 
+                        # ANSWER_GENERATION → 生成最终回答，结束流程
                         if step_type == StepType.ANSWER_GENERATION:
                             final_output = self._build_success_response(state)
-                            state.complete(final_output)
+                            state.complete(final_output) 
                             break
 
+
+                    # 失败 → 重试（policies.should_retry）或 state.fail
                     except Exception as e:
                         logger.error(f"[{state.run_id}] Step {step_name} failed (attempt {retry_count + 1}): {str(e)}")
                         self.event_bus.publish(StepFailedEvent(
@@ -117,6 +132,7 @@ class Orchestrator:
                             step_done = True
                             break
 
+                # 每个 step 执行完后检查是否需要提前终止（状态已终态/超时/达到最大步数）
                 should_terminate, reason = self.planner.should_terminate(state)
                 if should_terminate:
                     logger.info(f"[{state.run_id}] Terminating: {reason}")
@@ -137,6 +153,7 @@ class Orchestrator:
             ))
             return self._build_error_response(state)
 
+        # 根据最终状态发 RunCompletedEvent 或 RunFailedEvent, 并返回最终输出或错误响应
         if state.status == AgentStatus.COMPLETED:
             self.event_bus.publish(RunCompletedEvent(
                 run_id=state.run_id,
