@@ -43,6 +43,9 @@ class ConfigManager:
         self.VECTOR_STORE_PERSIST_DIR = os.getenv("VECTOR_STORE_PERSIST_DIR", "./faiss_index")
         self.VECTOR_STORE_COLLECTION_NAME = os.getenv("VECTOR_STORE_COLLECTION_NAME", "ai_knowledge_collection")
         
+        # Milvus 度量类型: L2 / IP / COSINE（默认 L2）
+        self.MILVUS_METRIC_TYPE = os.getenv("MILVUS_METRIC_TYPE", "L2").upper()
+
         # Rerank Configuration
         self.RERANKER_TYPE = os.getenv("RERANKER_TYPE", "simple")
         self.COHERE_API_KEY = os.getenv("COHERE_API_KEY", "")

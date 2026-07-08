@@ -35,6 +35,13 @@ class VectorStoreManager:
         self.collection_name = config.VECTOR_STORE_COLLECTION_NAME
         self.vector_store = None
 
+        # 确定度量类型：FAISS 固定 L2，Milvus 从配置读取
+        if self.use_milvus:
+            self.metric_type = config.MILVUS_METRIC_TYPE
+        else:
+            self.metric_type = "L2"
+        config.logger.info(f"Vector store metric type: {self.metric_type}")
+
         # 初始化Reranker
         self._init_reranker()
 
@@ -183,6 +190,23 @@ class VectorStoreManager:
                 self.vector_store.save_local(self.persist_directory)
                 config.logger.info(f"Added {len(documents)} documents to FAISS")
 
+    def _to_similarity(self, raw_score: float) -> float:
+        """
+        将向量库返回的原始分数转换为统一相似度 [0, 1]，越大越相似。
+
+        FAISS 默认 IndexFlatL2，返回 L2 欧氏距离（越小越相似）。
+        Milvus 根据配置可能返回 L2 距离 / 内积(IP) / 余弦相似度(COSINE)。
+        """
+        if self.metric_type == "L2":
+            # L2 距离 → 相似度：1/(1+d)，范围 (0, 1]
+            return 1.0 / (1.0 + raw_score)
+        elif self.metric_type == "IP":
+            # 内积：直接归一化到 [0, 1]
+            return max(0.0, min(1.0, (raw_score + 1.0) / 2.0))
+        else:
+            # COSINE 或其他：假设已经是相似度
+            return raw_score
+
     def search(self, query: str, k: int = 3, filter_dict: Optional[Dict[str, Any]] = None, similarity_threshold: float = 0.75, use_rerank: bool = True) -> List[Document]:
         """
         相似度搜索
@@ -227,15 +251,15 @@ class VectorStoreManager:
 
             # 如果没有启用Rerank或没有Reranker，直接返回初步检索结果
             if not use_rerank or not self.reranker:
-                # 过滤掉相似度低于阈值的文档
                 filtered_docs = []
                 for i, (doc, score) in enumerate(docs_with_scores):
-                    if score >= similarity_threshold:
+                    normalized = self._to_similarity(score)
+                    if normalized >= similarity_threshold:
                         filtered_docs.append(doc)
-                        config.logger.debug(f"Document similarity score: {score}")
+                        config.logger.debug(f"Doc accepted: similarity={normalized:.4f}, raw_score={score:.4f}")
                     else:
-                        config.logger.debug(f"Document filtered out due to low similarity: {score}")
-                config.logger.info(f"Search completed in {time.time() - start_time:.4f}s, returning {len(filtered_docs)} documents")
+                        config.logger.debug(f"Doc filtered: similarity={normalized:.4f} < threshold={similarity_threshold}, raw_score={score:.4f}")
+                config.logger.info(f"Search completed in {time.time() - start_time:.4f}s, returning {len(filtered_docs)} documents after threshold filtering")
                 return filtered_docs
 
             # 使用Rerank进行重排序
@@ -259,7 +283,7 @@ class VectorStoreManager:
                 # Rerank失败时，回退到原始的向量搜索结果
                 filtered_docs = []
                 for doc, score in docs_with_scores:
-                    if score >= similarity_threshold:
+                    if self._to_similarity(score) >= similarity_threshold:
                         filtered_docs.append(doc)
                 config.logger.info(f"Search completed in {time.time() - start_time:.4f}s (Rerank failed, fallback to vector search), returning {len(filtered_docs)} documents")
                 return filtered_docs

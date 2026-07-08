@@ -82,7 +82,7 @@ public class AdminChatServiceImpl implements AdminChatService {
 
         String context = buildContext(conversationId);
 
-        AiResponse aiResponse = callAdminAgent(content, context, adminId);
+        AiResponse aiResponse = callAdminAgent(content, context, adminId, conversationId);
 
         String answer = aiResponse.getAnswer();
         String sourcesJson = null;
@@ -151,9 +151,9 @@ public class AdminChatServiceImpl implements AdminChatService {
         return sb.toString();
     }
 
-    private AiResponse callAdminAgent(String question, String context, Long adminId) {
+    private AiResponse callAdminAgent(String question, String context, Long adminId, Long conversationId) {
         try {
-            Map<String, Object> response = aiService.askForAdmin(question, context, adminId);
+            Map<String, Object> response = aiService.askForAdmin(question, context, adminId, conversationId);
             AiResponse aiResponse = new AiResponse();
             aiResponse.setAnswer((String) response.get("answer"));
             aiResponse.setTaskType((String) response.get("task_type"));

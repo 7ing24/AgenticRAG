@@ -167,7 +167,7 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
-    public AiResponse ask(String question, String context, Long userId) {
+    public AiResponse ask(String question, String context, Long userId, Long conversationId) {
         log.info("User question: {}, userId: {}", question, userId);
         AiResponse aiResponse = new AiResponse();
 
@@ -208,7 +208,8 @@ public class AiServiceImpl implements AiService {
                 }
             }
             requestBody.put("is_admin", isAdmin);
-            log.info("User is admin: {}", isAdmin);
+            requestBody.put("conversation_id", conversationId.toString());
+            log.info("User is admin: {}, conversationId: {}", isAdmin, conversationId);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -367,8 +368,8 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
-    public Map<String, Object> askForAdmin(String question, String context, Long adminId) {
-        log.info("[Admin AI] Admin question: {}, adminId: {}", question, adminId);
+    public Map<String, Object> askForAdmin(String question, String context, Long adminId, Long conversationId) {
+        log.info("[Admin AI] Admin question: {}, adminId: {}, conversationId: {}", question, adminId, conversationId);
         Map<String, Object> response = new HashMap<>();
 
         try {
@@ -376,6 +377,7 @@ public class AiServiceImpl implements AiService {
             requestBody.put("question", question);
             requestBody.put("context", context);
             requestBody.put("is_admin", true);
+            requestBody.put("conversation_id", conversationId.toString());
             requestBody.put("username", "admin_" + adminId);
 
             HttpHeaders headers = new HttpHeaders();

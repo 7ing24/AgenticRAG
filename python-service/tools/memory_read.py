@@ -153,7 +153,7 @@ class ConversationMemoryReadTool(Tool):
 请用 2-3 句话概括，不要遗漏重要信息。"""
 
         try:
-            summary = self.llm_service.chat(prompt)
+            summary = self.llm_service.generate(prompt)
             return summary
         except Exception as e:
             config.logger.warning(f"Failed to compress history: {e}")

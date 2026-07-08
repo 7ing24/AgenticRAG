@@ -10,9 +10,10 @@ public interface AiService {
      * @param question 用户问题
      * @param context 相关文档上下文
      * @param userId 用户ID
+     * @param conversationId 会话ID
      * @return AI回答对象
      */
-    AiResponse ask(String question, String context, Long userId);
+    AiResponse ask(String question, String context, Long userId, Long conversationId);
 
     /**
      * 生成会话标题并更新数据库
@@ -31,7 +32,8 @@ public interface AiService {
      * @param question 用户问题
      * @param context 对话上下文
      * @param adminId 管理员ID
+     * @param conversationId 会话ID
      * @return AI回答对象
      */
-    java.util.Map<String, Object> askForAdmin(String question, String context, Long adminId);
+    java.util.Map<String, Object> askForAdmin(String question, String context, Long adminId, Long conversationId);
 }

@@ -103,7 +103,7 @@ public class ChatServiceImpl implements ChatService {
         log.debug("对话上下文构建完成，长度: {}，内容: {}", conversationContext.length(), conversationContext);
 
         // 3. 调用 AI 服务获取回答（传入对话上下文）
-        AiResponse aiResponse = aiService.ask(content, conversationContext, userId);
+        AiResponse aiResponse = aiService.ask(content, conversationContext, userId, conversationId);
         String answer = aiResponse.getAnswer();
         String sourcesJson = null;
         String taskType = aiResponse.getTaskType();
