@@ -1,7 +1,10 @@
 package com.demo.aiknowledge.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -15,6 +18,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Arrays;
+import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
@@ -55,6 +59,24 @@ public class SecurityConfig {
             .formLogin(form -> form.disable())
             // 禁用默认的HTTP基本认证
             .httpBasic(httpBasic -> httpBasic.disable());
+
+        // 异常处理：未认证返回401，权限不足返回403
+        http.exceptionHandling(ex -> ex
+            .authenticationEntryPoint((request, response, authException) -> {
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                response.setCharacterEncoding("UTF-8");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                new ObjectMapper().writeValue(response.getWriter(),
+                    Map.of("code", 401, "message", "未登录或登录已过期"));
+            })
+            .accessDeniedHandler((request, response, accessDeniedException) -> {
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                response.setCharacterEncoding("UTF-8");
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                new ObjectMapper().writeValue(response.getWriter(),
+                    Map.of("code", 403, "message", "权限不足"));
+            })
+        );
 
         // 配置无状态会话管理
         http.sessionManagement(session -> session
