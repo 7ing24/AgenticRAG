@@ -622,6 +622,28 @@ LOCK TABLES `user` WRITE;
 INSERT INTO `user` VALUES (1,'jack','18340362136','$2a$10$NPgK2tlqMkMv6OU7PnGJ8.1LWxjYMdrDMatWZrAlly3wBr9D2/o0W','2026-03-08 14:09:54',1),(2,'rose','16642280691','$2a$10$b.TnVwf70kod7jYxeU284u4KcVOJiDebzcKzyFnXaB2bVlqfwiilO','2026-03-08 16:49:52',1),(3,'ha\'ha','18340362135','123456','2026-03-12 18:55:38',1),(4,'xixi','13781284868','$2a$10$CaTe.jdxKP7WXJGwhr/K/O2SVaIzCudIUy9k8n/wrWc0kgICpeTxq','2026-03-19 21:46:33',1);
 /*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Table structure for table `user_memory`
+--
+
+DROP TABLE IF EXISTS `user_memory`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `user_memory` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` varchar(64) NOT NULL COMMENT '用户ID',
+  `memory_key` varchar(128) NOT NULL COMMENT '记忆类型',
+  `memory_value` text COMMENT '记忆内容（JSON）',
+  `source` varchar(32) DEFAULT 'agent' COMMENT '来源',
+  `confidence` decimal(3,2) DEFAULT '1.00' COMMENT '置信度',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_memory` (`user_id`, `memory_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户画像记忆表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

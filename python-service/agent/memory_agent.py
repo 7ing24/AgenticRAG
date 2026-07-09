@@ -113,7 +113,7 @@ AI回答：{answer}
 如果没有明显偏好，返回：null
 只返回 JSON 或 null，不要解释。"""
 
-            result = self.llm_service.chat(prompt)
+            result = self.llm_service.generate(prompt)
             if result and result.strip() != "null":
                 # 清理 markdown 代码块
                 cleaned = result.strip()
@@ -128,7 +128,7 @@ AI回答：{answer}
                 )
                 logger.info(f"[{state.run_id}] Extracted user preference: {preference}")
         except Exception as e:
-            logger.debug(f"[{state.run_id}] Extract user preference failed: {e}")  # 静默失败
+            logger.warning(f"[{state.run_id}] Extract user preference failed: {e}")
 
     def _format_history(self, messages: list) -> str:
         """格式化对话历史"""

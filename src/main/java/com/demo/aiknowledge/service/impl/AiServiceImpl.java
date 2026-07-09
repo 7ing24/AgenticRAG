@@ -1,11 +1,14 @@
 package com.demo.aiknowledge.service.impl;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.demo.aiknowledge.dto.AiResponse;
+import com.demo.aiknowledge.entity.Admin;
 import com.demo.aiknowledge.entity.Conversation;
 import com.demo.aiknowledge.entity.KnowledgeDoc;
 import com.demo.aiknowledge.entity.User;
 import com.demo.aiknowledge.config.CacheConfig;
+import com.demo.aiknowledge.mapper.AdminMapper;
 import com.demo.aiknowledge.mapper.ConversationMapper;
 import com.demo.aiknowledge.mapper.KnowledgeDocMapper;
 import com.demo.aiknowledge.service.AiService;
@@ -37,6 +40,7 @@ public class AiServiceImpl implements AiService {
 
     private final KnowledgeDocMapper knowledgeDocMapper;
     private final ConversationMapper conversationMapper;
+    private final AdminMapper adminMapper;
     private final RestTemplate restTemplate;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
@@ -197,9 +201,7 @@ public class AiServiceImpl implements AiService {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("question", question);
             requestBody.put("context", context);
-            
-            // 判断用户是否为管理员（userId == 1L 为管理员）
-            boolean isAdmin = (userId != null && userId == 1L);
+
             String username = null;
             if (userId != null) {
                 User user = userService.getById(userId);
@@ -209,9 +211,16 @@ public class AiServiceImpl implements AiService {
                     log.info("Added username to request: {}", username);
                 }
             }
+
+            // 判断用户是否为管理员（查询 admin 表）
+            boolean isAdmin = username != null
+                    && adminMapper.selectCount(new LambdaQueryWrapper<Admin>().eq(Admin::getUsername, username)) > 0;
             requestBody.put("is_admin", isAdmin);
+            if (userId != null) {
+                requestBody.put("user_id", userId.toString());
+            }
             requestBody.put("conversation_id", conversationId.toString());
-            log.info("User is admin: {}, conversationId: {}", isAdmin, conversationId);
+            log.info("User is admin: {}, userId: {}, conversationId: {}", isAdmin, userId, conversationId);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -380,6 +389,7 @@ public class AiServiceImpl implements AiService {
             requestBody.put("context", context);
             requestBody.put("is_admin", true);
             requestBody.put("conversation_id", conversationId.toString());
+            requestBody.put("user_id", adminId.toString());
             requestBody.put("username", "admin_" + adminId);
 
             HttpHeaders headers = new HttpHeaders();

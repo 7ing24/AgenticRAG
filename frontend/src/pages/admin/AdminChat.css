@@ -293,6 +293,7 @@
   line-height: 1.6;
   color: #1f2937;
   position: relative;
+  white-space: pre-wrap;
 }
 
 .admin-message-row.user .admin-message-body {

@@ -167,6 +167,7 @@ class ChatRequest(BaseModel):
     context: str = "" # Optional, if context is passed directly (not used here)
     conversation_id: str = None # Optional, for conversation memory
     username: str = None # Optional, if username is provided
+    user_id: str = None # Optional, user ID for user profile
     is_admin: bool = False # Optional, whether user is admin
 
 class SummaryRequest(BaseModel):
@@ -267,6 +268,7 @@ async def ask_question(request: ChatRequest):
             result = router_agent.route(
                 input_text=request.question,
                 conversation_id=request.conversation_id,
+                user_id=request.user_id,
                 context=request.context,
                 username=request.username,
                 is_admin=request.is_admin

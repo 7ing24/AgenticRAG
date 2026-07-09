@@ -44,7 +44,7 @@ class AdminCopilotAgent:
         logger.info(f"[AdminCopilotAgent] Processing admin request: {question[:50]}...")
 
         try:
-            operation = self._parse_operation(question)
+            operation = self._parse_operation(question, context)
             result = self._execute_operation(operation, question)
 
             return result
@@ -66,7 +66,7 @@ class AdminCopilotAgent:
         logger.info(f"[AdminCopilotAgent] Stream admin request: {question[:50]}...")
 
         try:
-            operation = self._parse_operation(question)
+            operation = self._parse_operation(question, context)
 
             if operation in ["knowledge_gap", "full_ops_report"]:
                 yield from self.ops_agent.analyze_stream(
@@ -86,9 +86,16 @@ class AdminCopilotAgent:
             logger.error(f"[AdminCopilotAgent] Stream error: {e}", exc_info=True)
             yield json.dumps({"type": "error", "error": str(e)})
 
-    def _parse_operation(self, question: str) -> str:
-        """解析操作类型"""
+    def _parse_operation(self, question: str, context: str = "") -> str:
+        """解析操作类型，对跟进类请求回溯上下文"""
         lower_question = question.lower()
+
+        # 如果是跟进请求，从上下文推断上一轮操作
+        if any(phrase in question for phrase in ["重新回答", "再列", "换格式", "每行", "重新列", "重列", "再回答", "换个方式"]):
+            prev_op = self._infer_operation_from_context(context)
+            if prev_op:
+                logger.info(f"[AdminCopilotAgent] Follow-up detected, inferred operation: {prev_op}")
+                return prev_op
 
         if any(kw in lower_question for kw in ["知识缺口", "缺口", "未命中", "知识缺口分析"]):
             return "knowledge_gap"
@@ -110,6 +117,37 @@ class AdminCopilotAgent:
             return "tool_call_failures"
 
         return "stats"
+
+    def _infer_operation_from_context(self, context: str) -> Optional[str]:
+        """从对话上下文中推断上一轮的操作类型"""
+        if not context:
+            return None
+
+        # 提取上下文中用户说的内容
+        user_lines = []
+        for line in context.split("\n"):
+            if line.startswith("user:") or line.startswith("用户:"):
+                user_lines.append(line.split(":", 1)[-1].strip())
+
+        # 从最近一条用户消息开始，反向查找匹配的操作关键词
+        keyword_to_operation = [
+            (["热门问题", "问题排行", "top问题", "常见问题"], "hot_questions"),
+            (["知识缺口", "缺口", "未命中"], "knowledge_gap"),
+            (["运营报告", "完整报告", "全报告"], "full_ops_report"),
+            (["活跃度", "活跃用户", "用户活动"], "user_activity"),
+            (["知识库增长", "文档增长", "增长趋势"], "knowledge_growth"),
+            (["成功率", "失败率", "agent成功"], "agent_success_rate"),
+            (["工具调用", "工具失败", "工具错误"], "tool_call_failures"),
+            (["统计", "报表", "仪表盘"], "stats"),
+            (["知识", "文档", "巡检", "检查", "质量"], "knowledge_inspection"),
+        ]
+
+        for user_text in reversed(user_lines):
+            for keywords, operation in keyword_to_operation:
+                if any(kw in user_text for kw in keywords):
+                    return operation
+
+        return None
 
     def _execute_operation(self, operation: str, question: str) -> Dict[str, Any]:
         """执行管理操作"""
