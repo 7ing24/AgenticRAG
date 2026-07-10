@@ -60,15 +60,20 @@ class TestClassifyTask:
         result = router.classify_task("查看后台统计数据", is_admin=True)
         assert result == TaskType.ADMIN_COPILOT
 
-    def test_classify_inspection(self, router):
-        """测试知识巡检"""
+    def test_classify_inspection_routes_to_admin(self, router):
+        """管理员巡检请求应路由到AdminCopilot（由AdminCopilot委托InspectionAgent）"""
         result = router.classify_task("检查重复文档", is_admin=True)
-        assert result == TaskType.KNOWLEDGE_INSPECTION
+        assert result == TaskType.ADMIN_COPILOT
 
-    def test_classify_inspection_low_quality(self, router):
-        """测试低质量巡检"""
+    def test_classify_inspection_low_quality_to_admin(self, router):
+        """管理员低质量巡检请求应路由到AdminCopilot"""
         result = router.classify_task("检查低质量片段", is_admin=True)
-        assert result == TaskType.KNOWLEDGE_INSPECTION
+        assert result == TaskType.ADMIN_COPILOT
+
+    def test_classify_inspection_non_admin_fallback(self, router):
+        """普通用户巡检请求应降级为知识问答"""
+        result = router.classify_task("检查重复文档", is_admin=False)
+        assert result == TaskType.KNOWLEDGE_QA
 
     def test_classify_unknown_short_text(self, router):
         """测试短文本无关键词时归类为闲聊"""
@@ -80,30 +85,6 @@ class TestClassifyTask:
         """测试长文本含'分析'时走推理链路"""
         result = router.classify_task("请帮我分析一下这个问题的具体情况并给出建议")
         assert result == TaskType.REASONING
-
-
-class TestParseInspectionType:
-    """测试巡检类型解析"""
-
-    def test_parse_duplicate(self, router):
-        """测试解析重复类型"""
-        assert router._parse_inspection_type("检查重复文档") == "duplicate"
-
-    def test_parse_low_quality(self, router):
-        """测试解析低质量类型"""
-        assert router._parse_inspection_type("检查低质量内容") == "low_quality"
-
-    def test_parse_stale(self, router):
-        """测试解析过期类型"""
-        assert router._parse_inspection_type("检查过期文档") == "stale"
-
-    def test_parse_unpopular(self, router):
-        """测试解析无人访问类型"""
-        assert router._parse_inspection_type("检查无人访问的文档") == "unpopular"
-
-    def test_parse_full(self, router):
-        """测试默认全量巡检"""
-        assert router._parse_inspection_type("知识库巡检") == "full"
 
 
 class TestGetAgent:
@@ -124,11 +105,6 @@ class TestGetAgent:
         agent = router.get_agent(TaskType.ADMIN_COPILOT)
         assert agent is router.admin_copilot_agent
 
-    def test_get_inspection_agent(self, router):
-        """测试获取巡检Agent"""
-        agent = router.get_agent(TaskType.KNOWLEDGE_INSPECTION)
-        assert agent is router.inspection_agent
-
     def test_get_unknown_defaults_to_knowledge(self, router):
         """测试未知类型默认返回知识问答Agent"""
         agent = router.get_agent(TaskType.UNKNOWN)
@@ -144,7 +120,6 @@ class TestGetTaskStats:
         assert "chitchat_keywords" in stats
         assert "knowledge_qa_keywords" in stats
         assert "admin_keywords" in stats
-        assert "inspection_keywords" in stats
         assert "emotion_keywords" in stats
 
     def test_stats_values_positive(self, router):

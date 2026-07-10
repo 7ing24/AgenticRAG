@@ -15,7 +15,6 @@ class IntentType(Enum):
     CHITCHAT = "chitchat"
     KNOWLEDGE_QA = "knowledge_qa"
     ADMIN_OPERATION = "admin_operation"
-    KNOWLEDGE_INSPECTION = "knowledge_inspection"
     IDENTITY_QUERY = "identity_query"
     UNKNOWN = "unknown"
 
@@ -70,10 +69,7 @@ class IntentClassifier:
             "知识缺口", "缺口分析", "运营报告", "运营分析",
             "日志分析", "运营建议", "后台建议",
             "活跃用户", "活跃度", "用户活动",
-        ]
-
-        # 知识巡检关键词库（fallback用）
-        self.inspection_keywords = [
+            # 知识巡检相关（仅管理员可用，由AdminCopilotAgent委托InspectionAgent）
             "巡检", "检查", "检测", "审查",
             "重复文档", "重复", "一样", "相同",
             "低质量", "质量差", "片段", "内容短", "内容长",
@@ -174,10 +170,9 @@ class IntentClassifier:
 可选的意图类型：
 1. chitchat - 闲聊（问候、告别、日常聊天、情感表达、身份询问等）
 2. knowledge_qa - 知识问答（技术问题、概念解释、方法步骤、比较分析等）
-3. admin_operation - 管理操作（后台管理、数据统计、运营分析等，需要管理员权限）
-4. knowledge_inspection - 知识巡检（检查文档质量、重复、过期等）
-5. identity_query - 身份查询（询问系统身份、名称等）
-6. unknown - 无法确定
+3. admin_operation - 管理操作（后台管理、数据统计、运营分析、知识巡检等，需要管理员权限）
+4. identity_query - 身份查询（询问系统身份、名称等）
+5. unknown - 无法确定
 
 请返回JSON格式：
 {{"intent": "意图类型", "confidence": 0.0-1.0, "reasoning": "判断理由"}}
@@ -207,7 +202,6 @@ class IntentClassifier:
                 "chitchat": IntentType.CHITCHAT,
                 "knowledge_qa": IntentType.KNOWLEDGE_QA,
                 "admin_operation": IntentType.ADMIN_OPERATION,
-                "knowledge_inspection": IntentType.KNOWLEDGE_INSPECTION,
                 "identity_query": IntentType.IDENTITY_QUERY,
                 "unknown": IntentType.UNKNOWN,
             }
@@ -246,21 +240,12 @@ class IntentClassifier:
         chitchat_score = sum(1 for kw in self.chitchat_keywords if kw in clean_text)
         knowledge_score = sum(1 for kw in self.knowledge_qa_keywords if kw in clean_text)
         admin_score = sum(1 for kw in self.admin_keywords if kw in clean_text)
-        inspection_score = sum(1 for kw in self.inspection_keywords if kw in clean_text)
         emotion_score = sum(1 for kw in self.emotion_keywords if kw in clean_text)
 
-        logger.debug(f"[IntentClassifier] Scores - chitchat:{chitchat_score}, knowledge:{knowledge_score}, admin:{admin_score}, inspection:{inspection_score}")
+        logger.debug(f"[IntentClassifier] Scores - chitchat:{chitchat_score}, knowledge:{knowledge_score}, admin:{admin_score}")
 
         # 管理员模式：优先处理管理相关任务
         if is_admin:
-            # 知识巡检优先级最高
-            if inspection_score > 0:
-                return IntentResult(
-                    intent=IntentType.KNOWLEDGE_INSPECTION,
-                    confidence=min(0.95, 0.6 + inspection_score * 0.1),
-                    reasoning=f"管理员模式，命中{inspection_score}个巡检关键词"
-                )
-            # 管理助手
             if admin_score > 0:
                 # 如果技术词汇更多，可能是知识问答
                 if knowledge_score >= admin_score:
@@ -274,14 +259,6 @@ class IntentClassifier:
                     confidence=min(0.9, 0.5 + admin_score * 0.1),
                     reasoning=f"管理员模式，命中{admin_score}个管理关键词"
                 )
-
-        # 知识巡检（管理员和普通用户都可以触发）
-        if inspection_score > 0 and inspection_score >= knowledge_score:
-            return IntentResult(
-                intent=IntentType.KNOWLEDGE_INSPECTION,
-                confidence=min(0.9, 0.6 + inspection_score * 0.1),
-                reasoning=f"命中{inspection_score}个巡检关键词"
-            )
 
         # 技术问题优先判定为知识问答
         if knowledge_score >= 2:
@@ -388,6 +365,5 @@ class IntentClassifier:
             "chitchat_keywords": len(self.chitchat_keywords),
             "knowledge_qa_keywords": len(self.knowledge_qa_keywords),
             "admin_keywords": len(self.admin_keywords),
-            "inspection_keywords": len(self.inspection_keywords),
             "emotion_keywords": len(self.emotion_keywords),
         }

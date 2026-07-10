@@ -196,16 +196,19 @@ class VectorStoreManager:
 
         FAISS 默认 IndexFlatL2，返回 L2 欧氏距离（越小越相似）。
         Milvus 根据配置可能返回 L2 距离 / 内积(IP) / 余弦相似度(COSINE)。
+
+        注意：FAISS/Milvus 返回的 raw_score 可能是 numpy.float32，
+        float() 转换确保 FastAPI JSON 序列化不报错。
         """
         if self.metric_type == "L2":
             # L2 距离 → 相似度：1/(1+d)，范围 (0, 1]
-            return 1.0 / (1.0 + raw_score)
+            return float(1.0 / (1.0 + raw_score))
         elif self.metric_type == "IP":
             # 内积：直接归一化到 [0, 1]
-            return max(0.0, min(1.0, (raw_score + 1.0) / 2.0))
+            return float(max(0.0, min(1.0, (raw_score + 1.0) / 2.0)))
         else:
             # COSINE 或其他：假设已经是相似度
-            return raw_score
+            return float(raw_score)
 
     def search(self, query: str, k: int = 3, filter_dict: Optional[Dict[str, Any]] = None, similarity_threshold: float = 0.75, use_rerank: bool = True) -> List[Document]:
         """
@@ -255,6 +258,7 @@ class VectorStoreManager:
                 for i, (doc, score) in enumerate(docs_with_scores):
                     normalized = self._to_similarity(score)
                     if normalized >= similarity_threshold:
+                        doc.metadata['score'] = normalized
                         filtered_docs.append(doc)
                         config.logger.debug(f"Doc accepted: similarity={normalized:.4f}, raw_score={score:.4f}")
                     else:
@@ -283,7 +287,9 @@ class VectorStoreManager:
                 # Rerank失败时，回退到原始的向量搜索结果
                 filtered_docs = []
                 for doc, score in docs_with_scores:
-                    if self._to_similarity(score) >= similarity_threshold:
+                    normalized = self._to_similarity(score)
+                    if normalized >= similarity_threshold:
+                        doc.metadata['score'] = normalized
                         filtered_docs.append(doc)
                 config.logger.info(f"Search completed in {time.time() - start_time:.4f}s (Rerank failed, fallback to vector search), returning {len(filtered_docs)} documents")
                 return filtered_docs

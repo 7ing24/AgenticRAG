@@ -3,7 +3,6 @@ from enum import Enum
 from workflows.knowledge_qa_agent import KnowledgeQAAgent
 from workflows.chitchat_agent import ChitChatAgent
 from workflows.admin_copilot_agent import AdminCopilotAgent
-from workflows.inspection_agent import InspectionAgent
 from workflows.retrieval_agent import RetrievalAgent
 from intent.classifier import IntentClassifier, IntentType
 import logging
@@ -17,7 +16,6 @@ class TaskType(Enum):
     CHITCHAT = "chitchat"
     KNOWLEDGE_QA = "knowledge_qa"
     ADMIN_COPILOT = "admin_copilot"
-    KNOWLEDGE_INSPECTION = "knowledge_inspection"
     REASONING = "reasoning"
     UNKNOWN = "unknown"
 
@@ -29,7 +27,6 @@ class RouterAgent:
         self.knowledge_qa_agent = KnowledgeQAAgent()
         self.chitchat_agent = ChitChatAgent()
         self.admin_copilot_agent = AdminCopilotAgent()
-        self.inspection_agent = InspectionAgent()
         self.retrieval_agent = RetrievalAgent()
         self.classifier = IntentClassifier()
         self._reasoning_agent = None
@@ -76,13 +73,6 @@ class RouterAgent:
             elif task_type == TaskType.ADMIN_COPILOT:
                 return self.admin_copilot_agent.handle(
                     input_text, conversation_id, user_id, context, **kwargs
-                )
-
-            elif task_type == TaskType.KNOWLEDGE_INSPECTION:
-                # 从输入中解析巡检类型
-                inspection_type = self._parse_inspection_type(input_text)
-                return self.inspection_agent.inspect(
-                    inspection_type, conversation_id, user_id, context, **kwargs
                 )
 
             elif task_type == TaskType.REASONING:
@@ -149,13 +139,6 @@ class RouterAgent:
                 ):
                     yield event
 
-            elif task_type == TaskType.KNOWLEDGE_INSPECTION:
-                inspection_type = self._parse_inspection_type(input_text)
-                for event in self.inspection_agent.inspect_stream(
-                    inspection_type, conversation_id, user_id, context, **kwargs
-                ):
-                    yield event
-
             elif task_type == TaskType.REASONING:
                 result = self.reasoning_agent.reason(
                     input_text, context, conversation_id
@@ -197,7 +180,6 @@ class RouterAgent:
             IntentType.CHITCHAT: TaskType.CHITCHAT,
             IntentType.KNOWLEDGE_QA: TaskType.KNOWLEDGE_QA,
             IntentType.ADMIN_OPERATION: TaskType.ADMIN_COPILOT,
-            IntentType.KNOWLEDGE_INSPECTION: TaskType.KNOWLEDGE_INSPECTION,
             IntentType.IDENTITY_QUERY: TaskType.CHITCHAT,
             IntentType.UNKNOWN: TaskType.KNOWLEDGE_QA,
         }
@@ -205,10 +187,16 @@ class RouterAgent:
         task_type = intent_to_task.get(result.intent, TaskType.KNOWLEDGE_QA)
 
         # KNOWLEDGE_QA 进一步判断复杂度，可能升级为 REASONING
-#         if task_type == TaskType.KNOWLEDGE_QA:
-#             complexity = self.classify_complexity(input_text)
-#             if complexity == "complex":
-#                 return TaskType.REASONING
+        # if task_type == TaskType.KNOWLEDGE_QA:
+        #     complexity = self.classify_complexity(input_text)
+        #     if complexity == "complex":
+        #         return TaskType.REASONING
+
+        # 非管理员不能访问管理功能（含知识巡检），强制降级为知识问答
+        if not is_admin and task_type == TaskType.ADMIN_COPILOT:
+            logger.info(f"[RouterAgent] Non-admin user attempted admin operation, "
+                        f"downgrading to KNOWLEDGE_QA (intent: {result.intent})")
+            task_type = TaskType.KNOWLEDGE_QA
 
         return task_type
 
@@ -237,28 +225,12 @@ class RouterAgent:
         # L1：简单问题
         return "simple"
 
-    def _parse_inspection_type(self, input_text: str) -> str:
-        """从输入中解析巡检类型"""
-        lower_text = input_text.lower()
-
-        if "重复" in lower_text:
-            return "duplicate"
-        elif "低质量" in lower_text or "质量" in lower_text or "片段" in lower_text:
-            return "low_quality"
-        elif "过期" in lower_text or "陈旧" in lower_text:
-            return "stale"
-        elif "无人访问" in lower_text or "没人看" in lower_text or "访问" in lower_text:
-            return "unpopular"
-        else:
-            return "full"
-
     def get_agent(self, task_type: TaskType):
         """获取对应的Agent"""
         agent_map = {
             TaskType.CHITCHAT: self.chitchat_agent,
             TaskType.KNOWLEDGE_QA: self.knowledge_qa_agent,
             TaskType.ADMIN_COPILOT: self.admin_copilot_agent,
-            TaskType.KNOWLEDGE_INSPECTION: self.inspection_agent,
             TaskType.REASONING: self.reasoning_agent,
         }
         return agent_map.get(task_type, self.knowledge_qa_agent)

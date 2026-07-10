@@ -208,8 +208,17 @@ class Planner:
             confidence=0.6
         )
 
-    def evaluate_retrieval_sufficiency(self, chunks: List[Any], question: str, scores: List[float] = None) -> SufficiencyResult:
-        """评估检索结果充分性"""
+    def evaluate_retrieval_sufficiency(self, chunks: List[Any], question: str,
+                                         scores: List[float] = None,
+                                         score_threshold: float = 0.6) -> SufficiencyResult:
+        """评估检索结果充分性
+
+        Args:
+            chunks: 检索到的文档列表
+            question: 原始问题
+            scores: 文档分数列表
+            score_threshold: 低分阈值，向量相似度用 0.6， Jaccard 等稀疏分数用 0.2
+        """
         if not chunks:
             return SufficiencyResult(
                 is_sufficient=False,
@@ -222,12 +231,12 @@ class Planner:
         if scores is None:
             scores = [0.5] * len(chunks)
 
-        low_score_count = sum(1 for s in scores if s < 0.6)
+        low_score_count = sum(1 for s in scores if s < score_threshold)
         if low_score_count > len(scores) * 0.5:
             return SufficiencyResult(
                 is_sufficient=False,
                 confidence=0.8,
-                reasoning=f"大部分检索结果相似度较低（{low_score_count}/{len(chunks)}低于阈值）",
+                reasoning=f"大部分检索结果相似度较低（{low_score_count}/{len(chunks)}低于{score_threshold}）",
                 missing_aspects=["高质量检索结果"],
                 suggestions=["优化检索query", "增加同义词扩展"]
             )

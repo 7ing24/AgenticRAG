@@ -1,11 +1,13 @@
-from typing import Dict, Any, Optional, Generator
+from typing import Dict, Any, Optional, Generator, List
 from agent.orchestrator import Orchestrator
+from agent.planner import Planner
 from agent.state import AgentState
 from agent.events import EventBus, event_bus
 from workflows.retrieval_agent import RetrievalAgent
 from core.vector_store import vector_store
 from core.llm import LLMService
 from tools.registry import tool_registry
+from tools.question_rewrite import QuestionRewriteTool
 import logging
 import json
 
@@ -21,6 +23,9 @@ class KnowledgeQAAgent:
         self.retrieval_agent = RetrievalAgent()
         self.vector_store = vector_store
         self.llm_service = LLMService()
+        self.planner = Planner()
+        self.question_rewrite_tool = QuestionRewriteTool()
+        self.max_retrieval_rounds = 3
         self._router = None
         self._reasoning_agent = None
 
@@ -97,14 +102,40 @@ class KnowledgeQAAgent:
 
     def _ask_l1(self, question: str, conversation_id: Optional[str],
                 full_context: str) -> Dict[str, Any]:
-        """L1 简化链路：直接检索+生成"""
-        # 直接向量检索
-        docs = self.vector_store.search(
-            query=question, k=5, similarity_threshold=0.7, use_rerank=False
-        )
-        logger.info(f"[KnowledgeQAAgent] L1 retrieved {len(docs)} documents")
+        """L1 简化链路：检索 + 自省循环（不充分时改写重试）"""
+        best_docs = []
+        best_scores = []
+        current_query = question
 
-        if not docs:
+        for round_num in range(self.max_retrieval_rounds):
+            docs = self.vector_store.search(
+                query=current_query, k=5, similarity_threshold=0.5, use_rerank=False
+            )
+            scores = [doc.metadata.get('score', 0.5) if hasattr(doc, 'metadata') else 0.5 for doc in docs] if docs else []
+            logger.info(f"[KnowledgeQAAgent] L1 round {round_num + 1}: "
+                        f"retrieved {len(docs)} docs, avg_score={sum(scores)/len(scores):.2f}" if scores else "N/A")
+
+            if docs and self.planner.evaluate_retrieval_sufficiency(
+                docs, question, scores, score_threshold=0.5
+            ).is_sufficient:
+                logger.info(f"[KnowledgeQAAgent] L1 sufficient at round {round_num + 1}")
+                best_docs = docs
+                best_scores = scores
+                break
+
+            if len(docs) > len(best_docs):
+                best_docs = docs
+                best_scores = scores
+
+            if round_num < self.max_retrieval_rounds - 1:
+                current_query = self._rewrite_query_for_retry(
+                    current_query, full_context, round_num
+                )
+                logger.info(f"[KnowledgeQAAgent] L1 retry with: {current_query[:50]}...")
+        else:
+            logger.info(f"[KnowledgeQAAgent] L1 max rounds reached, using best ({len(best_docs)} docs)")
+
+        if not best_docs:
             if full_context:
                 answer = self.llm_service.get_answer(question, [], full_context)
             else:
@@ -112,9 +143,9 @@ class KnowledgeQAAgent:
             self._save_to_memory(conversation_id, question, answer)
             return {"answer": answer, "sources": [], "has_sources": False, "task_type": "knowledge_qa"}
 
-        answer = self.llm_service.get_answer(question, docs, full_context)
+        answer = self.llm_service.get_answer(question, best_docs, full_context)
         self._save_to_memory(conversation_id, question, answer)
-        sources = self._build_sources(docs)
+        sources = self._build_sources(best_docs)
 
         return {
             "answer": answer, "sources": sources,
@@ -123,25 +154,90 @@ class KnowledgeQAAgent:
 
     def _ask_l2(self, question: str, conversation_id: Optional[str],
                 full_context: str) -> Dict[str, Any]:
-        """L2 标准链路：问题改写+检索+重排序+生成"""
-        retrieval_result = self.retrieval_agent.retrieve(
-            query=question,
-            conversation_context=full_context,
-            use_rewrite=True,
-            use_rerank=True,
-            top_k=5
-        )
+        """L2 标准链路：问题改写/指代消解 + 检索 + 重排序 + 生成 + 自省循环"""
+        best_docs = []
+        best_scores = []
+        best_citations = {}
 
-        docs = retrieval_result.reranked_documents
-        logger.info(f"[KnowledgeQAAgent] L2 retrieved {len(docs)} documents "
-                     f"(rewritten: '{retrieval_result.rewritten_query[:30]}...')")
+        # L2 每次都先用重写工具改写，有对话历史时自然消解指代
+        rewritten = self.question_rewrite_tool.execute({
+            "question": question,
+            "conversation_context": full_context
+        })
+        current_query = rewritten.get("rewritten_question", question)
+        logger.info(f"[KnowledgeQAAgent] L2 rewritten: '{question[:30]}...' -> '{current_query[:50]}...'")
 
-        if not docs:
+        for round_num in range(self.max_retrieval_rounds):
+            retrieval_result = self.retrieval_agent.retrieve(
+                query=current_query,
+                conversation_context=full_context,
+                use_rewrite=False,    # 改写由外层自省循环统一控制
+                use_rerank=True,
+                top_k=5,
+                similarity_threshold=0.5
+            )
+
+            docs = retrieval_result.reranked_documents
+            scores = retrieval_result.scores
+            logger.info(f"[KnowledgeQAAgent] L2 round {round_num + 1}: "
+                        f"retrieved {len(docs)} docs"
+                        + (f", avg_score={sum(scores)/len(scores):.2f}" if scores else ""))
+
+            if docs and self.planner.evaluate_retrieval_sufficiency(
+                docs, question, scores, score_threshold=0.3
+            ).is_sufficient:
+                logger.info(f"[KnowledgeQAAgent] L2 sufficient at round {round_num + 1}")
+                best_docs = docs
+                best_scores = scores
+                best_citations = retrieval_result.citations
+                break
+
+            if len(docs) > len(best_docs):
+                best_docs = docs
+                best_scores = scores
+                best_citations = retrieval_result.citations
+
+            if round_num < self.max_retrieval_rounds - 1:
+                current_query = self._rewrite_query_for_retry(
+                    current_query, full_context, round_num
+                )
+                logger.info(f"[KnowledgeQAAgent] L2 retry with: {current_query[:50]}...")
+        else:
+            logger.info(f"[KnowledgeQAAgent] L2 max rounds reached, using best ({len(best_docs)} docs)")
+
+        if not best_docs:
             answer = "抱歉，知识库中没有找到与您问题相关的内容。"
             self._save_to_memory(conversation_id, question, answer)
             return {"answer": answer, "sources": [], "has_sources": False, "task_type": "knowledge_qa"}
 
-        # 将检索结果转为 LLM 可用的文档格式
+        llm_docs = self._docs_to_llm_format(best_docs)
+        answer = self.llm_service.get_answer(question, llm_docs, full_context)
+        self._save_to_memory(conversation_id, question, answer)
+
+        citation_sources = best_citations.get("sources", []) if best_citations else []
+        sources = citation_sources if citation_sources else self._build_sources(best_docs)
+
+        return {
+            "answer": answer, "sources": sources,
+            "has_sources": len(sources) > 0, "task_type": "knowledge_qa"
+        }
+
+    def _rewrite_query_for_retry(self, query: str, context: str, retry_round: int) -> str:
+        """改写查询用于重试检索，每轮尝试不同改写角度"""
+        try:
+            result = self.question_rewrite_tool.execute({
+                "question": query,
+                "conversation_context": context
+            })
+            rewritten = result.get("rewritten_question", query)
+            if rewritten != query:
+                return rewritten
+        except Exception as e:
+            logger.warning(f"[KnowledgeQAAgent] Query rewrite failed: {e}")
+        return query
+
+    def _docs_to_llm_format(self, docs: list) -> list:
+        """将检索结果转为 LLM 可用的文档格式"""
         llm_docs = []
         for doc in docs:
             if hasattr(doc, 'page_content'):
@@ -152,17 +248,7 @@ class KnowledgeQAAgent:
                     page_content=doc.get('content', ''),
                     metadata=doc.get('metadata', {})
                 ))
-
-        answer = self.llm_service.get_answer(question, llm_docs, full_context)
-        self._save_to_memory(conversation_id, question, answer)
-
-        citation_sources = retrieval_result.citations.get("sources", []) if retrieval_result.citations else []
-        sources = citation_sources if citation_sources else self._build_sources(docs)
-
-        return {
-            "answer": answer, "sources": sources,
-            "has_sources": len(sources) > 0, "task_type": "knowledge_qa"
-        }
+        return llm_docs
 
     def _build_sources(self, docs: list) -> list:
         """构建引用来源（按 doc_id 去重）"""
