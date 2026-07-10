@@ -3,6 +3,7 @@ from agent.orchestrator import Orchestrator
 from agent.planner import Planner
 from agent.state import AgentState
 from agent.events import EventBus, event_bus
+from agent.react_agent import ReActAgent, react_agent
 from workflows.retrieval_agent import RetrievalAgent
 from core.vector_store import vector_store
 from core.llm import LLMService
@@ -28,6 +29,7 @@ class KnowledgeQAAgent:
         self.max_retrieval_rounds = 3
         self._router = None
         self._reasoning_agent = None
+        self._react_agent = None
 
     @property
     def router(self):
@@ -44,6 +46,13 @@ class KnowledgeQAAgent:
             from workflows.reasoning_agent import ReasoningAgent
             self._reasoning_agent = ReasoningAgent()
         return self._reasoning_agent
+
+    @property
+    def react_agent(self):
+        """延迟加载 ReActAgent"""
+        if self._react_agent is None:
+            self._react_agent = ReActAgent(max_iterations=10)
+        return self._react_agent
 
     def ask(self, question: str, conversation_id: Optional[str] = None,
             user_id: Optional[str] = None, context: str = "",
@@ -84,11 +93,9 @@ class KnowledgeQAAgent:
             logger.info(f"[KnowledgeQAAgent] Complexity: {complexity}")
 
             if complexity == "complex":
-                return self._ask_with_orchestrator(question, conversation_id, user_id, full_context)
-            elif complexity == "medium":
-                return self._ask_l2(question, conversation_id, full_context)
+                return self._ask_with_react(question, conversation_id, user_id, full_context)
             else:
-                return self._ask_l1(question, conversation_id, full_context)
+                return self._ask_fast(question, conversation_id, full_context)
 
         except Exception as e:
             logger.error(f"[KnowledgeQAAgent] QA failed: {e}", exc_info=True)
@@ -99,6 +106,92 @@ class KnowledgeQAAgent:
                 "task_type": "knowledge_qa",
                 "error": True
             }
+
+    def _ask_fast(self, question: str, conversation_id: Optional[str],
+                  full_context: str) -> Dict[str, Any]:
+        """快速链路：改写 + 检索 + rerank + 自省循环（合并原 L1/L2）"""
+        best_docs = []
+        best_scores = []
+
+        # 首轮改写（指代消解 + 关键词提取）
+        try:
+            rewritten = self.question_rewrite_tool.execute({
+                "question": question,
+                "conversation_context": full_context
+            })
+            current_query = rewritten.get("rewritten_question", question)
+            logger.info(f"[KnowledgeQAAgent] Fast rewritten: '{question[:30]}...' -> '{current_query[:50]}...'")
+        except Exception:
+            current_query = question
+
+        for round_num in range(self.max_retrieval_rounds):
+            retrieval_result = self.retrieval_agent.retrieve(
+                query=current_query,
+                conversation_context=full_context,
+                use_rewrite=False,
+                use_rerank=True,
+                top_k=5,
+                similarity_threshold=0.5
+            )
+
+            docs = retrieval_result.reranked_documents
+            scores = retrieval_result.scores
+            logger.info(f"[KnowledgeQAAgent] Fast round {round_num + 1}: "
+                        f"retrieved {len(docs)} docs"
+                        + (f", avg_score={sum(scores)/len(scores):.2f}" if scores else ""))
+
+            if docs and self.planner.evaluate_retrieval_sufficiency(
+                docs, question, scores, score_threshold=0.2
+            ).is_sufficient:
+                logger.info(f"[KnowledgeQAAgent] Fast sufficient at round {round_num + 1}")
+                best_docs = docs
+                best_scores = scores
+                break
+
+            if len(docs) > len(best_docs):
+                best_docs = docs
+                best_scores = scores
+
+            if round_num < self.max_retrieval_rounds - 1:
+                current_query = self._rewrite_query_for_retry(
+                    current_query, full_context, round_num
+                )
+                logger.info(f"[KnowledgeQAAgent] Fast retry with: {current_query[:50]}...")
+        else:
+            logger.info(f"[KnowledgeQAAgent] Fast max rounds reached, using best ({len(best_docs)} docs)")
+
+        if not best_docs:
+            if full_context:
+                answer = self.llm_service.get_answer(question, [], full_context)
+            else:
+                answer = "抱歉，知识库中没有找到与您问题相关的内容。"
+            self._save_to_memory(conversation_id, question, answer)
+            return {"answer": answer, "sources": [], "has_sources": False, "task_type": "knowledge_qa"}
+
+        llm_docs = self._docs_to_llm_format(best_docs)
+        answer = self.llm_service.get_answer(question, llm_docs, full_context)
+        self._save_to_memory(conversation_id, question, answer)
+        sources = self._build_sources(best_docs)
+
+        return {
+            "answer": answer, "sources": sources,
+            "has_sources": len(sources) > 0, "task_type": "knowledge_qa"
+        }
+
+    def _ask_with_react(self, question: str, conversation_id: Optional[str] = None,
+                        user_id: Optional[str] = None, context: str = "",
+                        **kwargs) -> Dict[str, Any]:
+        """ReAct 链路：LLM 动态决定工具调用，自主判断何时输出答案"""
+        logger.info(f"[KnowledgeQAAgent] Using ReAct agent...")
+        return self.react_agent.run(
+            question=question,
+            conversation_id=conversation_id,
+            user_id=user_id,
+            context=context,
+            **kwargs
+        )
+
+    # ── 以下为旧链路方法，保留供未来使用，当前路由不再指向它们 ──
 
     def _ask_l1(self, question: str, conversation_id: Optional[str],
                 full_context: str) -> Dict[str, Any]:

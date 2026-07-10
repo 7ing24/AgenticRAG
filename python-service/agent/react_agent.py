@@ -1,0 +1,464 @@
+"""ReAct Agent — 真正的 ReAct 循环: Observe → Think → Act → Observe → ... → Final Answer"""
+
+import uuid
+import logging
+import json
+from typing import Dict, Any, Optional, List, Generator
+from datetime import datetime
+
+from agent.state import AgentState, AgentStatus, AgentStep, StepType, TerminationCondition
+from agent.events import (
+    EventBus, event_bus,
+    RunStartedEvent, RunCompletedEvent, RunFailedEvent,
+    StepStartedEvent, StepCompletedEvent, StepFailedEvent,
+    ToolCallCompletedEvent, ToolCallFailedEvent,
+)
+from agent.react_parser import ReActParser, ParsedReActOutput
+from agent.react_prompts import ReActPrompts
+from core.llm import LLMService, llm_service
+from tools.registry import tool_registry
+
+logger = logging.getLogger(__name__)
+
+
+class ReActAgent:
+    """ReAct 循环 Agent — LLM 动态决定调用哪些工具，自主判断何时输出最终答案"""
+
+    def __init__(
+        self,
+        max_iterations: int = 10,
+        timeout_seconds: int = 300,
+    ):
+        self.max_iterations = max_iterations
+        self.timeout_seconds = timeout_seconds
+        self.llm_service = llm_service
+        self.tool_registry = tool_registry
+        self.event_bus = event_bus
+        self.parser = ReActParser()
+        self.prompts = ReActPrompts()
+
+    # ── Public API ──────────────────────────────────────────────
+
+    def run(
+        self,
+        question: str,
+        conversation_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        context: str = "",
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """同步执行 ReAct 循环，返回最终答案"""
+        state = self._create_state(question, conversation_id, user_id)
+
+        try:
+            initial_prompt = self.prompts.build_initial_messages(
+                question, context, "", self.tool_registry
+            )
+            messages = [{"role": "user", "content": initial_prompt}]
+
+            self.event_bus.publish(RunStartedEvent(
+                run_id=state.run_id, goal=state.goal, input_data=question
+            ))
+            state.start()
+
+            return self._run_loop(state, messages, question, conversation_id)
+
+        except Exception as e:
+            logger.error(f"[{state.run_id}] ReAct run failed: {e}", exc_info=True)
+            state.fail(str(e), "REACT_AGENT_ERROR")
+            self.event_bus.publish(RunFailedEvent(
+                run_id=state.run_id, error=str(e), error_code="REACT_AGENT_ERROR"
+            ))
+            return self._build_error_response(state)
+
+    def run_stream(
+        self,
+        question: str,
+        conversation_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        context: str = "",
+        **kwargs,
+    ) -> Generator[str, None, None]:
+        """流式执行 ReAct 循环，yield JSON 事件"""
+        state = self._create_state(question, conversation_id, user_id)
+
+        try:
+            yield json.dumps({"type": "start", "task_type": "react"})
+
+            initial_prompt = self.prompts.build_initial_messages(
+                question, context, "", self.tool_registry
+            )
+            messages = [{"role": "user", "content": initial_prompt}]
+
+            state.start()
+            self.event_bus.publish(RunStartedEvent(
+                run_id=state.run_id, goal=state.goal, input_data=question
+            ))
+
+            # ReAct loop with streaming
+            last_tool_calls = set()
+            for iteration in range(self.max_iterations):
+                if TerminationCondition.should_terminate(state):
+                    break
+
+                step = state.add_step(StepType.TOOL_CALL, f"react_iteration_{iteration}")
+                step.start()
+                yield json.dumps({"type": "step_started", "step_name": step.step_name})
+
+                llm_response = self._call_llm(messages)
+                parsed = self.parser.parse(llm_response)
+
+                if parsed.thought:
+                    yield json.dumps({"type": "thought", "content": parsed.thought})
+
+                if parsed.is_final_answer:
+                    final_answer = parsed.final_answer
+                    step.complete({"thought": parsed.thought, "final_answer": final_answer})
+                    logger.info(f"[{state.run_id}] Iteration {iteration + 1}: "
+                                f"Thought → Final Answer ({len(final_answer)} chars)")
+                    break
+
+                if parsed.action and parsed.tool_name:
+                    logger.info(f"[{state.run_id}] Iteration {iteration + 1}: "
+                                f"Thought → Action({parsed.tool_name})")
+                    # Loop detection
+                    call_key = (parsed.tool_name, json.dumps(parsed.parameters, sort_keys=True))
+                    if call_key in last_tool_calls:
+                        messages.append({
+                            "role": "user",
+                            "content": "You just called this exact tool with the same parameters. "
+                                       "Try a different approach or provide your Final Answer."
+                        })
+                        step.complete({"thought": parsed.thought, "loop_detected": True})
+                        last_tool_calls = {call_key}  # allow one more attempt after warning
+                        continue
+                    last_tool_calls.add(call_key)
+
+                    yield json.dumps({
+                        "type": "tool_call",
+                        "tool_name": parsed.tool_name,
+                        "params": parsed.parameters,
+                    })
+
+                    tool_result = self._execute_tool(
+                        state, step, parsed.tool_name, parsed.parameters
+                    )
+
+                    observation = self.prompts.format_observation(parsed.tool_name, tool_result)
+                    yield json.dumps({"type": "observation", "content": observation[:300]})
+
+                    messages.append({"role": "assistant", "content": llm_response})
+                    messages.append({"role": "user", "content": f"Observation: {observation}"})
+                else:
+                    messages.append({"role": "user", "content": (
+                        "Please provide either an Action with a tool call "
+                        "or your Final Answer."
+                    )})
+                    step.complete({"thought": parsed.thought, "parse_error": parsed.parse_error})
+            else:
+                final_answer = self._force_final_answer(messages, question, state.run_id)
+
+            # Build and return response
+            sources = self._extract_sources_from_state(state)
+            response = self._build_response(state, final_answer, sources)
+
+            yield json.dumps({"type": "sources", "sources": sources})
+
+            # Stream tokens of final answer
+            for char in final_answer:
+                yield json.dumps({"type": "token", "content": char})
+
+            yield json.dumps({"type": "end", "content": {
+                "answer": final_answer, "sources": sources, "task_type": "knowledge_qa"
+            }})
+
+            state.complete(response)
+            self.event_bus.publish(RunCompletedEvent(run_id=state.run_id, output=response))
+            self._save_conversation_memory(conversation_id, question, final_answer)
+
+        except Exception as e:
+            logger.error(f"[{state.run_id}] ReAct stream failed: {e}", exc_info=True)
+            state.fail(str(e), "REACT_AGENT_ERROR")
+            yield json.dumps({"type": "error", "content": str(e)})
+
+    # ── Core Loop ───────────────────────────────────────────────
+
+    def _run_loop(
+        self,
+        state: AgentState,
+        messages: List[Dict[str, str]],
+        question: str,
+        conversation_id: Optional[str],
+    ) -> Dict[str, Any]:
+        """ReAct 主循环"""
+        final_answer = None
+        last_tool_calls = set()
+
+        for iteration in range(self.max_iterations):
+            if TerminationCondition.should_terminate(state):
+                logger.info(f"[{state.run_id}] Termination condition met")
+                break
+
+            step = state.add_step(StepType.TOOL_CALL, f"react_iteration_{iteration}")
+            step.start()
+            self.event_bus.publish(StepStartedEvent(
+                run_id=state.run_id, step_id=step.step_id,
+                step_name=step.step_name, step_type=step.step_type.value
+            ))
+
+            # 1. Call LLM
+            llm_response = self._call_llm(messages)
+            parsed = self.parser.parse(llm_response)
+
+            if parsed.thought:
+                state.add_intermediate_conclusion(
+                    step_id=step.step_id, conclusion_type="thought",
+                    content=parsed.thought, confidence=0.8
+                )
+
+            # 2. Final Answer → done
+            if parsed.is_final_answer:
+                final_answer = parsed.final_answer
+                step.complete({"thought": parsed.thought, "final_answer": final_answer})
+                logger.info(f"[{state.run_id}] Iteration {iteration + 1}: "
+                            f"Thought → Final Answer ({len(final_answer)} chars)")
+                break
+
+            # 3. Action → execute tool
+            if parsed.action and parsed.tool_name:
+                logger.info(f"[{state.run_id}] Iteration {iteration + 1}: "
+                            f"Thought → Action({parsed.tool_name})")
+                # Loop detection
+                # Loop detection
+                call_key = (parsed.tool_name, json.dumps(parsed.parameters, sort_keys=True))
+                if call_key in last_tool_calls:
+                    messages.append({
+                        "role": "user",
+                        "content": "You just called this same tool with the same parameters. "
+                                   "Try a different approach or give your Final Answer."
+                    })
+                    step.complete({"thought": parsed.thought, "loop_detected": True})
+                    last_tool_calls = {call_key}
+                    continue
+                last_tool_calls.add(call_key)
+
+                tool_result = self._execute_tool(
+                    state, step, parsed.tool_name, parsed.parameters
+                )
+                observation = self.prompts.format_observation(parsed.tool_name, tool_result)
+
+                # Append to conversation
+                messages.append({"role": "assistant", "content": llm_response})
+                messages.append({"role": "user", "content": f"Observation: {observation}"})
+                step.complete({"thought": parsed.thought, "action": parsed.action})
+
+            else:
+                # Parsing failed — prompt LLM to retry
+                messages.append({"role": "user", "content": (
+                    "Please provide either an Action with one of the available tools, "
+                    "or your Final Answer."
+                )})
+                step.complete({"thought": parsed.thought, "parse_error": parsed.parse_error})
+                logger.warning(f"[{state.run_id}] Parse failed: {parsed.parse_error}")
+
+        # 4. Max iterations → force final answer
+        if final_answer is None:
+            logger.info(f"[{state.run_id}] Max iterations reached, forcing final answer")
+            final_answer = self._force_final_answer(messages, question, state.run_id)
+
+        # 5. Build response
+        sources = self._extract_sources_from_state(state)
+        response = self._build_response(state, final_answer, sources)
+
+        state.complete(response)
+        self.event_bus.publish(RunCompletedEvent(run_id=state.run_id, output=response))
+        self._save_conversation_memory(conversation_id, question, final_answer)
+
+        return response
+
+    # ── LLM ────────────────────────────────────────────────────
+
+    def _call_llm(self, messages: List[Dict[str, str]]) -> str:
+        """调用 LLM，将消息列表转换为单次生成请求"""
+        # 构建完整的对话文本
+        conversation_text = ""
+        for msg in messages:
+            role = msg["role"]
+            content = msg["content"]
+            if role == "user":
+                conversation_text += f"\n\n{content}"
+            elif role == "assistant":
+                conversation_text += f"\n\n{content}"
+
+        try:
+            if self.llm_service.llm:
+                from langchain_core.output_parsers import StrOutputParser
+                from langchain_core.prompts import PromptTemplate
+                chain = PromptTemplate.from_template("{input}") | self.llm_service.llm | StrOutputParser()
+                return chain.invoke({"input": conversation_text.strip()})
+            else:
+                return "Final Answer: 抱歉，AI 服务当前不可用，请稍后再试。"
+        except Exception as e:
+            logger.error(f"LLM call failed: {e}")
+            return f"Final Answer: 抱歉，调用 AI 服务时出错：{str(e)}"
+
+    # ── Tool Execution ──────────────────────────────────────────
+
+    def _execute_tool(
+        self,
+        state: AgentState,
+        step: AgentStep,
+        tool_name: str,
+        parameters: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """执行工具调用，记录到 state，发布事件"""
+        if not self.tool_registry.has_tool(tool_name):
+            error_msg = f"Tool '{tool_name}' not found. Available: {list(self.tool_registry.get_all_tools().keys())}"
+            return {"error": error_msg}
+
+        try:
+            result = self.tool_registry.invoke_tool(
+                tool_name, parameters, run_id=state.run_id
+            )
+            step.tool_call_id = getattr(result, 'tool_call_id', str(uuid.uuid4()))
+
+            state.add_tool_call(
+                tool_call_id=step.tool_call_id or str(uuid.uuid4()),
+                tool_name=tool_name,
+                input_params=parameters,
+                output=result,
+                status="success",
+                duration_ms=step.duration_ms or 0,
+            )
+
+            self.event_bus.publish(ToolCallCompletedEvent(
+                run_id=state.run_id,
+                tool_call_id=step.tool_call_id or "",
+                tool_name=tool_name,
+                output=result,
+                duration_ms=step.duration_ms or 0,
+            ))
+
+            return result
+
+        except Exception as e:
+            logger.error(f"[{state.run_id}] Tool '{tool_name}' failed: {e}")
+            self.event_bus.publish(ToolCallFailedEvent(
+                run_id=state.run_id,
+                tool_call_id=step.tool_call_id or "",
+                tool_name=tool_name,
+                error=str(e),
+            ))
+            return {"error": f"Tool '{tool_name}' failed: {str(e)}"}
+
+    # ── State & Memory ─────────────────────────────────────────
+
+    def _create_state(
+        self, question: str, conversation_id: Optional[str], user_id: Optional[str]
+    ) -> AgentState:
+        return AgentState(
+            run_id=str(uuid.uuid4()),
+            trace_id=str(uuid.uuid4()),
+            conversation_id=conversation_id,
+            user_id=user_id,
+            goal=f"Answer: {question[:50]}...",
+            original_input=question,
+            max_steps=self.max_iterations * 2,
+            timeout_seconds=self.timeout_seconds,
+        )
+
+    def _save_conversation_memory(
+        self, conversation_id: Optional[str], question: str, answer: str
+    ):
+        """保存对话到记忆"""
+        if not conversation_id or not self.tool_registry.has_tool("conversation_memory_write"):
+            return
+        try:
+            self.tool_registry.invoke_tool(
+                "conversation_memory_write",
+                {"conversation_id": conversation_id, "role": "user", "content": question}
+            )
+            self.tool_registry.invoke_tool(
+                "conversation_memory_write",
+                {"conversation_id": conversation_id, "role": "assistant", "content": answer}
+            )
+        except Exception as e:
+            logger.warning(f"Failed to save conversation memory: {e}")
+
+    # ── Helpers ─────────────────────────────────────────────────
+
+    def _force_final_answer(
+        self, messages: List[Dict[str, str]], question: str, run_id: str
+    ) -> str:
+        """达到最大迭代次数时，强制 LLM 生成最终答案"""
+        messages.append({
+            "role": "user",
+            "content": (
+                "You have reached the maximum number of steps. "
+                "Based on all the information gathered so far, "
+                "please provide your Final Answer now.\n\n"
+                f"Original question: {question}"
+            )
+        })
+        try:
+            response = self._call_llm(messages)
+            parsed = self.parser.parse(response)
+            return parsed.final_answer or response.strip()
+        except Exception as e:
+            logger.error(f"[{run_id}] Force final answer failed: {e}")
+            return "抱歉，处理您的问题超时，请稍后重试。"
+
+    def _extract_sources_from_state(self, state: AgentState) -> List[Dict[str, Any]]:
+        """从 state 的工具调用记录中提取引用来源"""
+        sources = []
+        seen_ids = set()
+        for tc in state.tool_calls:
+            if tc.tool_name not in ("knowledge_search", "rerank"):
+                continue
+            docs = (
+                tc.output.get("documents")
+                or tc.output.get("reranked_documents")
+                or tc.output.get("chunks")
+                or []
+            )
+            for doc in docs:
+                if isinstance(doc, dict):
+                    metadata = doc.get("metadata", {})
+                    doc_id = metadata.get("doc_id")
+                else:
+                    metadata = getattr(doc, "metadata", {})
+                    doc_id = metadata.get("doc_id")
+
+                if doc_id and doc_id not in seen_ids:
+                    seen_ids.add(doc_id)
+                    sources.append({
+                        "doc_id": doc_id,
+                        "doc_name": metadata.get("source", metadata.get("doc_name", "Unknown")),
+                        "page": metadata.get("page") or metadata.get("page_number"),
+                        "score": metadata.get("score", 0),
+                    })
+        return sources
+
+    def _build_response(
+        self, state: AgentState, answer: str, sources: List[Dict]
+    ) -> Dict[str, Any]:
+        return {
+            "answer": answer,
+            "sources": sources,
+            "has_sources": len(sources) > 0,
+            "task_type": "knowledge_qa",
+            "iterations": len(state.tool_calls),
+        }
+
+    def _build_error_response(self, state: AgentState) -> Dict[str, Any]:
+        return {
+            "answer": state.error_message or "服务暂时不可用，请稍后再试。",
+            "sources": [],
+            "has_sources": False,
+            "error": True,
+            "error_code": state.error_code,
+        }
+
+
+# 模块级单例
+react_agent = ReActAgent()
