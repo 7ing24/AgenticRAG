@@ -2,7 +2,7 @@
 
 import pytest
 from langchain_core.documents import Document
-from core.text_splitter import SemanticChunkerSplitter, AdaptiveChunker, create_chunker
+from service.text_splitter import SemanticChunkerSplitter, AdaptiveChunker, create_chunker
 
 
 @pytest.fixture

@@ -107,7 +107,11 @@ class LLMService:
                 for doc in context_docs
             ])
 
-        # 处理对话上下文 - 过滤掉错误信息
+        # 处理对话上下文 - 兼容 dict 和 str
+        if isinstance(conversation_context, dict):
+            conversation_context = conversation_context.get("text", "")
+
+        # 过滤掉错误信息
         cleaned_context = self.clean_conversation_context(conversation_context)
         if not cleaned_context or cleaned_context.strip() == "":
             cleaned_context = "（无对话历史）"
@@ -196,7 +200,11 @@ class LLMService:
                 for doc in context_docs
             ])
 
-        # 处理对话上下文 - 过滤掉错误信息
+        # 处理对话上下文 - 兼容 dict 和 str
+        if isinstance(conversation_context, dict):
+            conversation_context = conversation_context.get("text", "")
+
+        # 过滤掉错误信息
         cleaned_context = self.clean_conversation_context(conversation_context)
         if not cleaned_context or cleaned_context.strip() == "":
             cleaned_context = "（无对话历史）"

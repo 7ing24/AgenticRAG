@@ -1,5 +1,5 @@
 from typing import Dict, Any, Optional, List
-from agent.state import AgentState, AgentStatus, TerminationCondition
+from engine.state import AgentState, AgentStatus, TerminationCondition
 from intent.classifier import IntentType
 import logging
 

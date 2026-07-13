@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 @pytest.fixture
 def sample_state():
     """创建示例 AgentState"""
-    from agent.state import AgentState
+    from engine.state import AgentState
     return AgentState(
         run_id="test-run-001",
         trace_id="test-trace-001",

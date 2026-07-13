@@ -1,6 +1,8 @@
 from typing import Dict, Any, Optional, Generator
+from types import SimpleNamespace
 from core.mysql_client import mysql_client
-from workflows.ops_agent import ops_agent
+from service.ops import ops_agent
+from agent.memory_agent import MemoryAgent
 import logging
 import json
 
@@ -12,6 +14,7 @@ class AdminCopilotAgent:
 
     def __init__(self):
         self.ops_agent = ops_agent
+        self.memory_agent = MemoryAgent()
         self.admin_operations = {
             "stats": "统计分析",
             "knowledge_inspection": "知识巡检",
@@ -43,6 +46,13 @@ class AdminCopilotAgent:
         """
         logger.info(f"[AdminCopilotAgent] Processing admin request: {question[:50]}...")
 
+        # 如果调用方没传 context，自己加载
+        if not context and conversation_id:
+            memory_state = SimpleNamespace(
+                conversation_id=conversation_id, user_id=user_id, run_id="admin_memory"
+            )
+            context = self.memory_agent.load_memory(memory_state, max_rounds=5).get("text", "")
+
         try:
             operation = self._parse_operation(question, context)
             result = self._execute_operation(operation, question)
@@ -64,6 +74,13 @@ class AdminCopilotAgent:
                      **kwargs) -> Generator[str, None, None]:
         """流式处理管理助手请求"""
         logger.info(f"[AdminCopilotAgent] Stream admin request: {question[:50]}...")
+
+        # 如果调用方没传 context，自己加载
+        if not context and conversation_id:
+            memory_state = SimpleNamespace(
+                conversation_id=conversation_id, user_id=user_id, run_id="admin_stream_memory"
+            )
+            context = self.memory_agent.load_memory(memory_state, max_rounds=5).get("text", "")
 
         try:
             operation = self._parse_operation(question, context)
@@ -246,7 +263,7 @@ class AdminCopilotAgent:
 
     def _knowledge_inspection(self) -> Dict[str, Any]:
         """知识巡检 - 调用InspectionAgent"""
-        from workflows.inspection_agent import InspectionAgent
+        from service.inspection import InspectionAgent
         inspection_agent = InspectionAgent()
         return inspection_agent.inspect("full")
 

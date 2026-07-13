@@ -173,7 +173,7 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
-    public AiResponse ask(String question, String context, Long userId, Long conversationId) {
+    public AiResponse ask(String question, Long userId, Long conversationId) {
         log.info("User question: {}, userId: {}", question, userId);
         AiResponse aiResponse = new AiResponse();
 
@@ -200,7 +200,6 @@ public class AiServiceImpl implements AiService {
             // 2. 构建请求（使用 /ask 接口，它内部已使用 RouterAgent）
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("question", question);
-            requestBody.put("context", context);
 
             String username = null;
             if (userId != null) {
@@ -282,6 +281,15 @@ public class AiServiceImpl implements AiService {
                             }
                         }
                         aiResponse.setSources(sources);
+                    }
+                }
+
+                // 检查是否有 Agent 执行步骤
+                if (body.containsKey("steps")) {
+                    List<Map<String, Object>> steps = (List<Map<String, Object>>) body.get("steps");
+                    if (steps != null && !steps.isEmpty()) {
+                        aiResponse.setSteps(steps);
+                        log.info("Step data received: {} steps", steps.size());
                     }
                 }
 
@@ -379,14 +387,13 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
-    public Map<String, Object> askForAdmin(String question, String context, Long adminId, Long conversationId) {
+    public Map<String, Object> askForAdmin(String question, Long adminId, Long conversationId) {
         log.info("[Admin AI] Admin question: {}, adminId: {}, conversationId: {}", question, adminId, conversationId);
         Map<String, Object> response = new HashMap<>();
 
         try {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("question", question);
-            requestBody.put("context", context);
             requestBody.put("is_admin", true);
             requestBody.put("conversation_id", conversationId.toString());
             requestBody.put("user_id", adminId.toString());

@@ -359,6 +359,36 @@ class IntentClassifier:
             reasoning="默认为知识问答"
         )
 
+    def classify_complexity(self, input_text: str) -> Optional[str]:
+        """
+        基于关键词的复杂度三分类 fallback
+
+        Returns:
+            "simple" | "react" | "reasoning" | None
+        """
+        # reasoning: 有明确子结构，适合分解后分别解答再汇总
+        reasoning_indicators = [
+            "对比", "比较", "优缺点", "区别", "异同", "分析原因",
+            "评估", "权衡", "利弊", "分别说明", "从多个角度",
+            "总结归纳", "归纳", "异同点", "差异", "逐条",
+        ]
+        if any(ind in input_text for ind in reasoning_indicators) and len(input_text) > 15:
+            return "reasoning"
+
+        # react: 需要多步探索，但具体信息需求不确定
+        react_indicators = [
+            "为什么", "怎么办", "如何处理", "如何解决", "如何优化",
+            "怎么排查", "根源", "原因是什么", "什么导致",
+            "如何避免", "最佳实践",
+        ]
+        long_enough = len(input_text) > 20
+        has_multiple_q = input_text.count("?") + input_text.count("？") >= 2
+        if (any(ind in input_text for ind in react_indicators) and long_enough) or has_multiple_q:
+            return "react"
+
+        # simple: 其余
+        return "simple"
+
     def get_keyword_stats(self) -> dict:
         """获取各类关键词数量统计（用于调试和分析）"""
         return {

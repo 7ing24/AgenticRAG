@@ -1,10 +1,12 @@
 from typing import Dict, Any, Optional, Generator, List
-from agent.orchestrator import Orchestrator
-from agent.planner import Planner
-from agent.state import AgentState
-from agent.events import EventBus, event_bus
+from types import SimpleNamespace
+from engine.orchestrator import Orchestrator
+from engine.planner import Planner
+from agent.memory_agent import MemoryAgent
+from engine.state import AgentState
+from engine.events import EventBus, event_bus
 from agent.react_agent import ReActAgent, react_agent
-from workflows.retrieval_agent import RetrievalAgent
+from service.retrieval import RetrievalAgent
 from core.vector_store import vector_store
 from core.llm import LLMService
 from tools.registry import tool_registry
@@ -26,6 +28,7 @@ class KnowledgeQAAgent:
         self.llm_service = LLMService()
         self.planner = Planner()
         self.question_rewrite_tool = QuestionRewriteTool()
+        self.memory_agent = MemoryAgent()
         self.max_retrieval_rounds = 3
         self._router = None
         self._reasoning_agent = None
@@ -35,7 +38,7 @@ class KnowledgeQAAgent:
     def router(self):
         """延迟加载 RouterAgent（避免循环导入）"""
         if self._router is None:
-            from workflows.router_agent import RouterAgent
+            from agent.router_agent import RouterAgent
             self._router = RouterAgent()
         return self._router
 
@@ -43,7 +46,7 @@ class KnowledgeQAAgent:
     def reasoning_agent(self):
         """延迟加载 ReasoningAgent"""
         if self._reasoning_agent is None:
-            from workflows.reasoning_agent import ReasoningAgent
+            from workflow.reasoning import ReasoningAgent
             self._reasoning_agent = ReasoningAgent()
         return self._reasoning_agent
 
@@ -55,47 +58,40 @@ class KnowledgeQAAgent:
         return self._react_agent
 
     def ask(self, question: str, conversation_id: Optional[str] = None,
-            user_id: Optional[str] = None, context: str = "",
+            user_id: Optional[str] = None,
             **kwargs) -> Dict[str, Any]:
         """
-        处理知识问答 - 三级链路
+        处理知识问答 - 两条链路
 
-        L1 简单：直接检索+生成（80%请求，~2-3s）
-        L2 标准：问题改写+检索+重排序+生成（15%请求，~5-8s）
-        L3 推理：分解+逐个推理+汇总（5%请求，~10-15s，由 RouterAgent 处理）
+        simple：快速链路（检索+充分性自省+生成）
+        complex：ReAct 链路（LLM 动态工具调用）
         """
         logger.info(f"[KnowledgeQAAgent] Processing question: {question[:50]}...")
 
         try:
-            # 1. 读取会话记忆作为上下文
-            conversation_history = ""
-            if conversation_id and tool_registry.has_tool("conversation_memory_read"):
-                try:
-                    history = tool_registry.invoke_tool(
-                        "conversation_memory_read",
-                        {"conversation_id": conversation_id, "limit": 10}
-                    )
-                    messages = history.get("messages", [])
-                    if messages:
-                        conversation_history = self._format_history(messages)
-                        logger.info(f"[KnowledgeQAAgent] Loaded {len(messages)} messages from memory"
-                                    f" (compressed: {history.get('compressed', False)})")
-                except Exception as e:
-                    logger.warning(f"[KnowledgeQAAgent] Failed to read conversation memory: {e}")
+            # 1. 统一通过 MemoryAgent 加载记忆（对话历史 + 用户画像）
+            memory_state = SimpleNamespace(
+                conversation_id=conversation_id, user_id=user_id, run_id="memory_load"
+            )
+            memory_result = self.memory_agent.load_memory(memory_state)
+            full_context = memory_result.get("text", "")
+            context_token_count = memory_result.get("token_count", 0)
 
-            # 合并上下文
-            full_context = context
-            if conversation_history:
-                full_context = f"{context}\n\n{conversation_history}" if context else conversation_history
-
-            # 2. 判断复杂度，选择链路
-            complexity = self.router.classify_complexity(question)
-            logger.info(f"[KnowledgeQAAgent] Complexity: {complexity}")
+            # 2. 判断复杂度，选择链路（LLM 优先，关键词 fallback）
+            complexity = self._classify_complexity_with_llm(question)
+            if complexity is None:
+                # fallback：用 classifier 的三分类，react → complex，其余 → simple
+                raw = self.router.classifier.classify_complexity(question)
+                complexity = "complex" if raw == "react" else "simple"
+                logger.info(f"[KnowledgeQAAgent] Complexity (keyword): {complexity}")
+            else:
+                logger.info(f"[KnowledgeQAAgent] Complexity (LLM): {complexity}")
 
             if complexity == "complex":
-                return self._ask_with_react(question, conversation_id, user_id, full_context)
+                return self._ask_with_react(question, conversation_id, user_id, full_context,
+                                            context_token_count=context_token_count)
             else:
-                return self._ask_fast(question, conversation_id, full_context)
+                return self._ask_fast(question, conversation_id, user_id, full_context)
 
         except Exception as e:
             logger.error(f"[KnowledgeQAAgent] QA failed: {e}", exc_info=True)
@@ -108,10 +104,11 @@ class KnowledgeQAAgent:
             }
 
     def _ask_fast(self, question: str, conversation_id: Optional[str],
-                  full_context: str) -> Dict[str, Any]:
+                  user_id: Optional[str], full_context: str) -> Dict[str, Any]:
         """快速链路：改写 + 检索 + rerank + 自省循环（合并原 L1/L2）"""
         best_docs = []
         best_scores = []
+        steps = []
 
         # 首轮改写（指代消解 + 关键词提取）
         try:
@@ -140,9 +137,18 @@ class KnowledgeQAAgent:
                         f"retrieved {len(docs)} docs"
                         + (f", avg_score={sum(scores)/len(scores):.2f}" if scores else ""))
 
-            if docs and self.planner.evaluate_retrieval_sufficiency(
+            sufficient = docs and self.planner.evaluate_retrieval_sufficiency(
                 docs, question, scores, score_threshold=0.2
-            ).is_sufficient:
+            ).is_sufficient
+            steps.append({
+                "step_name": f"knowledge_search_r{round_num + 1}",
+                "step_type": "knowledge_search",
+                "status": "completed",
+                "doc_count": len(docs),
+                "is_sufficient": sufficient,
+            })
+
+            if sufficient:
                 logger.info(f"[KnowledgeQAAgent] Fast sufficient at round {round_num + 1}")
                 best_docs = docs
                 best_scores = scores
@@ -165,21 +171,28 @@ class KnowledgeQAAgent:
                 answer = self.llm_service.get_answer(question, [], full_context)
             else:
                 answer = "抱歉，知识库中没有找到与您问题相关的内容。"
-            self._save_to_memory(conversation_id, question, answer)
-            return {"answer": answer, "sources": [], "has_sources": False, "task_type": "knowledge_qa"}
+            steps.append({"step_name": "answer_generation", "step_type": "answer_generation",
+                          "status": "completed"})
+            self._save_to_memory(conversation_id, question, answer, user_id)
+            return {"answer": answer, "sources": [], "has_sources": False,
+                    "task_type": "knowledge_qa", "steps": steps}
 
         llm_docs = self._docs_to_llm_format(best_docs)
         answer = self.llm_service.get_answer(question, llm_docs, full_context)
-        self._save_to_memory(conversation_id, question, answer)
+        steps.append({"step_name": "answer_generation", "step_type": "answer_generation",
+                      "status": "completed"})
+        self._save_to_memory(conversation_id, question, answer, user_id)
         sources = self._build_sources(best_docs)
 
         return {
             "answer": answer, "sources": sources,
-            "has_sources": len(sources) > 0, "task_type": "knowledge_qa"
+            "has_sources": len(sources) > 0, "task_type": "knowledge_qa",
+            "steps": steps
         }
 
     def _ask_with_react(self, question: str, conversation_id: Optional[str] = None,
                         user_id: Optional[str] = None, context: str = "",
+                        context_token_count: int = 0,
                         **kwargs) -> Dict[str, Any]:
         """ReAct 链路：LLM 动态决定工具调用，自主判断何时输出答案"""
         logger.info(f"[KnowledgeQAAgent] Using ReAct agent...")
@@ -188,7 +201,22 @@ class KnowledgeQAAgent:
             conversation_id=conversation_id,
             user_id=user_id,
             context=context,
+            context_token_count=context_token_count,
             **kwargs
+        )
+
+    # ── 以下为旧链路方法，保留供未来使用 ──
+
+    def _ask_with_reasoning(self, question: str, conversation_id: Optional[str] = None,
+                            user_id: Optional[str] = None, context: str = "",
+                            **kwargs) -> Dict[str, Any]:
+        """Reasoning 链路（预留，当前路由不调用）"""
+        logger.info(f"[KnowledgeQAAgent] Using Reasoning agent...")
+        return self.reasoning_agent.reason(
+            question=question,
+            context=context,
+            conversation_id=conversation_id,
+            user_id=user_id
         )
 
     # ── 以下为旧链路方法，保留供未来使用，当前路由不再指向它们 ──
@@ -315,6 +343,31 @@ class KnowledgeQAAgent:
             "has_sources": len(sources) > 0, "task_type": "knowledge_qa"
         }
 
+    def _classify_complexity_with_llm(self, question: str) -> Optional[str]:
+        """LLM 判断问题复杂度，决定走 ReAct 还是快速链路
+
+        Returns:
+            "complex" / "simple" / None（解析失败时返回 None，由关键词兜底）
+        """
+        try:
+            prompt = (
+                "判断以下问题是否需要多步推理和多次工具调用，还是单次搜索即可回答。\n\n"
+                f"问题：{question}\n\n"
+                "- 如果问题需要对比、分析、归纳、多步验证，或需要先搜A再搜B才能完整回答 → 回复 complex\n"
+                "- 如果问题简单直接，一次搜索检索就能准确回答 → 回复 simple\n\n"
+                "只回复 complex 或 simple，不要解释。"
+            )
+            result = self.llm_service.generate(prompt)
+            if result:
+                result = result.strip().lower()
+                if "complex" in result:
+                    return "complex"
+                if "simple" in result:
+                    return "simple"
+        except Exception as e:
+            logger.warning(f"[KnowledgeQAAgent] LLM complexity classification failed: {e}")
+        return None
+
     def _rewrite_query_for_retry(self, query: str, context: str, retry_round: int) -> str:
         """改写查询用于重试检索，每轮尝试不同改写角度"""
         try:
@@ -365,40 +418,15 @@ class KnowledgeQAAgent:
             })
         return sources
 
-    def _save_to_memory(self, conversation_id: str, question: str, answer: str):
-        """保存对话到会话记忆"""
-        if not conversation_id or not tool_registry.has_tool("conversation_memory_write"):
+    def _save_to_memory(self, conversation_id: str, question: str, answer: str,
+                        user_id: Optional[str] = None):
+        """保存对话记忆（统一委托给 MemoryAgent）"""
+        if not conversation_id:
             return
-        try:
-            tool_registry.invoke_tool(
-                "conversation_memory_write",
-                {"conversation_id": conversation_id, "role": "user", "content": question}
-            )
-            tool_registry.invoke_tool(
-                "conversation_memory_write",
-                {"conversation_id": conversation_id, "role": "assistant", "content": answer}
-            )
-            logger.info(f"[KnowledgeQAAgent] Saved conversation to memory")
-        except Exception as e:
-            logger.warning(f"[KnowledgeQAAgent] Failed to write conversation memory: {e}")
-
-    def _format_history(self, messages: list) -> str:
-        """格式化对话历史为上下文字符串"""
-        if not messages:
-            return ""
-
-        formatted = []
-        for msg in messages:
-            role = msg.get("role", "unknown")
-            content = msg.get("content", "")
-            if role == "system":
-                formatted.append(content)
-            elif role == "user":
-                formatted.append(f"用户: {content}")
-            elif role == "assistant":
-                formatted.append(f"AI: {content}")
-
-        return "\n".join(formatted)
+        memory_state = SimpleNamespace(
+            conversation_id=conversation_id, user_id=user_id, run_id="memory_save"
+        )
+        self.memory_agent.save_memory(memory_state, question, answer)
 
     def ask_stream(self, question: str, conversation_id: Optional[str] = None,
                    user_id: Optional[str] = None, context: str = "",

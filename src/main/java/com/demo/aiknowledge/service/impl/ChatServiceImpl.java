@@ -3,12 +3,16 @@ package com.demo.aiknowledge.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.demo.aiknowledge.config.CacheConfig;
 import com.demo.aiknowledge.dto.AiResponse;
+import com.demo.aiknowledge.entity.AgentRun;
+import com.demo.aiknowledge.entity.AgentStep;
 import com.demo.aiknowledge.entity.Conversation;
 import com.demo.aiknowledge.entity.Message;
 import com.demo.aiknowledge.entity.QaLog;
+import com.demo.aiknowledge.mapper.AgentStepMapper;
 import com.demo.aiknowledge.mapper.ConversationMapper;
 import com.demo.aiknowledge.mapper.MessageMapper;
 import com.demo.aiknowledge.mapper.QaLogMapper;
+import com.demo.aiknowledge.service.AgentRunService;
 import com.demo.aiknowledge.service.AiService;
 import com.demo.aiknowledge.service.CacheService;
 import com.demo.aiknowledge.service.ChatService;
@@ -34,6 +38,8 @@ public class ChatServiceImpl implements ChatService {
     private final AiService aiService;
     private final QaUnansweredService qaUnansweredService;
     private final ConversationContextService conversationContextService;
+    private final AgentRunService agentRunService;
+    private final AgentStepMapper agentStepMapper;
     private final ObjectMapper objectMapper;
     private final CacheService cacheService;
 
@@ -92,18 +98,8 @@ public class ChatServiceImpl implements ChatService {
              aiService.generateTitle(conversationId, content);
         }
 
-        // 2. 获取对话上下文（获取最近10条消息，包含刚插入的用户消息）
-        List<Message> contextMessages = conversationContextService.getConversationContext(conversationId, 10);
-        // 构建上下文字符串
-        StringBuilder contextBuilder = new StringBuilder();
-        for (Message msg : contextMessages) {
-            contextBuilder.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
-        }
-        String conversationContext = contextBuilder.toString();
-        log.debug("对话上下文构建完成，长度: {}，内容: {}", conversationContext.length(), conversationContext);
-
-        // 3. 调用 AI 服务获取回答（传入对话上下文）
-        AiResponse aiResponse = aiService.ask(content, conversationContext, userId, conversationId);
+        // 2. 调用 AI 服务获取回答（上下文由 Python MemoryAgent 统一管理）
+        AiResponse aiResponse = aiService.ask(content, userId, conversationId);
         String answer = aiResponse.getAnswer();
         String sourcesJson = null;
         String taskType = aiResponse.getTaskType();
@@ -143,6 +139,52 @@ public class ChatServiceImpl implements ChatService {
         qaLog.setAnswer(answer);
         qaLog.setCreateTime(LocalDateTime.now());
         qaLogMapper.insert(qaLog);
+
+        // 5. 记录 Agent 执行记录（供管理端查看）
+        try {
+            String runId = java.util.UUID.randomUUID().toString();
+            String traceId = java.util.UUID.randomUUID().toString();
+
+            AgentRun agentRun = new AgentRun();
+            agentRun.setId(java.util.UUID.randomUUID().toString());
+            agentRun.setRunId(runId);
+            agentRun.setTraceId(traceId);
+            agentRun.setConversationId(String.valueOf(conversationId));
+            agentRun.setUserId(String.valueOf(userId));
+            agentRun.setStatus("completed");
+            agentRun.setGoal("Answer: " + (content.length() > 100 ? content.substring(0, 100) + "..." : content));
+            agentRun.setInput(content);
+            agentRun.setOutput(answer.length() > 500 ? answer.substring(0, 500) + "..." : answer);
+            agentRun.setStartTime(LocalDateTime.now());
+            agentRun.setEndTime(LocalDateTime.now());
+            agentRun.setCreatedAt(LocalDateTime.now());
+            agentRunService.saveAgentRun(agentRun);
+
+            // 记录步骤轨迹（从 Python AI 响应中获取真实的执行步骤）
+            java.util.List<java.util.Map<String, Object>> steps = aiResponse.getSteps();
+            if (steps != null && !steps.isEmpty()) {
+                for (java.util.Map<String, Object> stepData : steps) {
+                    AgentStep step = new AgentStep();
+                    step.setId(java.util.UUID.randomUUID().toString());
+                    step.setRunId(runId);
+                    step.setStepName(String.valueOf(stepData.getOrDefault("step_name", "unknown")));
+                    step.setStepType(String.valueOf(stepData.getOrDefault("step_type", "unknown")));
+                    step.setStatus(String.valueOf(stepData.getOrDefault("status", "completed")));
+                    if (stepData.containsKey("output")) {
+                        step.setOutput(String.valueOf(stepData.get("output")).length() > 500
+                                ? String.valueOf(stepData.get("output")).substring(0, 500)
+                                : String.valueOf(stepData.get("output")));
+                    }
+                    step.setStartTime(LocalDateTime.now());
+                    step.setEndTime(LocalDateTime.now());
+                    step.setCreatedAt(LocalDateTime.now());
+                    step.setDurationMs(0L);
+                    agentStepMapper.insert(step);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to save agent run record", e);
+        }
 
         return aiMsg; // 返回 AI 的回答
     }

@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 from agent.memory_agent import MemoryAgent
-from agent.state import AgentState
+from engine.state import AgentState
 
 
 @pytest.fixture
@@ -48,8 +48,9 @@ class TestLoadMemory:
 
     def test_load_memory_without_conversation(self, memory_agent, state_without_conversation):
         """测试没有会话ID时加载记忆"""
-        context = memory_agent.load_memory(state_without_conversation)
-        assert context == ""
+        result = memory_agent.load_memory(state_without_conversation)
+        assert result["text"] == ""
+        assert result["token_count"] == 0
 
     @patch('agent.memory_agent.tool_registry')
     def test_load_memory_with_empty_history(self, mock_registry, memory_agent, state_with_conversation):
@@ -60,8 +61,9 @@ class TestLoadMemory:
             "compressed": False
         }
 
-        context = memory_agent.load_memory(state_with_conversation)
-        assert context == ""
+        result = memory_agent.load_memory(state_with_conversation)
+        assert result["text"] == ""
+        assert result["token_count"] == 0
 
     @patch('agent.memory_agent.tool_registry')
     def test_load_memory_with_messages(self, mock_registry, memory_agent, state_with_conversation):
@@ -75,9 +77,10 @@ class TestLoadMemory:
             "compressed": False
         }
 
-        context = memory_agent.load_memory(state_with_conversation)
-        assert "用户: 你好" in context
-        assert "AI: 你好！有什么可以帮助你的吗？" in context
+        result = memory_agent.load_memory(state_with_conversation)
+        assert "user: 你好" in result["text"]
+        assert "assistant: 你好！有什么可以帮助你的吗？" in result["text"]
+        assert result["token_count"] > 0
 
     @patch('agent.memory_agent.tool_registry')
     def test_load_memory_with_system_message(self, mock_registry, memory_agent, state_with_conversation):
@@ -92,17 +95,18 @@ class TestLoadMemory:
             "compressed": True
         }
 
-        context = memory_agent.load_memory(state_with_conversation)
-        assert "[历史对话摘要]" in context
-        assert "用户: 它有什么优点？" in context
+        result = memory_agent.load_memory(state_with_conversation)
+        assert "[历史对话摘要]" in result["text"]
+        assert "user: 它有什么优点？" in result["text"]
+        assert isinstance(result["token_count"], int)
 
     @patch('agent.memory_agent.tool_registry')
     def test_load_memory_tool_not_found(self, mock_registry, memory_agent, state_with_conversation):
         """测试工具不存在时的处理"""
         mock_registry.has_tool.return_value = False
 
-        context = memory_agent.load_memory(state_with_conversation)
-        assert context == ""
+        result = memory_agent.load_memory(state_with_conversation)
+        assert result["text"] == ""
 
     @patch('agent.memory_agent.tool_registry')
     def test_load_memory_tool_error(self, mock_registry, memory_agent, state_with_conversation):
@@ -110,8 +114,8 @@ class TestLoadMemory:
         mock_registry.has_tool.return_value = True
         mock_registry.invoke_tool.side_effect = Exception("Redis connection error")
 
-        context = memory_agent.load_memory(state_with_conversation)
-        assert context == ""
+        result = memory_agent.load_memory(state_with_conversation)
+        assert result["text"] == ""
 
 
 class TestSaveMemory:
@@ -170,7 +174,7 @@ class TestFormatHistory:
         """测试格式化单条消息"""
         messages = [{"role": "user", "content": "你好"}]
         result = memory_agent._format_history(messages)
-        assert result == "用户: 你好"
+        assert result == "user: 你好"
 
     def test_format_history_multiple_messages(self, memory_agent):
         """测试格式化多条消息"""
@@ -181,10 +185,10 @@ class TestFormatHistory:
             {"role": "assistant", "content": "RAG的优点包括..."}
         ]
         result = memory_agent._format_history(messages)
-        assert "用户: 什么是RAG？" in result
-        assert "AI: RAG是检索增强生成的缩写。" in result
-        assert "用户: 它有什么优点？" in result
-        assert "AI: RAG的优点包括..." in result
+        assert "user: 什么是RAG？" in result
+        assert "assistant: RAG是检索增强生成的缩写。" in result
+        assert "user: 它有什么优点？" in result
+        assert "assistant: RAG的优点包括..." in result
 
     def test_format_history_with_system_message(self, memory_agent):
         """测试格式化包含系统消息的历史"""
@@ -194,13 +198,32 @@ class TestFormatHistory:
         ]
         result = memory_agent._format_history(messages)
         assert "系统消息" in result
-        assert "用户: 用户问题" in result
+        assert "user: 用户问题" in result
 
     def test_format_history_unknown_role(self, memory_agent):
         """测试格式化未知角色的消息"""
         messages = [{"role": "unknown", "content": "未知角色消息"}]
         result = memory_agent._format_history(messages)
         assert "未知角色消息" in result
+
+
+class TestEstimateTokens:
+    """测试 Token 估算"""
+
+    def test_estimate_empty(self):
+        assert MemoryAgent._estimate_tokens("") == 0
+
+    def test_estimate_chinese(self):
+        tokens = MemoryAgent._estimate_tokens("你好世界")
+        assert 2 <= tokens <= 4  # 中文 ~1.5 chars/token
+
+    def test_estimate_english(self):
+        tokens = MemoryAgent._estimate_tokens("Hello world")
+        assert 2 <= tokens <= 4  # 英文 ~4 chars/token
+
+    def test_estimate_mixed(self):
+        tokens = MemoryAgent._estimate_tokens("你好world测试test")
+        assert tokens > 0
 
 
 class TestExtractUserPreference:
@@ -314,6 +337,6 @@ class TestMemoryAgentIntegration:
             "compressed": False
         }
 
-        context = memory_agent.load_memory(state_with_conversation)
-        assert "用户: 什么是RAG？" in context
-        assert "AI: RAG是..." in context
+        result = memory_agent.load_memory(state_with_conversation)
+        assert "user: 什么是RAG？" in result["text"]
+        assert "assistant: RAG是..." in result["text"]

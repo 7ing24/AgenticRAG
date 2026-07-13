@@ -1,5 +1,5 @@
 from typing import Dict, Any, List, Optional, Tuple
-from agent.state import AgentState, AgentStep, StepType, TerminationCondition, IntermediateConclusion
+from engine.state import AgentState, AgentStep, StepType, TerminationCondition, IntermediateConclusion
 from intent.classifier import IntentClassifier, IntentType, IntentResult
 from dataclasses import dataclass
 import time

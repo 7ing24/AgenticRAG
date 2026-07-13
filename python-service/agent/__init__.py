@@ -1,12 +1,17 @@
-from agent.state import AgentState, AgentStatus, StepStatus, StepType, AgentStep, TerminationCondition
-from agent.planner import Planner, QuestionType
-from agent.executor import Executor
-from agent.orchestrator import Orchestrator
+# Re-export engine components for backward compatibility
+from engine.state import AgentState, AgentStatus, StepStatus, StepType, AgentStep, TerminationCondition
+from engine.planner import Planner, QuestionType
+from engine.executor import Executor
+from engine.orchestrator import Orchestrator
+from engine.events import EventBus, Event, EventType
+from engine.policies import policies
+
+# Agent implementations
 from agent.react_agent import ReActAgent, react_agent
 from agent.react_parser import ReActParser, ParsedReActOutput
 from agent.react_prompts import ReActPrompts
-from agent.events import EventBus, Event, EventType
-from agent.policies import policies
+from agent.router_agent import RouterAgent, TaskType
+
 from intent.classifier import IntentType
 
 # MemoryAgent 使用延迟导入，避免循环依赖
@@ -35,5 +40,7 @@ __all__ = [
     "Event",
     "EventType",
     "policies",
+    "RouterAgent",
+    "TaskType",
     "get_memory_agent"
 ]

@@ -1,6 +1,7 @@
 from typing import Dict, Any, Optional, Generator
+from types import SimpleNamespace
 from core.llm import llm
-from tools.registry import tool_registry
+from agent.memory_agent import MemoryAgent
 import logging
 import json
 
@@ -11,6 +12,7 @@ class ChitChatAgent:
     """闲聊Agent - 专门处理日常对话和闲聊的工作流"""
 
     def __init__(self):
+        self.memory_agent = MemoryAgent()
         self.chitchat_prompts = {
             "greeting": [
                 "你好！很高兴见到你，有什么我可以帮助你的吗？",
@@ -45,7 +47,7 @@ class ChitChatAgent:
         }
 
     def chat(self, question: str, conversation_id: Optional[str] = None,
-             user_id: Optional[str] = None, context: str = "",
+             user_id: Optional[str] = None,
              **kwargs) -> Dict[str, Any]:
         """
         处理闲聊
@@ -54,7 +56,6 @@ class ChitChatAgent:
             question: 用户问题
             conversation_id: 会话ID
             user_id: 用户ID
-            context: 对话上下文
             **kwargs: 其他参数
 
         Returns:
@@ -63,29 +64,26 @@ class ChitChatAgent:
         logger.info(f"[ChitChatAgent] Processing chitchat: {question[:50]}...")
 
         try:
-            # 1. 读取会话记忆作为上下文
+            # 1. 通过 MemoryAgent 加载会话记忆
             conversation_history = ""
-            if conversation_id and tool_registry.has_tool("conversation_memory_read"):
-                try:
-                    history = tool_registry.invoke_tool(
-                        "conversation_memory_read",
-                        {
-                            "conversation_id": conversation_id,
-                            "limit": 10
-                        }
-                    )
-                    messages = history.get("messages", [])
-                    if messages:
-                        conversation_history = self._format_history(messages)
-                        logger.info(f"[ChitChatAgent] Loaded {len(messages)} messages from memory")
-                except Exception as e:
-                    logger.warning(f"[ChitChatAgent] Failed to read conversation memory: {e}")
+            if conversation_id:
+                memory_state = SimpleNamespace(
+                    conversation_id=conversation_id, user_id=user_id, run_id="chitchat_memory"
+                )
+                context_result = self.memory_agent.load_memory(memory_state, max_rounds=5)
+                if context_result.get("text"):
+                    conversation_history = context_result["text"]
+                    logger.info(f"[ChitChatAgent] Loaded context ({context_result['token_count']} tokens)")
 
             # 2. 生成回复（带会话上下文）
             answer = self._generate_chitchat_response(question, conversation_history)
 
             # 3. 写入会话记忆
-            self._save_to_memory(conversation_id, question, answer)
+            if conversation_id:
+                memory_state = SimpleNamespace(
+                    conversation_id=conversation_id, user_id=user_id, run_id="chitchat_save"
+                )
+                self.memory_agent.save_memory(memory_state, question, answer)
 
             return {
                 "answer": answer,
@@ -103,43 +101,8 @@ class ChitChatAgent:
                 "error": True
             }
 
-    def _format_history(self, messages: list) -> str:
-        """格式化对话历史为上下文字符串"""
-        if not messages:
-            return ""
-
-        formatted = []
-        for msg in messages:
-            role = msg.get("role", "unknown")
-            content = msg.get("content", "")
-            if role == "system":
-                formatted.append(content)
-            elif role == "user":
-                formatted.append(f"用户: {content}")
-            elif role == "assistant":
-                formatted.append(f"AI: {content}")
-
-        return "\n".join(formatted)
-
-    def _save_to_memory(self, conversation_id: str, question: str, answer: str):
-        """保存对话到会话记忆"""
-        if not conversation_id or not tool_registry.has_tool("conversation_memory_write"):
-            return
-        try:
-            tool_registry.invoke_tool(
-                "conversation_memory_write",
-                {"conversation_id": conversation_id, "role": "user", "content": question}
-            )
-            tool_registry.invoke_tool(
-                "conversation_memory_write",
-                {"conversation_id": conversation_id, "role": "assistant", "content": answer}
-            )
-            logger.info(f"[ChitChatAgent] Saved conversation to memory")
-        except Exception as e:
-            logger.warning(f"[ChitChatAgent] Failed to write conversation memory: {e}")
-
     def chat_stream(self, question: str, conversation_id: Optional[str] = None,
-                    user_id: Optional[str] = None, context: str = "",
+                    user_id: Optional[str] = None,
                     **kwargs) -> Generator[str, None, None]:
         """
         流式处理闲聊
@@ -148,7 +111,6 @@ class ChitChatAgent:
             question: 用户问题
             conversation_id: 会话ID
             user_id: 用户ID
-            context: 对话上下文
             **kwargs: 其他参数
 
         Yields:
@@ -157,7 +119,16 @@ class ChitChatAgent:
         logger.info(f"[ChitChatAgent] Stream chitchat: {question[:50]}...")
 
         try:
-            answer = self._generate_chitchat_response(question)
+            # 加载会话上下文
+            conversation_history = ""
+            if conversation_id:
+                memory_state = SimpleNamespace(
+                    conversation_id=conversation_id, user_id=user_id, run_id="chitchat_stream_memory"
+                )
+                context_result = self.memory_agent.load_memory(memory_state, max_rounds=5)
+                conversation_history = context_result.get("text", "")
+
+            answer = self._generate_chitchat_response(question, conversation_history)
 
             for char in answer:
                 yield json.dumps({

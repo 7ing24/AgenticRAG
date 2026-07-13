@@ -1,9 +1,9 @@
 from typing import Dict, Any, Optional, Generator
 from enum import Enum
-from workflows.knowledge_qa_agent import KnowledgeQAAgent
-from workflows.chitchat_agent import ChitChatAgent
-from workflows.admin_copilot_agent import AdminCopilotAgent
-from workflows.retrieval_agent import RetrievalAgent
+from workflow.knowledge_qa import KnowledgeQAAgent
+from workflow.chitchat import ChitChatAgent
+from workflow.admin_copilot import AdminCopilotAgent
+from service.retrieval import RetrievalAgent
 from intent.classifier import IntentClassifier, IntentType
 import logging
 import json
@@ -16,7 +16,6 @@ class TaskType(Enum):
     CHITCHAT = "chitchat"
     KNOWLEDGE_QA = "knowledge_qa"
     ADMIN_COPILOT = "admin_copilot"
-    REASONING = "reasoning"
     UNKNOWN = "unknown"
 
 
@@ -29,18 +28,9 @@ class RouterAgent:
         self.admin_copilot_agent = AdminCopilotAgent()
         self.retrieval_agent = RetrievalAgent()
         self.classifier = IntentClassifier()
-        self._reasoning_agent = None
-
-    @property
-    def reasoning_agent(self):
-        """延迟加载 ReasoningAgent"""
-        if self._reasoning_agent is None:
-            from workflows.reasoning_agent import ReasoningAgent
-            self._reasoning_agent = ReasoningAgent()
-        return self._reasoning_agent
 
     def route(self, input_text: str, conversation_id: Optional[str] = None,
-              user_id: Optional[str] = None, context: str = "",
+              user_id: Optional[str] = None,
               is_admin: bool = False, **kwargs) -> Dict[str, Any]:
         """
         路由并执行任务
@@ -49,7 +39,6 @@ class RouterAgent:
             input_text: 用户输入
             conversation_id: 会话ID
             user_id: 用户ID
-            context: 对话上下文
             is_admin: 是否为管理员
             **kwargs: 其他参数
 
@@ -62,22 +51,17 @@ class RouterAgent:
         try:
             if task_type == TaskType.CHITCHAT:
                 return self.chitchat_agent.chat(
-                    input_text, conversation_id, user_id, context, **kwargs
+                    input_text, conversation_id, user_id, **kwargs
                 )
 
             elif task_type == TaskType.KNOWLEDGE_QA:
                 return self.knowledge_qa_agent.ask(
-                    input_text, conversation_id, user_id, context, **kwargs
+                    input_text, conversation_id, user_id, **kwargs
                 )
 
             elif task_type == TaskType.ADMIN_COPILOT:
                 return self.admin_copilot_agent.handle(
-                    input_text, conversation_id, user_id, context, **kwargs
-                )
-
-            elif task_type == TaskType.REASONING:
-                return self.reasoning_agent.reason(
-                    input_text, context, conversation_id
+                    input_text, conversation_id, user_id, **kwargs
                 )
 
             else:
@@ -96,7 +80,7 @@ class RouterAgent:
             }
 
     def route_stream(self, input_text: str, conversation_id: Optional[str] = None,
-                     user_id: Optional[str] = None, context: str = "",
+                     user_id: Optional[str] = None,
                      is_admin: bool = False, **kwargs) -> Generator[str, None, None]:
         """
         流式路由并执行任务
@@ -105,7 +89,6 @@ class RouterAgent:
             input_text: 用户输入
             conversation_id: 会话ID
             user_id: 用户ID
-            context: 对话上下文
             is_admin: 是否为管理员
             **kwargs: 其他参数
 
@@ -123,31 +106,21 @@ class RouterAgent:
 
             if task_type == TaskType.CHITCHAT:
                 for event in self.chitchat_agent.chat_stream(
-                    input_text, conversation_id, user_id, context, **kwargs
+                    input_text, conversation_id, user_id, **kwargs
                 ):
                     yield event
 
             elif task_type == TaskType.KNOWLEDGE_QA:
                 for event in self.knowledge_qa_agent.ask_stream(
-                    input_text, conversation_id, user_id, context, **kwargs
+                    input_text, conversation_id, user_id, **kwargs
                 ):
                     yield event
 
             elif task_type == TaskType.ADMIN_COPILOT:
                 for event in self.admin_copilot_agent.handle_stream(
-                    input_text, conversation_id, user_id, context, **kwargs
+                    input_text, conversation_id, user_id, **kwargs
                 ):
                     yield event
-
-            elif task_type == TaskType.REASONING:
-                result = self.reasoning_agent.reason(
-                    input_text, context, conversation_id
-                )
-                yield json.dumps({
-                    "type": "answer",
-                    "content": result.get("answer", ""),
-                    "sources": result.get("sources", [])
-                })
 
             else:
                 for event in self.knowledge_qa_agent.ask_stream(
@@ -186,12 +159,6 @@ class RouterAgent:
 
         task_type = intent_to_task.get(result.intent, TaskType.KNOWLEDGE_QA)
 
-        # KNOWLEDGE_QA 进一步判断复杂度，可能升级为 REASONING
-        # if task_type == TaskType.KNOWLEDGE_QA:
-        #     complexity = self.classify_complexity(input_text)
-        #     if complexity == "complex":
-        #         return TaskType.REASONING
-
         # 非管理员不能访问管理功能（含知识巡检），强制降级为知识问答
         if not is_admin and task_type == TaskType.ADMIN_COPILOT:
             logger.info(f"[RouterAgent] Non-admin user attempted admin operation, "
@@ -200,38 +167,12 @@ class RouterAgent:
 
         return task_type
 
-    def classify_complexity(self, input_text: str) -> str:
-        """
-        判断问题复杂度，决定走哪条链路
-
-        Returns:
-            "simple"  — L1：直接检索+生成
-            "medium" — L2：问题改写+检索+重排序+生成
-            "complex" — L3：分解子问题+逐个推理+汇总
-        """
-        # L3：复杂问题指标（对比、分析、归纳类）
-        l3_indicators = ["对比", "比较", "优缺点", "区别", "异同",
-                         "分析", "总结", "归纳", "评估", "权衡"]
-        if any(ind in input_text for ind in l3_indicators) and len(input_text) > 15:
-            return "complex"
-
-        # L2：需要改写/上下文的指标
-        l2_indicators = ["它", "这个", "那个", "上面", "之前", "刚才"]
-        has_pronoun = any(ind in input_text for ind in l2_indicators)
-
-        if has_pronoun or len(input_text.strip()) < 10:
-            return "medium"
-
-        # L1：简单问题
-        return "simple"
-
     def get_agent(self, task_type: TaskType):
         """获取对应的Agent"""
         agent_map = {
             TaskType.CHITCHAT: self.chitchat_agent,
             TaskType.KNOWLEDGE_QA: self.knowledge_qa_agent,
             TaskType.ADMIN_COPILOT: self.admin_copilot_agent,
-            TaskType.REASONING: self.reasoning_agent,
         }
         return agent_map.get(task_type, self.knowledge_qa_agent)
 

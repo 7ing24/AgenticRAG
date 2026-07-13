@@ -1,7 +1,7 @@
 """测试 RouterAgent 路由Agent"""
 
 import pytest
-from workflows.router_agent import RouterAgent, TaskType
+from agent.router_agent import RouterAgent, TaskType
 from intent.classifier import IntentType
 
 
@@ -46,8 +46,8 @@ class TestClassifyTask:
         assert router.classify_task("MySQL 的事务隔离级别有哪些？") == TaskType.KNOWLEDGE_QA
 
     def test_classify_knowledge_qa_concept(self, router):
-        """测试识别知识问答-概念（含'区别'且>15字，走推理链路）"""
-        assert router.classify_task("深度学习和机器学习的区别是什么？") == TaskType.REASONING
+        """测试识别知识问答-概念（含'区别'，复杂度路由在KnowledgeQAAgent内部完成）"""
+        assert router.classify_task("深度学习和机器学习的区别是什么？") == TaskType.KNOWLEDGE_QA
 
     def test_classify_admin_normal_user(self, router):
         """测试普通用户不触发管理"""
@@ -82,9 +82,9 @@ class TestClassifyTask:
         assert result == TaskType.CHITCHAT
 
     def test_classify_unknown_long_text_defaults_to_knowledge(self, router):
-        """测试长文本含'分析'时走推理链路"""
+        """测试长文本含'分析'时走知识问答（复杂度路由在KnowledgeQAAgent内部完成）"""
         result = router.classify_task("请帮我分析一下这个问题的具体情况并给出建议")
-        assert result == TaskType.REASONING
+        assert result == TaskType.KNOWLEDGE_QA
 
 
 class TestGetAgent:

@@ -1,10 +1,10 @@
 import os
 import shutil
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import DashScopeEmbeddings, HuggingFaceEmbeddings
 from langchain_core.documents import Document
-from core.reranker import create_reranker, BaseReranker
+from service.reranker import create_reranker, BaseReranker
 from core.config import config
 
 # pymilvus 和 Milvus 是可选依赖，仅在使用 Milvus 时需要
@@ -44,6 +44,9 @@ class VectorStoreManager:
 
         # 初始化Reranker
         self._init_reranker()
+
+        # 初始化 BM25 索引
+        self._init_bm25()
 
         # 根据 EMBEDDING_MODEL 配置选择 Embedding 模型
         embedding_model = config.EMBEDDING_MODEL.lower()
@@ -91,6 +94,17 @@ class VectorStoreManager:
         except Exception as e:
             config.logger.error(f"Failed to initialize reranker: {e}")
             self.reranker = None
+
+    def _init_bm25(self):
+        """初始化 BM25 索引"""
+        from service.bm25 import BM25Index  # 懒加载，避免循环导入
+        # 使用绝对路径，避免不同运行目录导致找不到索引
+        base_dir = os.path.dirname(os.path.abspath(self.persist_directory))
+        if not base_dir:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+        bm25_path = os.path.join(base_dir, "bm25_index.pkl")
+        self.bm25_index = BM25Index(persist_path=bm25_path)
+        config.logger.info(f"BM25 index initialized ({self.bm25_index.document_count} docs)")
 
     def _init_milvus(self):
         """初始化Milvus连接和集合"""
@@ -157,6 +171,12 @@ class VectorStoreManager:
         if not documents:
             return
 
+        # 同步写入 BM25 索引
+        try:
+            self.bm25_index.add_documents(documents)
+        except Exception as e:
+            config.logger.warning(f"BM25 add_documents failed: {e}")
+
         if self.vector_store is None:
             if self.use_milvus:
                 # Milvus会自动创建集合
@@ -210,7 +230,7 @@ class VectorStoreManager:
             # COSINE 或其他：假设已经是相似度
             return float(raw_score)
 
-    def search(self, query: str, k: int = 3, filter_dict: Optional[Dict[str, Any]] = None, similarity_threshold: float = 0.75, use_rerank: bool = True) -> List[Document]:
+    def search(self, query: str, k: int = 3, filter_dict: Optional[Dict[str, Any]] = None, similarity_threshold: float = 0.75, use_rerank: bool = True, hybrid: bool = True) -> List[Document]:
         """
         相似度搜索
 
@@ -218,15 +238,20 @@ class VectorStoreManager:
             query: 查询文本
             k: 返回结果数量
             filter_dict: 过滤条件（仅Milvus支持）
-            similarity_threshold: 相似度阈值，只有相似度大于此值的文档才返回（0.0-1.0）
+            similarity_threshold: 相似度阈值
             use_rerank: 是否使用Rerank进行结果重排序
+            hybrid: 是否开启向量+BM25混合检索（RRF融合）
         """
         import time
         start_time = time.time()
-        
+
         if self.vector_store is None:
             config.logger.info(f"Search completed in {time.time() - start_time:.4f}s, no vector store available")
             return []
+
+        # 混合检索：向量 + BM25 → RRF 融合
+        if hybrid and self.bm25_index.document_count > 0:
+            return self._hybrid_search(query, k, similarity_threshold, use_rerank, start_time)
 
         try:
             # 初始检索数量应该比最终返回的多，以便Rerank有足够的候选
@@ -257,12 +282,17 @@ class VectorStoreManager:
                 filtered_docs = []
                 for i, (doc, score) in enumerate(docs_with_scores):
                     normalized = self._to_similarity(score)
-                    if normalized >= similarity_threshold:
+                    # L2 距离在高维空间中数值较大（10-30），1/(1+d) 转换后
+                    # 相似度可能很低（0.03-0.09），因此对 L2 只取 top-k 不做绝对阈值过滤
+                    if self.metric_type == "L2" or normalized >= similarity_threshold:
                         doc.metadata['score'] = normalized
                         filtered_docs.append(doc)
                         config.logger.debug(f"Doc accepted: similarity={normalized:.4f}, raw_score={score:.4f}")
                     else:
                         config.logger.debug(f"Doc filtered: similarity={normalized:.4f} < threshold={similarity_threshold}, raw_score={score:.4f}")
+                # 对 L2 限制返回数量为请求的 k，避免返回过多低质量结果
+                if self.metric_type == "L2":
+                    filtered_docs = filtered_docs[:k]
                 config.logger.info(f"Search completed in {time.time() - start_time:.4f}s, returning {len(filtered_docs)} documents after threshold filtering")
                 return filtered_docs
 
@@ -311,6 +341,80 @@ class VectorStoreManager:
                 config.logger.info(f"Search completed in {time.time() - start_time:.4f}s (all searches failed), returning empty results")
                 return []
 
+    def _hybrid_search(self, query: str, k: int, similarity_threshold: float,
+                       use_rerank: bool, start_time: float) -> List[Document]:
+        """向量 + BM25 混合检索，RRF 融合"""
+        candidate_k = k * 2
+
+        # 1. 向量检索
+        vector_results = self._vector_search_raw(query, candidate_k)
+        # 2. BM25 检索
+        bm25_results = self.bm25_index.search(query, top_k=candidate_k)
+
+        # 3. RRF 融合
+        rrf_scores: Dict[str, float] = {}  # chunk_id → RRF score
+        doc_by_id: Dict[str, Any] = {}
+
+        rrf_k = 60
+        for rank, (doc, _score) in enumerate(vector_results):
+            chunk_id = f"doc_{doc.metadata.get('doc_id', '')}_chunk_{doc.metadata.get('chunk_index', 0)}"
+            rrf_scores[chunk_id] = rrf_scores.get(chunk_id, 0) + 1.0 / (rrf_k + rank + 1)
+            doc_by_id[chunk_id] = doc
+
+        for rank, (doc_dict, _score) in enumerate(bm25_results):
+            chunk_id = f"doc_{doc_dict['metadata'].get('doc_id', '')}_chunk_{doc_dict['metadata'].get('chunk_index', 0)}"
+            rrf_scores[chunk_id] = rrf_scores.get(chunk_id, 0) + 1.0 / (rrf_k + rank + 1)
+            if chunk_id not in doc_by_id:
+                doc_by_id[chunk_id] = {
+                    "content": doc_dict["content"],
+                    "metadata": doc_dict["metadata"],
+                    "is_from_bm25": True,
+                }
+
+        # 按 RRF 分排序
+        sorted_ids = sorted(rrf_scores, key=rrf_scores.get, reverse=True)
+        merged = []
+        for doc_id in sorted_ids[:k]:
+            entry = doc_by_id[doc_id]
+            if isinstance(entry, dict) and entry.get("is_from_bm25"):
+                from langchain_core.documents import Document
+                doc = Document(page_content=entry["content"], metadata=entry["metadata"])
+                doc.metadata["score"] = rrf_scores[doc_id]
+                doc.metadata["source_type"] = "bm25"
+            else:
+                doc = entry
+                doc.metadata["score"] = rrf_scores[doc_id]
+                doc.metadata["source_type"] = "vector"
+            merged.append(doc)
+
+        config.logger.info(
+            f"[Hybrid] vector={len(vector_results)}, bm25={len(bm25_results)}, "
+            f"merged={len(merged)} in {time.time() - start_time:.4f}s"
+        )
+
+        # 4. 可选 reranker
+        if use_rerank and self.reranker and len(merged) > k:
+            try:
+                reranked = self.reranker.rerank(query, merged, top_k=k)
+                merged = [r.document for r in reranked]
+            except Exception as e:
+                config.logger.warning(f"[Hybrid] rerank failed: {e}")
+                merged = merged[:k]
+
+        return merged
+
+    def _vector_search_raw(self, query: str, k: int) -> List[Tuple[Any, float]]:
+        """纯向量检索，返回 [(doc, score), ...]"""
+        try:
+            docs_with_scores = self.vector_store.similarity_search_with_score(query, k=k)
+            if isinstance(docs_with_scores, list) and len(docs_with_scores) > 0:
+                if isinstance(docs_with_scores[0], tuple):
+                    return [(doc, self._to_similarity(score)) for doc, score in docs_with_scores]
+                return [(doc, 0.5) for doc in docs_with_scores]
+        except Exception as e:
+            config.logger.warning(f"[Hybrid] vector search failed: {e}")
+        return []
+
     def delete_document(self, doc_id: int):
         """
         根据 doc_id 删除文档向量
@@ -320,7 +424,18 @@ class VectorStoreManager:
         """
         if self.vector_store is None:
             config.logger.warning(f"No vector store available, cannot delete doc_id: {doc_id}")
+            # 仍然尝试从 BM25 删除
+            try:
+                self.bm25_index.remove_by_doc_id(doc_id)
+            except Exception as e:
+                config.logger.warning(f"BM25 remove_by_doc_id failed: {e}")
             return
+
+        # 同步从 BM25 删除
+        try:
+            self.bm25_index.remove_by_doc_id(doc_id)
+        except Exception as e:
+            config.logger.warning(f"BM25 remove_by_doc_id failed: {e}")
 
         if self.use_milvus:
             # Milvus删除逻辑

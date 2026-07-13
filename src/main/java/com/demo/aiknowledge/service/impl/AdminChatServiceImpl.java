@@ -80,9 +80,8 @@ public class AdminChatServiceImpl implements AdminChatService {
         userMsg.setCreateTime(LocalDateTime.now());
         adminMessageMapper.insert(userMsg);
 
-        String context = buildContext(conversationId);
-
-        AiResponse aiResponse = callAdminAgent(content, context, adminId, conversationId);
+        // 上下文由 Python MemoryAgent 统一管理
+        AiResponse aiResponse = callAdminAgent(content, adminId, conversationId);
 
         String answer = aiResponse.getAnswer();
         String sourcesJson = null;
@@ -142,18 +141,10 @@ public class AdminChatServiceImpl implements AdminChatService {
         return message;
     }
 
-    private String buildContext(Long conversationId) {
-        List<AdminMessage> messages = getMessages(conversationId);
-        StringBuilder sb = new StringBuilder();
-        for (AdminMessage msg : messages) {
-            sb.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
-        }
-        return sb.toString();
-    }
 
-    private AiResponse callAdminAgent(String question, String context, Long adminId, Long conversationId) {
+    private AiResponse callAdminAgent(String question, Long adminId, Long conversationId) {
         try {
-            Map<String, Object> response = aiService.askForAdmin(question, context, adminId, conversationId);
+            Map<String, Object> response = aiService.askForAdmin(question, adminId, conversationId);
             AiResponse aiResponse = new AiResponse();
             aiResponse.setAnswer((String) response.get("answer"));
             aiResponse.setTaskType((String) response.get("task_type"));

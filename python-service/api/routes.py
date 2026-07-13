@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from core.parser import DocumentParser
+from service.parser import DocumentParser
 from core.vector_store import vector_store
 from core.llm import LLMService
 from core.mysql_client import mysql_client
-from workflows import RouterAgent
+from agent.router_agent import RouterAgent
 import os
 import re
 import logging
@@ -164,7 +164,6 @@ class ParseRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     question: str
-    context: str = "" # Optional, if context is passed directly (not used here)
     conversation_id: str = None # Optional, for conversation memory
     username: str = None # Optional, if username is provided
     user_id: str = None # Optional, user ID for user profile
@@ -269,7 +268,6 @@ async def ask_question(request: ChatRequest):
                 input_text=request.question,
                 conversation_id=request.conversation_id,
                 user_id=request.user_id,
-                context=request.context,
                 username=request.username,
                 is_admin=request.is_admin
             )
@@ -278,7 +276,8 @@ async def ask_question(request: ChatRequest):
             response = {
                 "answer": result.get("answer", ""),
                 "sources": result.get("sources", []),
-                "task_type": result.get("task_type", "unknown")
+                "task_type": result.get("task_type", "unknown"),
+                "steps": result.get("steps", []),
             }
         
         logger.info(f"Response generated successfully, task_type: {response.get('task_type')}")
@@ -344,7 +343,6 @@ async def ask_question_stream(request: ChatRequest):
             # 使用 RouterAgent 进行流式任务路由
             for event_data in router_agent.route_stream(
                 input_text=request.question,
-                context=request.context,
                 username=request.username,
                 is_admin=request.is_admin
             ):

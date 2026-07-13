@@ -1,6 +1,6 @@
 from typing import Dict, Any, Optional, List
-from agent.state import AgentState, AgentStep, StepType, StepStatus
-from agent.planner import Planner, QuestionClassification, RewriteResult, SufficiencyResult
+from engine.state import AgentState, AgentStep, StepType, StepStatus
+from engine.planner import Planner, QuestionClassification, RewriteResult, SufficiencyResult
 from intent.classifier import IntentResult
 from tools.registry import tool_registry
 from core.llm import LLMService
@@ -255,7 +255,8 @@ class Executor:
         context = state.context or ""
 
         # 使用 Memory Agent 加载记忆
-        memory_context = self.memory_agent.load_memory(state)
+        memory_result = self.memory_agent.load_memory(state)
+        memory_context = memory_result.get("text", "")
         full_context = context
         if memory_context:
             full_context = f"{context}\n\n{memory_context}" if context else memory_context
@@ -361,7 +362,8 @@ class Executor:
 
     def _execute_memory_read(self, state: AgentState, step: AgentStep) -> Dict[str, Any]:
         """执行记忆读取（使用 Memory Agent）"""
-        context = self.memory_agent.load_memory(state)
+        memory_result = self.memory_agent.load_memory(state)
+        context = memory_result.get("text", "")
 
         step.complete({
             "context": context,

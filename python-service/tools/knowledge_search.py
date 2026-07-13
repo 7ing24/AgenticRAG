@@ -32,6 +32,12 @@ class KnowledgeSearchTool(Tool):
                     description="是否使用重排序",
                     required=False,
                     default=True
+                ),
+                "use_hybrid": SchemaProperty(
+                    type="boolean",
+                    description="是否使用向量+BM25混合检索",
+                    required=False,
+                    default=True
                 )
             },
             type="object"
@@ -77,13 +83,15 @@ class KnowledgeSearchTool(Tool):
         top_k = int(parameters.get("top_k", 3))
         similarity_threshold = parameters.get("similarity_threshold", 0.75)
         use_rerank = parameters.get("use_rerank", True)
+        use_hybrid = parameters.get("use_hybrid", True)
 
         # 执行检索
         docs = self.vector_store.search(
             query=query,
             k=top_k,
             similarity_threshold=similarity_threshold,
-            use_rerank=use_rerank
+            use_rerank=use_rerank,
+            hybrid=use_hybrid
         )
 
         # 格式化结果（同时兼容 documents 和 chunks 两种 key）

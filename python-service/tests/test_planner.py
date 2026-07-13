@@ -1,9 +1,9 @@
 """测试 Planner 规划器"""
 
 import pytest
-from agent.planner import Planner, QuestionType
+from engine.planner import Planner, QuestionType
 from intent.classifier import IntentType, IntentResult
-from agent.state import AgentState
+from engine.state import AgentState
 
 
 @pytest.fixture

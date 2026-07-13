@@ -1,6 +1,6 @@
 from typing import Dict, Any, List, Optional
 from tools.base import Tool, ToolSchema, SchemaProperty, ToolMetadata
-from core.reranker import create_reranker, BaseReranker, RerankerResult
+from service.reranker import create_reranker, BaseReranker, RerankerResult
 from langchain_core.documents import Document
 from core.config import config
 

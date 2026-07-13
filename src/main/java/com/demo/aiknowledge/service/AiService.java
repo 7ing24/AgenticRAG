@@ -6,14 +6,13 @@ public interface AiService {
     void parseDocument(String filePath, Long docId);
 
     /**
-     * 根据上下文回答问题
+     * 回答问题（上下文由 Python MemoryAgent 统一管理）
      * @param question 用户问题
-     * @param context 相关文档上下文
      * @param userId 用户ID
      * @param conversationId 会话ID
      * @return AI回答对象
      */
-    AiResponse ask(String question, String context, Long userId, Long conversationId);
+    AiResponse ask(String question, Long userId, Long conversationId);
 
     /**
      * 生成会话标题并更新数据库
@@ -28,12 +27,11 @@ public interface AiService {
     void deleteDoc(Long docId);
 
     /**
-     * 管理端AI助手问答
+     * 管理端AI助手问答（上下文由 Python MemoryAgent 统一管理）
      * @param question 用户问题
-     * @param context 对话上下文
      * @param adminId 管理员ID
      * @param conversationId 会话ID
      * @return AI回答对象
      */
-    java.util.Map<String, Object> askForAdmin(String question, String context, Long adminId, Long conversationId);
+    java.util.Map<String, Object> askForAdmin(String question, Long adminId, Long conversationId);
 }

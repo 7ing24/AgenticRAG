@@ -64,6 +64,7 @@ class RetrievalAgent:
             "similarity_threshold": 0.7,
             "use_rerank": False,   # 默认关闭重排序，减少开销
             "use_rewrite": False,  # 默认关闭问题重写，减少LLM调用
+            "use_hybrid": True,    # 默认开启向量+BM25混合检索
             "max_citations": 5
         }
 
@@ -73,6 +74,7 @@ class RetrievalAgent:
         conversation_context: str = "",
         use_rewrite: bool = False,
         use_rerank: bool = False,
+        use_hybrid: bool = True,
         top_k: int = 5,
         similarity_threshold: float = 0.7,
         **kwargs
@@ -85,6 +87,7 @@ class RetrievalAgent:
             conversation_context: 对话上下文
             use_rewrite: 是否使用问题改写
             use_rerank: 是否使用重排序
+            use_hybrid: 是否使用向量+BM25混合检索
             top_k: 返回结果数量
             similarity_threshold: 相似度阈值
 
@@ -108,7 +111,8 @@ class RetrievalAgent:
             retrieved_docs = self._retrieve_documents(
                 rewritten_query,
                 k=top_k * 3 if use_rerank else top_k,
-                similarity_threshold=similarity_threshold
+                similarity_threshold=similarity_threshold,
+                use_hybrid=use_hybrid
             )
 
             if use_rerank and retrieved_docs:
@@ -164,6 +168,7 @@ class RetrievalAgent:
         conversation_context: str = "",
         use_rewrite: bool = False,
         use_rerank: bool = False,
+        use_hybrid: bool = True,
         top_k: int = 5,
         similarity_threshold: float = 0.7,
         **kwargs
@@ -217,7 +222,8 @@ class RetrievalAgent:
             retrieved_docs = self._retrieve_documents(
                 rewritten_query,
                 k=top_k * 3 if use_rerank else top_k,
-                similarity_threshold=similarity_threshold
+                similarity_threshold=similarity_threshold,
+                use_hybrid=use_hybrid
             )
 
             yield json.dumps({
@@ -280,7 +286,8 @@ class RetrievalAgent:
         self,
         query: str,
         k: int = 10,
-        similarity_threshold: float = 0.7
+        similarity_threshold: float = 0.7,
+        use_hybrid: bool = True
     ) -> List:
         """执行文档检索"""
         try:
@@ -289,7 +296,8 @@ class RetrievalAgent:
                     "query": query,
                     "top_k": k,
                     "similarity_threshold": similarity_threshold,
-                    "use_rerank": False
+                    "use_rerank": False,
+                    "use_hybrid": use_hybrid
                 })
                 return result.get("documents", [])
         except Exception as e:
@@ -299,7 +307,8 @@ class RetrievalAgent:
             query=query,
             k=k,
             similarity_threshold=similarity_threshold,
-            use_rerank=False
+            use_rerank=False,
+            hybrid=use_hybrid
         )
 
         return [

@@ -6,13 +6,14 @@ import json
 from typing import Dict, Any, Optional, List, Generator
 from datetime import datetime
 
-from agent.state import AgentState, AgentStatus, AgentStep, StepType, TerminationCondition
-from agent.events import (
+from engine.state import AgentState, AgentStatus, AgentStep, StepType, TerminationCondition
+from engine.events import (
     EventBus, event_bus,
     RunStartedEvent, RunCompletedEvent, RunFailedEvent,
     StepStartedEvent, StepCompletedEvent, StepFailedEvent,
     ToolCallCompletedEvent, ToolCallFailedEvent,
 )
+from agent.memory_agent import MemoryAgent
 from agent.react_parser import ReActParser, ParsedReActOutput
 from agent.react_prompts import ReActPrompts
 from core.llm import LLMService, llm_service
@@ -24,6 +25,9 @@ logger = logging.getLogger(__name__)
 class ReActAgent:
     """ReAct 循环 Agent — LLM 动态决定调用哪些工具，自主判断何时输出最终答案"""
 
+    # qwen-plus 上下文窗口约 32K，留 ~8K 给输出，24K 给输入
+    MAX_CONTEXT_TOKENS = 24000
+
     def __init__(
         self,
         max_iterations: int = 10,
@@ -34,6 +38,7 @@ class ReActAgent:
         self.llm_service = llm_service
         self.tool_registry = tool_registry
         self.event_bus = event_bus
+        self.memory_agent = MemoryAgent()
         self.parser = ReActParser()
         self.prompts = ReActPrompts()
 
@@ -45,6 +50,7 @@ class ReActAgent:
         conversation_id: Optional[str] = None,
         user_id: Optional[str] = None,
         context: str = "",
+        context_token_count: int = 0,
         **kwargs,
     ) -> Dict[str, Any]:
         """同步执行 ReAct 循环，返回最终答案"""
@@ -61,7 +67,8 @@ class ReActAgent:
             ))
             state.start()
 
-            return self._run_loop(state, messages, question, conversation_id)
+            return self._run_loop(state, messages, question, conversation_id,
+                                  context_token_count=context_token_count)
 
         except Exception as e:
             logger.error(f"[{state.run_id}] ReAct run failed: {e}", exc_info=True)
@@ -160,7 +167,8 @@ class ReActAgent:
 
             # Build and return response
             sources = self._extract_sources_from_state(state)
-            response = self._build_response(state, final_answer, sources)
+            steps = self._extract_steps_from_state(state)
+            response = self._build_response(state, final_answer, sources, steps)
 
             yield json.dumps({"type": "sources", "sources": sources})
 
@@ -169,12 +177,13 @@ class ReActAgent:
                 yield json.dumps({"type": "token", "content": char})
 
             yield json.dumps({"type": "end", "content": {
-                "answer": final_answer, "sources": sources, "task_type": "knowledge_qa"
+                "answer": final_answer, "sources": sources,
+                "task_type": "knowledge_qa", "steps": steps
             }})
 
             state.complete(response)
             self.event_bus.publish(RunCompletedEvent(run_id=state.run_id, output=response))
-            self._save_conversation_memory(conversation_id, question, final_answer)
+            self.memory_agent.save_memory(state, question, final_answer)
 
         except Exception as e:
             logger.error(f"[{state.run_id}] ReAct stream failed: {e}", exc_info=True)
@@ -189,10 +198,16 @@ class ReActAgent:
         messages: List[Dict[str, str]],
         question: str,
         conversation_id: Optional[str],
+        context_token_count: int = 0,
     ) -> Dict[str, Any]:
         """ReAct 主循环"""
         final_answer = None
         last_tool_calls = set()
+
+        # 估算初始 token 数：system prompt + user message + context
+        estimated_tokens = context_token_count
+        for msg in messages:
+            estimated_tokens += MemoryAgent._estimate_tokens(msg.get("content", ""))
 
         for iteration in range(self.max_iterations):
             if TerminationCondition.should_terminate(state):
@@ -250,6 +265,19 @@ class ReActAgent:
                 # Append to conversation
                 messages.append({"role": "assistant", "content": llm_response})
                 messages.append({"role": "user", "content": f"Observation: {observation}"})
+
+                # Token 追踪：超出阈值时裁剪最早的 observation 轮次
+                estimated_tokens += MemoryAgent._estimate_tokens(llm_response)
+                estimated_tokens += MemoryAgent._estimate_tokens(f"Observation: {observation}")
+                if estimated_tokens > self.MAX_CONTEXT_TOKENS:
+                    self._trim_old_observations(messages)
+                    estimated_tokens = sum(
+                        MemoryAgent._estimate_tokens(m.get("content", ""))
+                        for m in messages
+                    )
+                    logger.info(f"[{state.run_id}] Trimmed old observations, "
+                                f"estimated tokens: {estimated_tokens}")
+
                 step.complete({"thought": parsed.thought, "action": parsed.action})
 
             else:
@@ -266,13 +294,14 @@ class ReActAgent:
             logger.info(f"[{state.run_id}] Max iterations reached, forcing final answer")
             final_answer = self._force_final_answer(messages, question, state.run_id)
 
-        # 5. Build response
+        # 5. Build response with steps
         sources = self._extract_sources_from_state(state)
-        response = self._build_response(state, final_answer, sources)
+        steps = self._extract_steps_from_state(state)
+        response = self._build_response(state, final_answer, sources, steps)
 
         state.complete(response)
         self.event_bus.publish(RunCompletedEvent(run_id=state.run_id, output=response))
-        self._save_conversation_memory(conversation_id, question, final_answer)
+        self.memory_agent.save_memory(state, question, final_answer)
 
         return response
 
@@ -367,25 +396,27 @@ class ReActAgent:
             timeout_seconds=self.timeout_seconds,
         )
 
-    def _save_conversation_memory(
-        self, conversation_id: Optional[str], question: str, answer: str
-    ):
-        """保存对话到记忆"""
-        if not conversation_id or not self.tool_registry.has_tool("conversation_memory_write"):
-            return
-        try:
-            self.tool_registry.invoke_tool(
-                "conversation_memory_write",
-                {"conversation_id": conversation_id, "role": "user", "content": question}
-            )
-            self.tool_registry.invoke_tool(
-                "conversation_memory_write",
-                {"conversation_id": conversation_id, "role": "assistant", "content": answer}
-            )
-        except Exception as e:
-            logger.warning(f"Failed to save conversation memory: {e}")
-
     # ── Helpers ─────────────────────────────────────────────────
+
+    @staticmethod
+    def _trim_old_observations(messages: List[Dict[str, str]]):
+        """裁剪最早的 assistant+observation 轮次，保留最近 5 轮完整交互
+
+        messages 结构：[user(初始prompt), assistant1, user(obs1), assistant2, user(obs2), ...]
+        第 0 条是初始 prompt，不能删。从第 1 条开始，按 assistant + user(observation) 成对裁剪。
+        """
+        MIN_KEEP_PAIRS = 5
+        # 第 0 条是初始 user prompt
+        pairs = messages[1:]  # [assistant, user(obs), assistant, user(obs), ...]
+        total_pairs = len(pairs) // 2
+        if total_pairs <= MIN_KEEP_PAIRS:
+            return
+
+        # 保留最近 MIN_KEEP_PAIRS 对
+        keep_start = (total_pairs - MIN_KEEP_PAIRS) * 2
+        trimmed = messages[:1] + pairs[keep_start:]
+        messages.clear()
+        messages.extend(trimmed)
 
     def _force_final_answer(
         self, messages: List[Dict[str, str]], question: str, run_id: str
@@ -440,7 +471,8 @@ class ReActAgent:
         return sources
 
     def _build_response(
-        self, state: AgentState, answer: str, sources: List[Dict]
+        self, state: AgentState, answer: str, sources: List[Dict],
+        steps: List[Dict] = None
     ) -> Dict[str, Any]:
         return {
             "answer": answer,
@@ -448,15 +480,35 @@ class ReActAgent:
             "has_sources": len(sources) > 0,
             "task_type": "knowledge_qa",
             "iterations": len(state.tool_calls),
+            "steps": steps or [],
         }
 
+    def _extract_steps_from_state(self, state: AgentState) -> List[Dict[str, Any]]:
+        """从 AgentState 中提取步骤轨迹"""
+        steps = []
+        for step in state.steps:
+            step_info = {
+                "step_name": step.step_name,
+                "step_type": step.step_type.value if step.step_type else "unknown",
+                "status": step.status.value if step.status else "unknown",
+            }
+            if step.output_data:
+                if "final_answer" in step.output_data:
+                    step_info["output"] = f"Final Answer ({len(str(step.output_data.get('final_answer', '')))} chars)"
+                elif "thought" in step.output_data:
+                    step_info["output"] = str(step.output_data.get("thought", ""))[:200]
+                elif "action" in step.output_data:
+                    step_info["output"] = str(step.output_data.get("action", ""))[:200]
+            steps.append(step_info)
+        return steps
+
     def _build_error_response(self, state: AgentState) -> Dict[str, Any]:
+        logger.error(f"[{state.run_id}] Error response: {state.error_message} (code: {state.error_code})")
         return {
-            "answer": state.error_message or "服务暂时不可用，请稍后再试。",
+            "answer": "抱歉，服务暂时不可用，请稍后再试。",
             "sources": [],
             "has_sources": False,
             "error": True,
-            "error_code": state.error_code,
         }
 
 

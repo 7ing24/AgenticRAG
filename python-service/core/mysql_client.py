@@ -11,11 +11,11 @@ class MySQLClient:
     """MySQL 数据库客户端"""
     
     def __init__(self):
-        self.host = os.getenv("MYSQL_HOST", "localhost")
+        self.host = os.getenv("MYSQL_HOST", "192.168.100.129")
         self.port = int(os.getenv("MYSQL_PORT", "3306"))
         self.database = os.getenv("MYSQL_DATABASE", "ai_knowledge_db")
         self.username = os.getenv("MYSQL_USERNAME", "root")
-        self.password = os.getenv("MYSQL_PASSWORD", "123456")
+        self.password = os.getenv("MYSQL_PASSWORD", "Wqj.120224")
         self.connection = None
     
     def connect(self):
@@ -230,11 +230,62 @@ class UserMemoryClient:
         return memory
 
     def update_user_memory(self, user_id: str, key: str, value: Dict[str, Any],
-                           source: str = "agent", confidence: float = 1.0):
-        """更新用户记忆（upsert）"""
+                           source: str = "agent", confidence: float = 0.6):
+        """更新用户记忆（加权合并，非简单覆盖）
+
+        对 dict 类型的 value 做逐键合并：
+        - 同一维度多次出现 → 提升 confidence（上限 0.95）
+        - 新维度 → 初始 confidence 较低
+        - 旧维度只在新值中出现才替换，否则保留
+        """
         conn = self._get_connection()
         try:
             cursor = conn.cursor()
+
+            # 读取旧值
+            old_value = {}
+            old_confidence = 0.0
+            cursor.execute(
+                "SELECT memory_value, confidence FROM user_memory "
+                "WHERE user_id = %s AND memory_key = %s",
+                (user_id, key)
+            )
+            row = cursor.fetchone()
+            if row:
+                try:
+                    old_value = json.loads(row[0]) if isinstance(row[0], str) else row[0]
+                except (json.JSONDecodeError, TypeError):
+                    old_value = {}
+                old_confidence = float(row[1]) if row[1] else 0.0
+
+            # 逐键合并：按值类型选择策略
+            merged = {}
+            all_keys = set(old_value.keys()) | set(value.keys())
+            for k in all_keys:
+                new_val = value.get(k)
+                old_val = old_value.get(k)
+
+                if new_val is not None and old_val is not None:
+                    # 两边都有 → 按类型合并
+                    if isinstance(new_val, list) and isinstance(old_val, list):
+                        # 列表去重合并：旧项在前，新项追加
+                        merged[k] = list(dict.fromkeys(old_val + new_val))
+                    elif isinstance(new_val, str) and isinstance(old_val, str):
+                        merged[k] = new_val  # 字符串：新替旧
+                    else:
+                        merged[k] = new_val  # 其他：新值优先
+                elif new_val is not None:
+                    merged[k] = new_val
+                elif old_val is not None:
+                    merged[k] = old_val
+
+            # 置信度：新旧有重叠维度 → 累积提升，否则用较高值
+            common_keys = set(old_value.keys()) & set(value.keys())
+            if common_keys and old_confidence > 0:
+                merged_confidence = min(0.95, max(confidence, old_confidence + 0.05))
+            else:
+                merged_confidence = max(confidence, old_confidence)
+
             cursor.execute("""
                 INSERT INTO user_memory (user_id, memory_key, memory_value, source, confidence)
                 VALUES (%s, %s, %s, %s, %s)
@@ -242,7 +293,8 @@ class UserMemoryClient:
                     memory_value = VALUES(memory_value),
                     source = VALUES(source),
                     confidence = VALUES(confidence)
-            """, (user_id, key, json.dumps(value, ensure_ascii=False), source, confidence))
+            """, (user_id, key, json.dumps(merged, ensure_ascii=False),
+                  source, merged_confidence))
             conn.commit()
             cursor.close()
         finally:

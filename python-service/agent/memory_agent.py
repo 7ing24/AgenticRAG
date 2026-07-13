@@ -1,6 +1,7 @@
 """Memory Agent - 独立的记忆管理Agent"""
 
 from typing import Dict, Any, Optional, List
+from concurrent.futures import ThreadPoolExecutor
 from tools.registry import tool_registry
 from core.llm import LLMService
 import logging
@@ -18,9 +19,18 @@ class MemoryAgent:
 
     def __init__(self):
         self.llm_service = LLMService()
+        self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="memory")
 
-    def load_memory(self, state) -> str:
-        """加载记忆上下文（会话记忆 + 用户画像）"""
+    def load_memory(self, state, max_rounds: int = 10) -> dict:
+        """加载记忆上下文（会话记忆 + 用户画像）
+
+        Args:
+            state: AgentState，需有 conversation_id / user_id / run_id
+            max_rounds: 最大加载轮数，默认 10
+
+        Returns:
+            {"text": str, "token_count": int}
+        """
         context_parts = []
 
         # 1. 加载会话记忆
@@ -30,7 +40,7 @@ class MemoryAgent:
                     "conversation_memory_read",
                     {
                         "conversation_id": state.conversation_id,
-                        "limit": 10
+                        "limit": max_rounds
                     },
                     run_id=state.run_id
                 )
@@ -39,7 +49,8 @@ class MemoryAgent:
                     formatted = self._format_history(messages)
                     context_parts.append(formatted)
                     logger.info(f"[{state.run_id}] MemoryAgent loaded {len(messages)} messages"
-                                f" (compressed: {history.get('compressed', False)})")
+                                f" (compressed: {history.get('compressed', False)}, "
+                                f"max_rounds: {max_rounds})")
             except Exception as e:
                 logger.warning(f"[{state.run_id}] MemoryAgent failed to load conversation: {e}")
 
@@ -49,7 +60,8 @@ class MemoryAgent:
             if user_profile:
                 context_parts.append(f"[用户画像] {json.dumps(user_profile, ensure_ascii=False)}")
 
-        return "\n\n".join(context_parts) if context_parts else ""
+        text = "\n\n".join(context_parts) if context_parts else ""
+        return {"text": text, "token_count": self._estimate_tokens(text)}
 
     def save_memory(self, state, question: str, answer: str):
         """保存记忆（用户问题 + AI回答 + 提取偏好）"""
@@ -86,9 +98,11 @@ class MemoryAgent:
             except Exception as e:
                 logger.warning(f"[{state.run_id}] MemoryAgent failed to write assistant message: {e}")
 
-        # 3. 异步提取用户偏好（不阻塞主流程）
+        # 3. 线程池异步提取用户偏好（不阻塞主流程）
         if state.user_id:
-            self._extract_user_preference(state, question, answer)
+            self._executor.submit(
+                self._extract_user_preference, state, question, answer
+            )
 
     def _load_user_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
         """加载用户画像"""
@@ -100,7 +114,7 @@ class MemoryAgent:
             return None
 
     def _extract_user_preference(self, state, question: str, answer: str):
-        """异步提取用户偏好"""
+        """在线程池中异步提取用户偏好"""
         try:
             from core.mysql_client import user_memory_client
 
@@ -109,13 +123,19 @@ class MemoryAgent:
 用户问题：{question}
 AI回答：{answer}
 
-如果有，返回 JSON：{{"preference_style": "简洁/详细", "topics": ["主题1"]}}
+从以下维度自由描述用户的偏好（不必全部填写，只写能观察到的）：
+- 回答风格（简洁精炼 / 详细展开 / 先结论后推导 / 喜欢代码示例 / ...）
+- 知识深度（入门科普 / 进阶原理 / 实战操作 / ...）
+- 关注领域（哪些技术主题反复出现）
+- 其他任何值得记录的偏好
+
+如果有明显偏好，返回 JSON：
+{{"preferences": {{"回答风格": "...", "知识深度": "...", "关注领域": [...]}}}}
 如果没有明显偏好，返回：null
 只返回 JSON 或 null，不要解释。"""
 
             result = self.llm_service.generate(prompt)
             if result and result.strip() != "null":
-                # 清理 markdown 代码块
                 cleaned = result.strip()
                 if cleaned.startswith("```"):
                     cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
@@ -123,7 +143,7 @@ AI回答：{answer}
 
                 preference = json.loads(cleaned.strip())
                 user_memory_client.update_user_memory(
-                    state.user_id, "preference_style", preference,
+                    state.user_id, "preferences", preference,
                     source="agent", confidence=0.8
                 )
                 logger.info(f"[{state.run_id}] Extracted user preference: {preference}")
@@ -142,10 +162,27 @@ AI回答：{answer}
             if role == "system":
                 formatted.append(content)
             elif role == "user":
-                formatted.append(f"用户: {content}")
+                formatted.append(f"user: {content}")
             elif role == "assistant":
-                formatted.append(f"AI: {content}")
+                formatted.append(f"assistant: {content}")
             else:
                 formatted.append(content)
 
         return "\n".join(formatted)
+
+    @staticmethod
+    def _estimate_tokens(text: str) -> int:
+        """估算文本 token 数（中英文混合的简单估算）
+
+        中文约 1.5 字符/token，英文约 4 字符/token。
+        对混合文本取折中值 ~2.5 字符/token。
+        后续可替换为 qwen tokenizer 精确计数。
+        """
+        if not text:
+            return 0
+        # 粗略区分中英文字符比例
+        chinese_chars = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
+        other_chars = len(text) - chinese_chars
+        # 中文 ~1.5 chars/token, 英文/其他 ~4 chars/token
+        tokens = chinese_chars / 1.5 + other_chars / 4.0
+        return int(tokens) + 1  # +1 向上取整

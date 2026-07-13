@@ -1,7 +1,7 @@
 """测试 AgentState 状态管理"""
 
 import pytest
-from agent.state import (
+from engine.state import (
     AgentState, AgentStatus, AgentStep, StepType, StepStatus,
     TerminationCondition, IntermediateConclusion, ToolCallRecord
 )

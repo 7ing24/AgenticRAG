@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from workflows import RouterAgent
-from agent.state import AgentState
-from agent.events import event_bus, Event
+from agent.router_agent import RouterAgent
+from engine.state import AgentState
+from engine.events import event_bus, Event
 from typing import Optional, List, Dict, Any
 from collections import defaultdict
 import time
@@ -22,7 +22,6 @@ class AgentRunRequest(BaseModel):
     input: str
     conversation_id: Optional[str] = None
     user_id: Optional[str] = None
-    context: Optional[str] = ""
     goal: Optional[str] = None
     run_id: Optional[str] = None
     trace_id: Optional[str] = None
@@ -105,7 +104,6 @@ async def run_agent(request: AgentRunRequest):
             input_text=request.input,
             conversation_id=request.conversation_id,
             user_id=request.user_id,
-            context=request.context or "",
             is_admin=request.is_admin,
             goal=request.goal,
             run_id=request.run_id,
@@ -188,7 +186,6 @@ async def run_agent_stream(request: AgentRunRequest):
                 input_text=request.input,
                 conversation_id=request.conversation_id,
                 user_id=request.user_id,
-                context=request.context or "",
                 is_admin=request.is_admin,
                 goal=request.goal,
                 run_id=request.run_id,
