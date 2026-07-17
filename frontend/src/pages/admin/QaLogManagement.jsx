@@ -5,29 +5,34 @@ import './AdminDashboard.css';
 export default function QaLogManagement() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageNum, setPageNum] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [selectedLog, setSelectedLog] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  useEffect(() => {
-    loadLogs();
-  }, [currentPage]);
-
-  const loadLogs = async () => {
+  const loadLogs = async (page, size) => {
     setLoading(true);
     try {
-      const response = await qaLogAPI.list(currentPage, pageSize);
+      const p = page || pageNum;
+      const s = size || pageSize;
+      const response = await qaLogAPI.list(p, s);
       setLogs(response.data.records || []);
       setTotal(response.data.total || 0);
     } catch (err) {
       console.error('加载问答日志失败:', err);
-      // alert('加载问答日志失败');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadLogs(1);
+  }, []);
+
+  const totalPages = Math.ceil(total / pageSize);
+  const goToPage = (page) => { if (page < 1 || page > totalPages) return; setPageNum(page); loadLogs(page); };
+  const changePageSize = (size) => { setPageSize(size); setPageNum(1); loadLogs(1, size); };
 
   const handleViewDetail = (log) => {
     setSelectedLog(log);
@@ -113,23 +118,33 @@ export default function QaLogManagement() {
               </tbody>
             </table>
 
-            <div className="pagination">
-              <button
-                onClick={() => setCurrentPage((p) => p - 1)}
-                disabled={currentPage === 1}
-              >
-                上一页
-              </button>
-              <span>
-                第 {currentPage} 页 / 共 {Math.ceil(total / pageSize)} 页
-              </span>
-              <button
-                onClick={() => setCurrentPage((p) => p + 1)}
-                disabled={currentPage >= Math.ceil(total / pageSize)}
-              >
-                下一页
-              </button>
-            </div>
+            {total > 0 && (
+              <div className="pagination">
+                <div className="pagination-info">
+                  共 {total} 条，第 {pageNum}/{totalPages} 页
+                  <select value={pageSize} onChange={e => changePageSize(Number(e.target.value))}>
+                    <option value={10}>10条/页</option>
+                    <option value={20}>20条/页</option>
+                    <option value={50}>50条/页</option>
+                  </select>
+                </div>
+                <div className="pagination-controls">
+                  <button disabled={pageNum <= 1} onClick={() => goToPage(1)}>首页</button>
+                  <button disabled={pageNum <= 1} onClick={() => goToPage(pageNum - 1)}>上一页</button>
+                  {(() => {
+                    const pages = [];
+                    const start = Math.max(1, pageNum - 2);
+                    const end = Math.min(totalPages, pageNum + 2);
+                    for (let i = start; i <= end; i++) {
+                      pages.push(<button key={i} className={i === pageNum ? 'btn-primary' : ''} onClick={() => goToPage(i)}>{i}</button>);
+                    }
+                    return pages;
+                  })()}
+                  <button disabled={pageNum >= totalPages} onClick={() => goToPage(pageNum + 1)}>下一页</button>
+                  <button disabled={pageNum >= totalPages} onClick={() => goToPage(totalPages)}>末页</button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

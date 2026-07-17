@@ -100,18 +100,17 @@ async def run_agent(request: AgentRunRequest):
     try:
         logger.info(f"[Agent API] Received run request: {request.input[:50]}..., is_admin={request.is_admin}")
 
+        trace_id = request.trace_id or str(uuid.uuid4())
         result = router_agent.route(
             input_text=request.input,
             conversation_id=request.conversation_id,
             user_id=request.user_id,
             is_admin=request.is_admin,
             goal=request.goal,
-            run_id=request.run_id,
-            trace_id=request.trace_id
+            trace_id=trace_id,
         )
 
         run_id = request.run_id or str(uuid.uuid4())
-        trace_id = request.trace_id or str(uuid.uuid4())
         task_type = result.get("task_type", "unknown")
 
         task_stats[task_type]["total"] += 1
@@ -122,14 +121,15 @@ async def run_agent(request: AgentRunRequest):
 
         response = {
             "run_id": run_id,
-            "trace_id": trace_id,
+            "trace_id": result.get("trace_id", trace_id),
             "status": "completed",
             "answer": result.get("answer", ""),
             "sources": result.get("sources", []),
             "task_type": task_type,
-            "steps": [],
-            "tool_calls": [],
-            "intermediate_conclusions": []
+            "steps": result.get("steps", []),
+            "tool_calls": result.get("tool_calls", []),
+            "intermediate_conclusions": result.get("intermediate_conclusions", []),
+            "runs": result.get("runs", []),
         }
 
         process_time = time.time() - start_time

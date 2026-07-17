@@ -112,7 +112,8 @@ class AgentState:
     
     # 核心标识
     run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    trace_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    trace_id: str = ""
+    parent_run_id: Optional[str] = None
     conversation_id: Optional[str] = None
     user_id: Optional[str] = None
     

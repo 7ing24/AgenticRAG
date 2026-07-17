@@ -5,28 +5,32 @@ import './AdminDashboard.css';
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageNum, setPageNum] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
 
-  useEffect(() => {
-    loadUsers();
-  }, [currentPage]);
-
-  const loadUsers = async () => {
+  const loadUsers = async (page, size) => {
     setLoading(true);
     try {
-      const response = await userManagementAPI.listUsers(currentPage, pageSize);
-      // 分页接口返回的数据结构通常是 data.records 和 data.total
+      const p = page || pageNum;
+      const s = size || pageSize;
+      const response = await userManagementAPI.listUsers(p, s);
       setUsers(response.data.records || []);
       setTotal(response.data.total || 0);
     } catch (err) {
       console.error('加载用户列表失败:', err);
-      // alert('加载用户列表失败');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadUsers(1);
+  }, []);
+
+  const totalPages = Math.ceil(total / pageSize);
+  const goToPage = (page) => { if (page < 1 || page > totalPages) return; setPageNum(page); loadUsers(page); };
+  const changePageSize = (size) => { setPageSize(size); setPageNum(1); loadUsers(1, size); };
 
   const handleStatusChange = async (userId, currentStatus) => {
     const newStatus = currentStatus === 1 ? 0 : 1;
@@ -110,23 +114,33 @@ export default function UserManagement() {
               </tbody>
             </table>
 
-            <div className="pagination">
-              <button
-                onClick={() => setCurrentPage((p) => p - 1)}
-                disabled={currentPage === 1}
-              >
-                上一页
-              </button>
-              <span>
-                第 {currentPage} 页 / 共 {Math.ceil(total / pageSize)} 页
-              </span>
-              <button
-                onClick={() => setCurrentPage((p) => p + 1)}
-                disabled={currentPage >= Math.ceil(total / pageSize)}
-              >
-                下一页
-              </button>
-            </div>
+            {total > 0 && (
+              <div className="pagination">
+                <div className="pagination-info">
+                  共 {total} 条，第 {pageNum}/{totalPages} 页
+                  <select value={pageSize} onChange={e => changePageSize(Number(e.target.value))}>
+                    <option value={10}>10条/页</option>
+                    <option value={20}>20条/页</option>
+                    <option value={50}>50条/页</option>
+                  </select>
+                </div>
+                <div className="pagination-controls">
+                  <button disabled={pageNum <= 1} onClick={() => goToPage(1)}>首页</button>
+                  <button disabled={pageNum <= 1} onClick={() => goToPage(pageNum - 1)}>上一页</button>
+                  {(() => {
+                    const pages = [];
+                    const start = Math.max(1, pageNum - 2);
+                    const end = Math.min(totalPages, pageNum + 2);
+                    for (let i = start; i <= end; i++) {
+                      pages.push(<button key={i} className={i === pageNum ? 'btn-primary' : ''} onClick={() => goToPage(i)}>{i}</button>);
+                    }
+                    return pages;
+                  })()}
+                  <button disabled={pageNum >= totalPages} onClick={() => goToPage(pageNum + 1)}>下一页</button>
+                  <button disabled={pageNum >= totalPages} onClick={() => goToPage(totalPages)}>末页</button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

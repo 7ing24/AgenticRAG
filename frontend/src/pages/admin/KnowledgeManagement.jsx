@@ -13,6 +13,9 @@ export default function KnowledgeManagement() {
   const [messageModalContent, setMessageModalContent] = useState('');
   const [messageModalTitle, setMessageModalTitle] = useState('提示');
 
+  const [pageNum, setPageNum] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   useEffect(() => {
     loadDocuments();
   }, []);
@@ -20,19 +23,21 @@ export default function KnowledgeManagement() {
   const loadDocuments = async () => {
     setLoading(true);
     try {
-      // 知识库列表目前后端返回的是 List<KnowledgeDoc>，不是分页对象
-      // 如果后端改为了分页，这里需要调整。目前假设是 List。
       const response = await knowledgeManagementAPI.list();
       const list = response.data || [];
       setDocuments(list);
-      // 统计数量直接取 list.length
     } catch (err) {
       console.error('加载文档列表失败:', err);
-      // alert('加载文档列表失败');
     } finally {
       setLoading(false);
     }
   };
+
+  const total = documents.length;
+  const totalPages = Math.ceil(total / pageSize);
+  const pagedDocuments = documents.slice((pageNum - 1) * pageSize, pageNum * pageSize);
+  const goToPage = (page) => { if (page < 1 || page > totalPages) return; setPageNum(page); };
+  const changePageSize = (size) => { setPageSize(size); setPageNum(1); };
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -172,7 +177,7 @@ export default function KnowledgeManagement() {
       <div className="admin-card">
         <div className="card-header">
           <h2>文档列表</h2>
-          <span className="total-info">共 {documents.length} 个文档</span>
+          <span className="total-info">共 {total} 个文档</span>
         </div>
 
         {loading ? (
@@ -195,7 +200,7 @@ export default function KnowledgeManagement() {
               </tr>
             </thead>
             <tbody>
-              {documents.map((doc) => (
+              {pagedDocuments.map((doc) => (
                 <tr key={doc.id}>
                   <td>{doc.id}</td>
                   <td style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -220,6 +225,13 @@ export default function KnowledgeManagement() {
                   </td>
                   <td>
                     <button
+                      className="action-btn edit"
+                      onClick={() => window.open(`/api/knowledge/view-file/${doc.id}`, '_blank')}
+                      style={{ marginRight: 10, marginLeft: -40 }}
+                    >
+                      预览
+                    </button>
+                    <button
                       className="action-btn delete"
                       onClick={() => handleDelete(doc.id)}
                     >
@@ -238,6 +250,34 @@ export default function KnowledgeManagement() {
               ))}
             </tbody>
           </table>
+        )}
+
+        {total > 0 && (
+          <div className="pagination">
+            <div className="pagination-info">
+              共 {total} 条，第 {pageNum}/{totalPages} 页
+              <select value={pageSize} onChange={e => changePageSize(Number(e.target.value))}>
+                <option value={10}>10条/页</option>
+                <option value={20}>20条/页</option>
+                <option value={50}>50条/页</option>
+              </select>
+            </div>
+            <div className="pagination-controls">
+              <button disabled={pageNum <= 1} onClick={() => goToPage(1)}>首页</button>
+              <button disabled={pageNum <= 1} onClick={() => goToPage(pageNum - 1)}>上一页</button>
+              {(() => {
+                const pages = [];
+                const start = Math.max(1, pageNum - 2);
+                const end = Math.min(totalPages, pageNum + 2);
+                for (let i = start; i <= end; i++) {
+                  pages.push(<button key={i} className={i === pageNum ? 'btn-primary' : ''} onClick={() => goToPage(i)}>{i}</button>);
+                }
+                return pages;
+              })()}
+              <button disabled={pageNum >= totalPages} onClick={() => goToPage(pageNum + 1)}>下一页</button>
+              <button disabled={pageNum >= totalPages} onClick={() => goToPage(totalPages)}>末页</button>
+            </div>
+          </div>
         )}
       </div>
 

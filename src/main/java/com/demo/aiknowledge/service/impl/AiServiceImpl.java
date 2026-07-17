@@ -174,7 +174,11 @@ public class AiServiceImpl implements AiService {
 
     @Override
     public AiResponse ask(String question, Long userId, Long conversationId) {
-        log.info("User question: {}, userId: {}", question, userId);
+        return ask(question, userId, conversationId, null);
+    }
+
+    public AiResponse ask(String question, Long userId, Long conversationId, String traceId) {
+        log.info("User question: {}, userId: {}, traceId: {}", question, userId, traceId);
         AiResponse aiResponse = new AiResponse();
 
         // 生成缓存键（包含userId，避免不同用户共享缓存导致数据泄露）
@@ -219,7 +223,10 @@ public class AiServiceImpl implements AiService {
                 requestBody.put("user_id", userId.toString());
             }
             requestBody.put("conversation_id", conversationId.toString());
-            log.info("User is admin: {}, userId: {}, conversationId: {}", isAdmin, userId, conversationId);
+            if (traceId != null && !traceId.isEmpty()) {
+                requestBody.put("trace_id", traceId);
+            }
+            log.info("User is admin: {}, userId: {}, conversationId: {}, traceId: {}", isAdmin, userId, conversationId, traceId);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -290,6 +297,31 @@ public class AiServiceImpl implements AiService {
                     if (steps != null && !steps.isEmpty()) {
                         aiResponse.setSteps(steps);
                         log.info("Step data received: {} steps", steps.size());
+                    }
+                }
+
+                // 解析全链路追踪信息
+                if (body.containsKey("trace_id")) {
+                    aiResponse.setTraceId((String) body.get("trace_id"));
+                }
+                if (body.containsKey("runs")) {
+                    List<Map<String, Object>> runsData = (List<Map<String, Object>>) body.get("runs");
+                    if (runsData != null) {
+                        List<AiResponse.AgentRunRecord> runs = new java.util.ArrayList<>();
+                        for (Map<String, Object> runData : runsData) {
+                            AiResponse.AgentRunRecord record = new AiResponse.AgentRunRecord();
+                            record.setRunId((String) runData.get("run_id"));
+                            record.setParentRunId((String) runData.get("parent_run_id"));
+                            record.setAgentType((String) runData.get("agent_type"));
+                            record.setQuestion((String) runData.get("question"));
+                            Object stepsObj = runData.get("steps");
+                            if (stepsObj instanceof List) {
+                                record.setSteps((List<Map<String, Object>>) stepsObj);
+                            }
+                            runs.add(record);
+                        }
+                        aiResponse.setRuns(runs);
+                        log.info("Tracing data received: traceId={}, {} runs", aiResponse.getTraceId(), runs.size());
                     }
                 }
 

@@ -33,6 +33,8 @@ class KnowledgeQAAgent:
         self._router = None
         self._reasoning_agent = None
         self._react_agent = None
+        self._multi_agent_orchestrator = None
+        self._agents_registered = False
 
     @property
     def router(self):
@@ -57,8 +59,31 @@ class KnowledgeQAAgent:
             self._react_agent = ReActAgent(max_iterations=10)
         return self._react_agent
 
+    @property
+    def multi_agent_orchestrator(self):
+        """延迟加载 MultiAgentOrchestrator"""
+        if self._multi_agent_orchestrator is None:
+            from engine.agent_orchestrator import MultiAgentOrchestrator
+            from engine.agent_registry import agent_registry
+            self._multi_agent_orchestrator = MultiAgentOrchestrator()
+            # 首次加载时注册 worker agents
+            if not self._agents_registered:
+                agent_registry.register(
+                    "ReActAgent", self.react_agent,
+                    capabilities=["knowledge_search", "reasoning", "multi_step"],
+                    description="ReAct循环Agent，支持动态工具调用的多步推理"
+                )
+                agent_registry.register(
+                    "RetrievalAgent", self.retrieval_agent,
+                    capabilities=["knowledge_search", "retrieval"],
+                    description="检索Agent，向量+BM25混合检索+重排序"
+                )
+                self._agents_registered = True
+        return self._multi_agent_orchestrator
+
     def ask(self, question: str, conversation_id: Optional[str] = None,
             user_id: Optional[str] = None,
+            trace_id: str = "",
             **kwargs) -> Dict[str, Any]:
         """
         处理知识问答 - 两条链路
@@ -88,10 +113,11 @@ class KnowledgeQAAgent:
                 logger.info(f"[KnowledgeQAAgent] Complexity (LLM): {complexity}")
 
             if complexity == "complex":
-                return self._ask_with_react(question, conversation_id, user_id, full_context,
-                                            context_token_count=context_token_count)
+                return self._ask_with_multi_agent(question, conversation_id, user_id, full_context,
+                                                  trace_id=trace_id)
             else:
-                return self._ask_fast(question, conversation_id, user_id, full_context)
+                return self._ask_fast(question, conversation_id, user_id, full_context,
+                                     trace_id=trace_id)
 
         except Exception as e:
             logger.error(f"[KnowledgeQAAgent] QA failed: {e}", exc_info=True)
@@ -100,12 +126,17 @@ class KnowledgeQAAgent:
                 "sources": [],
                 "has_sources": False,
                 "task_type": "knowledge_qa",
-                "error": True
+                "error": True,
+                "trace_id": trace_id,
+                "runs": [],
             }
 
     def _ask_fast(self, question: str, conversation_id: Optional[str],
-                  user_id: Optional[str], full_context: str) -> Dict[str, Any]:
+                  user_id: Optional[str], full_context: str,
+                  trace_id: str = "") -> Dict[str, Any]:
         """快速链路：改写 + 检索 + rerank + 自省循环（合并原 L1/L2）"""
+        import uuid
+        run_id = str(uuid.uuid4())
         best_docs = []
         best_scores = []
         steps = []
@@ -175,7 +206,10 @@ class KnowledgeQAAgent:
                           "status": "completed"})
             self._save_to_memory(conversation_id, question, answer, user_id)
             return {"answer": answer, "sources": [], "has_sources": False,
-                    "task_type": "knowledge_qa", "steps": steps}
+                    "task_type": "knowledge_qa", "steps": steps,
+                    "trace_id": trace_id, "run_id": run_id,
+                    "runs": [{"run_id": run_id, "parent_run_id": None,
+                              "agent_type": "knowledge_qa", "steps": steps}]}
 
         llm_docs = self._docs_to_llm_format(best_docs)
         answer = self.llm_service.get_answer(question, llm_docs, full_context)
@@ -187,21 +221,39 @@ class KnowledgeQAAgent:
         return {
             "answer": answer, "sources": sources,
             "has_sources": len(sources) > 0, "task_type": "knowledge_qa",
-            "steps": steps
+            "steps": steps,
+            "trace_id": trace_id, "run_id": run_id,
+            "runs": [{"run_id": run_id, "parent_run_id": None,
+                      "agent_type": "knowledge_qa", "steps": steps}]
         }
 
     def _ask_with_react(self, question: str, conversation_id: Optional[str] = None,
                         user_id: Optional[str] = None, context: str = "",
                         context_token_count: int = 0,
                         **kwargs) -> Dict[str, Any]:
-        """ReAct 链路：LLM 动态决定工具调用，自主判断何时输出答案"""
-        logger.info(f"[KnowledgeQAAgent] Using ReAct agent...")
+        """ReAct 链路（降级回退）：LLM 动态决定工具调用，自主判断何时输出答案"""
+        logger.info(f"[KnowledgeQAAgent] Using ReAct agent (fallback)...")
         return self.react_agent.run(
             question=question,
             conversation_id=conversation_id,
             user_id=user_id,
             context=context,
             context_token_count=context_token_count,
+            **kwargs
+        )
+
+    def _ask_with_multi_agent(self, question: str, conversation_id: Optional[str] = None,
+                              user_id: Optional[str] = None, context: str = "",
+                              trace_id: str = "",
+                              **kwargs) -> Dict[str, Any]:
+        """Multi-Agent 链路：Orchestrator 拆解 → 多 worker 并行 → 汇总"""
+        logger.info(f"[KnowledgeQAAgent] Using Multi-Agent orchestrator...")
+        return self.multi_agent_orchestrator.run(
+            question=question,
+            conversation_id=conversation_id,
+            user_id=user_id,
+            context=context,
+            trace_id=trace_id,
             **kwargs
         )
 
@@ -351,10 +403,17 @@ class KnowledgeQAAgent:
         """
         try:
             prompt = (
-                "判断以下问题是否需要多步推理和多次工具调用，还是单次搜索即可回答。\n\n"
+                "判断以下问题是否为复杂问题。\n\n"
                 f"问题：{question}\n\n"
-                "- 如果问题需要对比、分析、归纳、多步验证，或需要先搜A再搜B才能完整回答 → 回复 complex\n"
-                "- 如果问题简单直接，一次搜索检索就能准确回答 → 回复 simple\n\n"
+                "【复杂问题 complex】满足以下任一条件：\n"
+                "- 涉及多个事物的对比/比较/区别/异同（如A和B的区别）\n"
+                "- 要求分析原因、评估优劣、归纳总结\n"
+                "- 需要分别介绍多个独立概念后再汇总\n"
+                "- 问题包含多个子问题（如分别说明X、Y、Z）\n\n"
+                "【简单问题 simple】必须同时满足：\n"
+                "- 只涉及单一概念或事物的定义/解释\n"
+                "- 不需要对比、不需要分析、不需要归纳\n"
+                "- 一次关键词搜索就能直接找到答案\n\n"
                 "只回复 complex 或 simple，不要解释。"
             )
             result = self.llm_service.generate(prompt)

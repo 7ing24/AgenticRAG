@@ -168,6 +168,7 @@ class ChatRequest(BaseModel):
     username: str = None # Optional, if username is provided
     user_id: str = None # Optional, user ID for user profile
     is_admin: bool = False # Optional, whether user is admin
+    trace_id: str = None # Optional, full-chain tracing ID
 
 class SummaryRequest(BaseModel):
     question: str
@@ -269,15 +270,18 @@ async def ask_question(request: ChatRequest):
                 conversation_id=request.conversation_id,
                 user_id=request.user_id,
                 username=request.username,
-                is_admin=request.is_admin
+                is_admin=request.is_admin,
+                trace_id=request.trace_id or "",
             )
-            
+
             # 构建响应
             response = {
                 "answer": result.get("answer", ""),
                 "sources": result.get("sources", []),
                 "task_type": result.get("task_type", "unknown"),
                 "steps": result.get("steps", []),
+                "trace_id": result.get("trace_id", request.trace_id or ""),
+                "runs": result.get("runs", []),
             }
         
         logger.info(f"Response generated successfully, task_type: {response.get('task_type')}")

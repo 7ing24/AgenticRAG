@@ -15,6 +15,16 @@ public interface AiService {
     AiResponse ask(String question, Long userId, Long conversationId);
 
     /**
+     * 回答问题（带全链路追踪）
+     * @param question 用户问题
+     * @param userId 用户ID
+     * @param conversationId 会话ID
+     * @param traceId 全链路追踪ID
+     * @return AI回答对象
+     */
+    AiResponse ask(String question, Long userId, Long conversationId, String traceId);
+
+    /**
      * 生成会话标题并更新数据库
      * @param conversationId 会话ID
      * @param question 用户问题

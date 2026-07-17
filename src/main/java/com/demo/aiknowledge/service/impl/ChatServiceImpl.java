@@ -99,7 +99,8 @@ public class ChatServiceImpl implements ChatService {
         }
 
         // 2. 调用 AI 服务获取回答（上下文由 Python MemoryAgent 统一管理）
-        AiResponse aiResponse = aiService.ask(content, userId, conversationId);
+        String traceId = java.util.UUID.randomUUID().toString();
+        AiResponse aiResponse = aiService.ask(content, userId, conversationId, traceId);
         String answer = aiResponse.getAnswer();
         String sourcesJson = null;
         String taskType = aiResponse.getTaskType();
@@ -142,44 +143,95 @@ public class ChatServiceImpl implements ChatService {
 
         // 5. 记录 Agent 执行记录（供管理端查看）
         try {
-            String runId = java.util.UUID.randomUUID().toString();
-            String traceId = java.util.UUID.randomUUID().toString();
+            // 使用与请求一致的 traceId
+            String finalTraceId = aiResponse.getTraceId() != null ? aiResponse.getTraceId() : traceId;
+            java.util.List<AiResponse.AgentRunRecord> runs = aiResponse.getRuns();
 
-            AgentRun agentRun = new AgentRun();
-            agentRun.setId(java.util.UUID.randomUUID().toString());
-            agentRun.setRunId(runId);
-            agentRun.setTraceId(traceId);
-            agentRun.setConversationId(String.valueOf(conversationId));
-            agentRun.setUserId(String.valueOf(userId));
-            agentRun.setStatus("completed");
-            agentRun.setGoal("Answer: " + (content.length() > 100 ? content.substring(0, 100) + "..." : content));
-            agentRun.setInput(content);
-            agentRun.setOutput(answer.length() > 500 ? answer.substring(0, 500) + "..." : answer);
-            agentRun.setStartTime(LocalDateTime.now());
-            agentRun.setEndTime(LocalDateTime.now());
-            agentRun.setCreatedAt(LocalDateTime.now());
-            agentRunService.saveAgentRun(agentRun);
-
-            // 记录步骤轨迹（从 Python AI 响应中获取真实的执行步骤）
-            java.util.List<java.util.Map<String, Object>> steps = aiResponse.getSteps();
-            if (steps != null && !steps.isEmpty()) {
-                for (java.util.Map<String, Object> stepData : steps) {
-                    AgentStep step = new AgentStep();
-                    step.setId(java.util.UUID.randomUUID().toString());
-                    step.setRunId(runId);
-                    step.setStepName(String.valueOf(stepData.getOrDefault("step_name", "unknown")));
-                    step.setStepType(String.valueOf(stepData.getOrDefault("step_type", "unknown")));
-                    step.setStatus(String.valueOf(stepData.getOrDefault("status", "completed")));
-                    if (stepData.containsKey("output")) {
-                        step.setOutput(String.valueOf(stepData.get("output")).length() > 500
-                                ? String.valueOf(stepData.get("output")).substring(0, 500)
-                                : String.valueOf(stepData.get("output")));
+            if (runs != null && !runs.isEmpty()) {
+                for (AiResponse.AgentRunRecord runRecord : runs) {
+                    AgentRun agentRun = new AgentRun();
+                    agentRun.setId(java.util.UUID.randomUUID().toString());
+                    agentRun.setRunId(runRecord.getRunId());
+                    agentRun.setTraceId(finalTraceId);
+                    agentRun.setParentRunId(runRecord.getParentRunId());
+                    agentRun.setAgentType(runRecord.getAgentType());
+                    agentRun.setConversationId(String.valueOf(conversationId));
+                    agentRun.setUserId(String.valueOf(userId));
+                    agentRun.setStatus("COMPLETED");
+                    agentRun.setGoal("Answer: " + (content.length() > 100 ? content.substring(0, 100) + "..." : content));
+                    // 顶层 run 用用户原始问题，子 run 用实际子问题
+                    String runInput = (runRecord.getParentRunId() != null && runRecord.getQuestion() != null)
+                            ? runRecord.getQuestion() : content;
+                    agentRun.setInput(runInput);
+                    if (runRecord.getParentRunId() == null) {
+                        // 顶层 orchestrator: 记录完整输出
+                        agentRun.setOutput(answer.length() > 500 ? answer.substring(0, 500) + "..." : answer);
                     }
-                    step.setStartTime(LocalDateTime.now());
-                    step.setEndTime(LocalDateTime.now());
-                    step.setCreatedAt(LocalDateTime.now());
-                    step.setDurationMs(0L);
-                    agentStepMapper.insert(step);
+                    agentRun.setStartTime(LocalDateTime.now());
+                    agentRun.setEndTime(LocalDateTime.now());
+                    agentRun.setCreatedAt(LocalDateTime.now());
+                    agentRunService.saveAgentRun(agentRun);
+
+                    // 记录步骤轨迹
+                    java.util.List<java.util.Map<String, Object>> steps = runRecord.getSteps();
+                    if (steps != null && !steps.isEmpty()) {
+                        int stepIdx = 0;
+                        for (java.util.Map<String, Object> stepData : steps) {
+                            AgentStep step = new AgentStep();
+                            step.setId(java.util.UUID.randomUUID().toString());
+                            step.setRunId(runRecord.getRunId());
+                            step.setStepName(String.valueOf(stepData.getOrDefault("step_name", "unknown")));
+                            step.setStepType(String.valueOf(stepData.getOrDefault("step_type", "unknown")));
+                            step.setStatus(String.valueOf(stepData.getOrDefault("status", "completed")));
+                            if (stepData.containsKey("output")) {
+                                String output = String.valueOf(stepData.get("output"));
+                                step.setOutput(output.length() > 500 ? output.substring(0, 500) : output);
+                            }
+                            step.setStartTime(LocalDateTime.now());
+                            step.setEndTime(LocalDateTime.now());
+                            step.setCreatedAt(LocalDateTime.now().plusSeconds(stepIdx++));
+                            step.setDurationMs(0L);
+                            agentStepMapper.insert(step);
+                        }
+                    }
+                }
+            } else {
+                // Fallback: 没有 runs 数据时，用旧逻辑保存单条记录
+                AgentRun agentRun = new AgentRun();
+                agentRun.setId(java.util.UUID.randomUUID().toString());
+                agentRun.setRunId(java.util.UUID.randomUUID().toString());
+                agentRun.setTraceId(finalTraceId);
+                agentRun.setConversationId(String.valueOf(conversationId));
+                agentRun.setUserId(String.valueOf(userId));
+                agentRun.setStatus("completed");
+                agentRun.setGoal("Answer: " + (content.length() > 100 ? content.substring(0, 100) + "..." : content));
+                agentRun.setInput(content);
+                agentRun.setOutput(answer.length() > 500 ? answer.substring(0, 500) + "..." : answer);
+                agentRun.setStartTime(LocalDateTime.now());
+                agentRun.setEndTime(LocalDateTime.now());
+                agentRun.setCreatedAt(LocalDateTime.now());
+                agentRunService.saveAgentRun(agentRun);
+
+                java.util.List<java.util.Map<String, Object>> steps = aiResponse.getSteps();
+                if (steps != null && !steps.isEmpty()) {
+                    int fallbackStepIdx = 0;
+                    for (java.util.Map<String, Object> stepData : steps) {
+                        AgentStep step = new AgentStep();
+                        step.setId(java.util.UUID.randomUUID().toString());
+                        step.setRunId(agentRun.getRunId());
+                        step.setStepName(String.valueOf(stepData.getOrDefault("step_name", "unknown")));
+                        step.setStepType(String.valueOf(stepData.getOrDefault("step_type", "unknown")));
+                        step.setStatus(String.valueOf(stepData.getOrDefault("status", "completed")));
+                        if (stepData.containsKey("output")) {
+                            String output = String.valueOf(stepData.get("output"));
+                            step.setOutput(output.length() > 500 ? output.substring(0, 500) : output);
+                        }
+                        step.setStartTime(LocalDateTime.now());
+                        step.setEndTime(LocalDateTime.now());
+                        step.setCreatedAt(LocalDateTime.now().plusSeconds(fallbackStepIdx++));
+                        step.setDurationMs(0L);
+                        agentStepMapper.insert(step);
+                    }
                 }
             }
         } catch (Exception e) {

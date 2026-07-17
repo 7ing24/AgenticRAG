@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { knowledgeAPI } from '../api/index';
 import './Knowledge.css';
@@ -11,6 +11,11 @@ export default function Knowledge() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [viewingDoc, setViewingDoc] = useState(null);
+
+  const params = new URLSearchParams(location.search);
+  const urlDocId = params.get('docId');
+  const viewedDocRef = useRef(null);
 
   useEffect(() => {
     if (!userId) {
@@ -23,7 +28,8 @@ export default function Knowledge() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const docId = params.get('docId');
-    if (docId && userId) {
+    if (docId && userId && viewedDocRef.current !== docId) {
+      viewedDocRef.current = docId;
       viewDocument(docId);
     }
   }, [location, userId]);
@@ -152,6 +158,13 @@ export default function Knowledge() {
                   <td>{getStatusBadge(doc.status)}</td>
                   <td>{new Date(doc.createTime).toLocaleString()}</td>
                   <td>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => window.open(`/api/knowledge/view-file/${doc.id}`, '_blank')}
+                      style={{ marginRight: 10, marginLeft: -50 }}
+                    >
+                      预览
+                    </button>
                     <button
                       className="btn btn-danger btn-sm"
                       onClick={() => handleDelete(doc.id)}

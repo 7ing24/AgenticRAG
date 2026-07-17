@@ -106,8 +106,8 @@ export default function Reports() {
 
   return (
     <div className="admin-panel">
-      <div className="panel-header">
-        <h2>📊 自动报表</h2>
+      <div className="page-header">
+        <h1>📊 自动报表</h1>
         <p>热门问题日报/周报、知识库增长趋势、Agent成功率与失败率趋势、工具调用失败排行</p>
       </div>
 

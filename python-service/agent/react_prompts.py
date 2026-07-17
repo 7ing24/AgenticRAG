@@ -36,7 +36,8 @@ Final Answer: <your complete answer to the user>
 6. Respond in the same language as the user's question
 7. Include citations by referencing document names or IDs from observations when available
 8. For greetings or simple chat, you may answer directly with Final Answer without calling tools
-9. If tool results are insufficient, try a different query or approach rather than giving up"""
+9. If tool results are insufficient, try a different query or approach rather than giving up
+10. Question_rewrite only reformulates your query — it does NOT return any document content. You MUST call knowledge_search afterwards to retrieve actual information. Never output Final Answer immediately after question_rewrite."""
 
     USER_QUESTION_TEMPLATE = """## Conversation Context
 {conversation_history}
@@ -169,8 +170,6 @@ Final Answer: <answer>"""
                 line += f"\n    Source: {source}"
                 if page:
                     line += f", page {page}"
-                if doc_id:
-                    line += f", doc_id={doc_id}"
 
             total_chars += len(line)
             if total_chars > max_chars:

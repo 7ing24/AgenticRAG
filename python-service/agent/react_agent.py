@@ -51,10 +51,18 @@ class ReActAgent:
         user_id: Optional[str] = None,
         context: str = "",
         context_token_count: int = 0,
+        skip_memory: bool = False,
+        trace_id: str = "",
+        parent_run_id: str = "",
         **kwargs,
     ) -> Dict[str, Any]:
-        """同步执行 ReAct 循环，返回最终答案"""
-        state = self._create_state(question, conversation_id, user_id)
+        """同步执行 ReAct 循环，返回最终答案
+
+        Args:
+            skip_memory: 为 True 时跳过保存记忆和提取偏好（multi-agent 中作为 worker 时使用）
+        """
+        state = self._create_state(question, conversation_id, user_id,
+                                   trace_id=trace_id, parent_run_id=parent_run_id)
 
         try:
             initial_prompt = self.prompts.build_initial_messages(
@@ -63,18 +71,21 @@ class ReActAgent:
             messages = [{"role": "user", "content": initial_prompt}]
 
             self.event_bus.publish(RunStartedEvent(
-                run_id=state.run_id, goal=state.goal, input_data=question
+                run_id=state.run_id, goal=state.goal, input_data=question,
+                trace_id=state.trace_id
             ))
             state.start()
 
             return self._run_loop(state, messages, question, conversation_id,
-                                  context_token_count=context_token_count)
+                                  context_token_count=context_token_count,
+                                  skip_memory=skip_memory)
 
         except Exception as e:
             logger.error(f"[{state.run_id}] ReAct run failed: {e}", exc_info=True)
             state.fail(str(e), "REACT_AGENT_ERROR")
             self.event_bus.publish(RunFailedEvent(
-                run_id=state.run_id, error=str(e), error_code="REACT_AGENT_ERROR"
+                run_id=state.run_id, error=str(e), error_code="REACT_AGENT_ERROR",
+                trace_id=state.trace_id
             ))
             return self._build_error_response(state)
 
@@ -87,7 +98,8 @@ class ReActAgent:
         **kwargs,
     ) -> Generator[str, None, None]:
         """流式执行 ReAct 循环，yield JSON 事件"""
-        state = self._create_state(question, conversation_id, user_id)
+        state = self._create_state(question, conversation_id, user_id,
+                                   trace_id=trace_id, parent_run_id=parent_run_id)
 
         try:
             yield json.dumps({"type": "start", "task_type": "react"})
@@ -99,7 +111,8 @@ class ReActAgent:
 
             state.start()
             self.event_bus.publish(RunStartedEvent(
-                run_id=state.run_id, goal=state.goal, input_data=question
+                run_id=state.run_id, goal=state.goal, input_data=question,
+                trace_id=state.trace_id
             ))
 
             # ReAct loop with streaming
@@ -182,7 +195,8 @@ class ReActAgent:
             }})
 
             state.complete(response)
-            self.event_bus.publish(RunCompletedEvent(run_id=state.run_id, output=response))
+            self.event_bus.publish(RunCompletedEvent(run_id=state.run_id, output=response,
+                                                 trace_id=state.trace_id))
             self.memory_agent.save_memory(state, question, final_answer)
 
         except Exception as e:
@@ -199,6 +213,7 @@ class ReActAgent:
         question: str,
         conversation_id: Optional[str],
         context_token_count: int = 0,
+        skip_memory: bool = False,
     ) -> Dict[str, Any]:
         """ReAct 主循环"""
         final_answer = None
@@ -218,7 +233,8 @@ class ReActAgent:
             step.start()
             self.event_bus.publish(StepStartedEvent(
                 run_id=state.run_id, step_id=step.step_id,
-                step_name=step.step_name, step_type=step.step_type.value
+                step_name=step.step_name, step_type=step.step_type.value,
+                trace_id=state.trace_id
             ))
 
             # 1. Call LLM
@@ -234,6 +250,8 @@ class ReActAgent:
             # 2. Final Answer → done
             if parsed.is_final_answer:
                 final_answer = parsed.final_answer
+                step.step_name = f"final_answer"
+                step.step_type = StepType.ANSWER_GENERATION
                 step.complete({"thought": parsed.thought, "final_answer": final_answer})
                 logger.info(f"[{state.run_id}] Iteration {iteration + 1}: "
                             f"Thought → Final Answer ({len(final_answer)} chars)")
@@ -243,6 +261,8 @@ class ReActAgent:
             if parsed.action and parsed.tool_name:
                 logger.info(f"[{state.run_id}] Iteration {iteration + 1}: "
                             f"Thought → Action({parsed.tool_name})")
+                step.step_name = f"{parsed.tool_name}"
+                step.step_type = StepType.TOOL_CALL
                 # Loop detection
                 # Loop detection
                 call_key = (parsed.tool_name, json.dumps(parsed.parameters, sort_keys=True))
@@ -300,8 +320,12 @@ class ReActAgent:
         response = self._build_response(state, final_answer, sources, steps)
 
         state.complete(response)
-        self.event_bus.publish(RunCompletedEvent(run_id=state.run_id, output=response))
-        self.memory_agent.save_memory(state, question, final_answer)
+        self.event_bus.publish(RunCompletedEvent(run_id=state.run_id, output=response,
+                                                 trace_id=state.trace_id))
+        if not skip_memory:
+            self.memory_agent.save_memory(state, question, final_answer)
+        else:
+            logger.info(f"[{state.run_id}] Skipped memory save (multi-agent worker)")
 
         return response
 
@@ -366,6 +390,7 @@ class ReActAgent:
                 tool_name=tool_name,
                 output=result,
                 duration_ms=step.duration_ms or 0,
+                trace_id=state.trace_id,
             ))
 
             return result
@@ -377,17 +402,20 @@ class ReActAgent:
                 tool_call_id=step.tool_call_id or "",
                 tool_name=tool_name,
                 error=str(e),
+                trace_id=state.trace_id,
             ))
             return {"error": f"Tool '{tool_name}' failed: {str(e)}"}
 
     # ── State & Memory ─────────────────────────────────────────
 
     def _create_state(
-        self, question: str, conversation_id: Optional[str], user_id: Optional[str]
+        self, question: str, conversation_id: Optional[str], user_id: Optional[str],
+        trace_id: str = "", parent_run_id: str = "",
     ) -> AgentState:
         return AgentState(
             run_id=str(uuid.uuid4()),
-            trace_id=str(uuid.uuid4()),
+            trace_id=trace_id,
+            parent_run_id=parent_run_id if parent_run_id else None,
             conversation_id=conversation_id,
             user_id=user_id,
             goal=f"Answer: {question[:50]}...",
@@ -479,8 +507,13 @@ class ReActAgent:
             "sources": sources,
             "has_sources": len(sources) > 0,
             "task_type": "knowledge_qa",
+            "question": state.original_input or "",
             "iterations": len(state.tool_calls),
             "steps": steps or [],
+            "trace_id": state.trace_id,
+            "run_id": state.run_id,
+            "parent_run_id": state.parent_run_id or None,
+            "agent_type": "react_agent",
         }
 
     def _extract_steps_from_state(self, state: AgentState) -> List[Dict[str, Any]]:

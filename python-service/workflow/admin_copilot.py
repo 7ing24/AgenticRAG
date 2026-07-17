@@ -30,6 +30,7 @@ class AdminCopilotAgent:
 
     def handle(self, question: str, conversation_id: Optional[str] = None,
                user_id: Optional[str] = None, context: str = "",
+               trace_id: str = "",
                **kwargs) -> Dict[str, Any]:
         """
         处理管理助手请求
@@ -44,6 +45,8 @@ class AdminCopilotAgent:
         Returns:
             包含answer和sources的字典
         """
+        import uuid
+        run_id = str(uuid.uuid4())
         logger.info(f"[AdminCopilotAgent] Processing admin request: {question[:50]}...")
 
         # 如果调用方没传 context，自己加载
@@ -55,8 +58,13 @@ class AdminCopilotAgent:
 
         try:
             operation = self._parse_operation(question, context)
+            steps = [{"step_name": "parse_operation", "step_type": "intent_parsing",
+                      "status": "completed", "output": operation}]
             result = self._execute_operation(operation, question)
-
+            result["trace_id"] = trace_id
+            result["run_id"] = run_id
+            result["runs"] = [{"run_id": run_id, "parent_run_id": None,
+                               "agent_type": "admin_copilot", "steps": steps}]
             return result
 
         except Exception as e:
@@ -66,7 +74,10 @@ class AdminCopilotAgent:
                 "sources": [],
                 "has_sources": False,
                 "task_type": "admin_copilot",
-                "error": True
+                "error": True,
+                "trace_id": trace_id, "run_id": run_id,
+                "runs": [{"run_id": run_id, "parent_run_id": None,
+                          "agent_type": "admin_copilot", "steps": []}]
             }
 
     def handle_stream(self, question: str, conversation_id: Optional[str] = None,

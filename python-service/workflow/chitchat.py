@@ -48,6 +48,7 @@ class ChitChatAgent:
 
     def chat(self, question: str, conversation_id: Optional[str] = None,
              user_id: Optional[str] = None,
+             trace_id: str = "",
              **kwargs) -> Dict[str, Any]:
         """
         处理闲聊
@@ -61,6 +62,8 @@ class ChitChatAgent:
         Returns:
             包含answer的字典
         """
+        import uuid
+        run_id = str(uuid.uuid4())
         logger.info(f"[ChitChatAgent] Processing chitchat: {question[:50]}...")
 
         try:
@@ -85,11 +88,15 @@ class ChitChatAgent:
                 )
                 self.memory_agent.save_memory(memory_state, question, answer)
 
+            steps = [{"step_name": "chitchat_response", "step_type": "llm_generation", "status": "completed"}]
             return {
                 "answer": answer,
                 "sources": [],
                 "has_sources": False,
-                "task_type": "chitchat"
+                "task_type": "chitchat",
+                "trace_id": trace_id, "run_id": run_id,
+                "runs": [{"run_id": run_id, "parent_run_id": None,
+                          "agent_type": "chitchat", "steps": steps}]
             }
         except Exception as e:
             logger.error(f"[ChitChatAgent] Error: {str(e)}")
@@ -98,7 +105,10 @@ class ChitChatAgent:
                 "sources": [],
                 "has_sources": False,
                 "task_type": "chitchat",
-                "error": True
+                "error": True,
+                "trace_id": trace_id, "run_id": run_id,
+                "runs": [{"run_id": run_id, "parent_run_id": None,
+                          "agent_type": "chitchat", "steps": []}]
             }
 
     def chat_stream(self, question: str, conversation_id: Optional[str] = None,

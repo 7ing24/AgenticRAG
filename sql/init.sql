@@ -111,7 +111,9 @@ DROP TABLE IF EXISTS `agent_run`;
 CREATE TABLE `agent_run` (
   `id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '主键ID',
   `run_id` varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '运行唯一标识',
-  `trace_id` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `trace_id` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '全链路追踪ID',
+  `parent_run_id` varchar(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '父级runId，表示Agent调用关系',
+  `agent_type` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Agent类型',
   `conversation_id` varchar(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '关联的会话ID',
   `user_id` varchar(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '用户ID',
   `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '运行状态：pending/running/success/failed',

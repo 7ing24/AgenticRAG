@@ -3,6 +3,7 @@ import json
 import requests
 from typing import AsyncGenerator, Generator
 from langchain_community.llms import Tongyi
+# from langchain_community.llms import Ollama  # 本地模型（已注释，改用 Tongyi）
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from PIL import Image
@@ -17,21 +18,30 @@ if config.TESSERACT_PATH:
 
 class LLMService:
     def __init__(self):
-        # 默认使用阿里云通义千问 (需要设置 DASHSCOPE_API_KEY 环境变量)
+        # ============================================================
+        # 阿里云通义千问（默认，需设置 DASHSCOPE_API_KEY）
+        # ============================================================
         api_key = config.DASHSCOPE_API_KEY
-        
         if not api_key:
             config.logger.warning("DASHSCOPE_API_KEY not found. LLM features will not work properly.")
             self.llm = None
         else:
-            # 使用 qwen-plus 模型，效果比 turbo 好，适合知识库问答
-            # 如果需要更强的推理能力，可以使用 qwen-max
-            # 启用流式输出
             self.llm = Tongyi(
                 model_name="qwen-plus",
                 api_key=api_key,
-                streaming=True  # 启用流式输出
+                streaming=True
             )
+
+        # ============================================================
+        # Ollama 本地模型（免费，已注释）
+        # ============================================================
+        # ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        # ollama_model = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+        # self.llm = Ollama(
+        #     model=ollama_model,
+        #     base_url=ollama_base_url,
+        # )
+        # config.logger.info(f"LLM initialized: Ollama ({ollama_model}) at {ollama_base_url}")
 
         # 优化后的 Prompt 模板
         # 支持对话上下文和知识库上下文
@@ -45,6 +55,8 @@ class LLMService:
             3. 如果是问候、自我介绍等问题，可以直接回答，不需要强行引用知识库
             4. 回答要自然、友好，避免机械和死板
             5. 不要提及"AI服务不可用"、"系统错误"等技术问题，你始终处于正常工作状态
+            6. 禁止在回答中出现"doc_id"、内部ID等系统技术信息。引用来源时用文档名称即可
+            7. 使用简洁的排版，段落之间最多空一行，不要堆砌大量空行
 
             对话历史（仅供参考，可能包含过时信息）：
             {conversation_context}
@@ -346,7 +358,7 @@ class LLMService:
             chain = simple_prompt | self.llm | StrOutputParser()
             
             result = chain.invoke({"input": prompt})
-            
+
             config.logger.info(f"LLM generate completed in {time.time() - start_time:.4f}s")
             return result
         except Exception as e:

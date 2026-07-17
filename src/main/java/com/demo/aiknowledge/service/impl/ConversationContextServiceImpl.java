@@ -43,7 +43,7 @@ public class ConversationContextServiceImpl implements ConversationContextServic
 
     @Override
     public List<Message> getConversationContext(Long conversationId, int maxMessages) {
-        String cacheKey = CacheConfig.CacheConstants.KEY_CONVERSATION_CONTEXT + conversationId;
+        String cacheKey = String.valueOf(conversationId);
 
         // 1. 先查 Redis (获取原始 Object 列表，避免直接强转泛型导致 ClassCastException)
         // 注意：这里泛型指定为 List.class，内部元素会是 LinkedHashMap
@@ -125,14 +125,18 @@ public class ConversationContextServiceImpl implements ConversationContextServic
     @Override
     @Transactional
     public void updateConversationContext(Long conversationId, Long userId, Message newMessage) {
-        String cacheKey = CacheConfig.CacheConstants.KEY_CONVERSATION_CONTEXT + conversationId;
+        String cacheKey = String.valueOf(conversationId);
 
         // 1. 获取当前上下文
         List<Message> currentContext = getConversationContext(conversationId, MAX_WINDOW_SIZE);
 
-        // 2. 添加新消息
+        // 2. 添加新消息（去重：消息id已存在于MySQL回填的上下文中则跳过）
         List<Message> updatedContext = new ArrayList<>(currentContext);
-        updatedContext.add(newMessage);
+        boolean alreadyExists = currentContext.stream()
+                .anyMatch(m -> m.getId() != null && m.getId().equals(newMessage.getId()));
+        if (!alreadyExists) {
+            updatedContext.add(newMessage);
+        }
 
         // 3. 应用滑动窗口
         int windowSize = getContextWindowSize(conversationId);

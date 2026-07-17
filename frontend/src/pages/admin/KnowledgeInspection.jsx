@@ -122,8 +122,8 @@ export default function KnowledgeInspection() {
 
   return (
     <div className="admin-panel">
-      <div className="panel-header">
-        <h2>🔍 知识巡检</h2>
+      <div className="page-header">
+        <h1>🔍 知识巡检</h1>
         <p>分析未命中问题，检测重复文档、低质量Chunk、过期知识和无人访问文档</p>
       </div>
 
