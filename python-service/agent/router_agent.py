@@ -5,6 +5,7 @@ from workflow.chitchat import ChitChatAgent
 from workflow.admin_copilot import AdminCopilotAgent
 from service.retrieval import RetrievalAgent
 from intent.classifier import IntentClassifier, IntentType
+from engine.trace_collector import TraceCollector
 import logging
 import json
 
@@ -40,43 +41,90 @@ class RouterAgent:
             conversation_id: 会话ID
             user_id: 用户ID
             is_admin: 是否为管理员
-            **kwargs: 其他参数
+            **kwargs: 其他参数（含 trace_id）
 
         Returns:
-            执行结果
+            执行结果（含 traces 字段）
         """
+        trace_id = kwargs.get("trace_id", "")
+        collector = TraceCollector(
+            trace_id=trace_id,
+            session_id=str(conversation_id) if conversation_id else "",
+            user_id=str(user_id) if user_id else "",
+        )
+
+        # ── 1. 意图分类 ────────────────────────────
+        collector.start_timer("intent")
+        result = self.classifier.classify(input_text, is_admin)
+        intent_latency, intent_start = collector.stop_timer("intent")
+        collector.record_event(
+            event_type="INTENT_CLASSIFIED",
+            phase="INTENT",
+            input_data={"question": input_text[:200], "is_admin": is_admin},
+            output_data={"intent": result.intent.value if hasattr(result.intent, 'value') else str(result.intent),
+                         "confidence": getattr(result, 'confidence', None)},
+            agent_name="IntentClassifier",
+            model_name="qwen-plus",
+            latency_ms=intent_latency,
+            metadata={"fallback": getattr(result, 'is_fallback', False)},
+            event_time=intent_start,
+        )
+
         task_type = self.classify_task(input_text, is_admin)
         logger.info(f"[RouterAgent] Routing to: {task_type.value} for input: {input_text[:50]}...")
 
+        # ── 2. 路由分发 ────────────────────────────
+        collector.record_event(
+            event_type="ROUTE_SELECTED",
+            phase="ROUTE",
+            input_data={"task_type": task_type.value, "intent": result.intent.value if hasattr(result.intent, 'value') else str(result.intent)},
+            output_data={"agent": task_type.value},
+        )
+
+        # 将 collector 传给下游 agent
+        kwargs["trace_collector"] = collector
+
         try:
             if task_type == TaskType.CHITCHAT:
-                return self.chitchat_agent.chat(
+                response = self.chitchat_agent.chat(
                     input_text, conversation_id, user_id, **kwargs
                 )
 
             elif task_type == TaskType.KNOWLEDGE_QA:
-                return self.knowledge_qa_agent.ask(
+                response = self.knowledge_qa_agent.ask(
                     input_text, conversation_id, user_id, **kwargs
                 )
 
             elif task_type == TaskType.ADMIN_COPILOT:
-                return self.admin_copilot_agent.handle(
+                response = self.admin_copilot_agent.handle(
                     input_text, conversation_id, user_id, **kwargs
                 )
 
             else:
-                return self.knowledge_qa_agent.ask(
-                    input_text, conversation_id, user_id, context, **kwargs
+                response = self.knowledge_qa_agent.ask(
+                    input_text, conversation_id, user_id, **kwargs
                 )
+
+            # ── 3. 将 traces 写入响应 ──────────────
+            response["traces"] = collector.to_list()
+            return response
+
         except Exception as e:
             logger.error(f"[RouterAgent] Route error: {str(e)}")
+            collector.record_event(
+                event_type="ROUTE_FAILED",
+                phase="ROUTE",
+                output_data={"error": str(e)[:200]},
+                metadata={"error_type": type(e).__name__},
+            )
             return {
                 "answer": "抱歉，服务暂时不可用，请稍后再试。",
                 "sources": [],
                 "has_sources": False,
                 "task_type": task_type.value,
                 "error": True,
-                "error_message": str(e)
+                "error_message": str(e),
+                "traces": collector.to_list(),
             }
 
     def route_stream(self, input_text: str, conversation_id: Optional[str] = None,

@@ -85,13 +85,28 @@ class DocumentParser:
         min_chunk_size = config.MIN_CHUNK_SIZE
         chunk_strategy = config.CHUNK_STRATEGY
 
+        # 获取 embeddings 实例（语义切分需要）
+        embeddings = None
+        if chunk_strategy == "semantic":
+            try:
+                from core.vector_store import vector_store_manager
+                embeddings = vector_store_manager.embeddings
+            except Exception:
+                logger.warning(
+                    "Cannot access shared embeddings, "
+                    "will fall back to structural chunking"
+                )
+
         # 使用自适应切分器
         self.chunker = create_chunker({
             "chunk_size": chunk_size,
             "chunk_overlap": chunk_overlap,
             "min_chunk_size": min_chunk_size,
-            "strategy": chunk_strategy
-        })
+            "strategy": chunk_strategy,
+            "semantic_breakpoint_type": config.SEMANTIC_BREAKPOINT_TYPE,
+            "semantic_breakpoint_amount": config.SEMANTIC_BREAKPOINT_AMOUNT,
+            "semantic_buffer_size": config.SEMANTIC_BUFFER_SIZE,
+        }, embeddings=embeddings)
 
         logger.info(f"DocumentParser initialized with strategy: {chunk_strategy}, chunk_size: {chunk_size}")
 

@@ -36,18 +36,41 @@ class RetryPolicy:
 
 
 class FallbackPolicy:
-    """降级策略"""
+    """降级策略 — 按意图 + 按场景两维降级"""
+
+    # 按意图分类的降级文案
+    INTENT_FALLBACKS = {
+        IntentType.CHITCHAT: "抱歉，我现在无法理解您的问题，让我们换个话题吧。",
+        IntentType.KNOWLEDGE_QA: "抱歉，我暂时无法找到相关的知识来回答您的问题。",
+        IntentType.UNKNOWN: "抱歉，我无法理解您的问题，请尝试重新描述。",
+    }
+
+    # 按工作流场景的降级文案
+    SCENE_FALLBACKS = {
+        "generation":         "抱歉，我暂时无法回答这个问题，请稍后再试。",
+        "no_api_key":         "AI服务未配置API密钥。请联系管理员配置DASHSCOPE_API_KEY以启用完整功能。",
+        "circuit_open":       "AI服务暂时繁忙，请稍后再试。",
+        "timeout":            "AI服务响应超时，请稍后重试。",
+        "chitchat":           "哈哈，这个话题挺有意思的！你最近有什么新鲜事想分享吗？",
+        "title":              "New Chat",
+        "summary":            "生成摘要失败，请稍后再试。",
+        "memory_compress":    "用户进行了多轮对话，讨论了相关知识问题。",
+        "classification":     "",
+        "rewrite":            "",
+        "retrieval_answer":   "知识库检索暂时不可用。请稍后再试，或尝试换个方式提问。",
+        "no_knowledge":       "知识库中未找到相关信息，以下是基于通用知识的回答：",
+    }
 
     def __init__(self):
-        self.fallback_responses = {
-            IntentType.CHITCHAT: "抱歉，我现在无法回应您的问题，让我们换个话题吧。",
-            IntentType.KNOWLEDGE_QA: "抱歉，我暂时无法找到相关的知识来回答您的问题。",
-            IntentType.UNKNOWN: "抱歉，我无法理解您的问题，请尝试重新描述。"
-        }
+        self.fallback_responses = dict(self.INTENT_FALLBACKS)
 
-    def get_fallback(self, intent: str) -> str:
-        """获取降级响应"""
+    def get_fallback(self, intent: str = "") -> str:
+        """按意图获取降级响应"""
         return self.fallback_responses.get(intent, "抱歉，服务暂时不可用，请稍后再试。")
+
+    def get_scene_fallback(self, scene: str = "generation") -> str:
+        """按场景获取降级响应（供 llm_fallback 等模块引用）"""
+        return self.SCENE_FALLBACKS.get(scene, self.SCENE_FALLBACKS["generation"])
 
 
 class GuardrailsPolicy:

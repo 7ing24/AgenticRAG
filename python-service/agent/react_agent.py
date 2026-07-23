@@ -28,6 +28,47 @@ class ReActAgent:
     # qwen-plus 上下文窗口约 32K，留 ~8K 给输出，24K 给输入
     MAX_CONTEXT_TOKENS = 24000
 
+    @staticmethod
+    def _safe_str(obj, budget=400):
+        """将 tool_result 格式化为可读字符串，总长度控制在 budget 内，保证括号闭合"""
+        def _fmt(o, remaining):
+            """递归格式化，remaining 为剩余可用的字符预算"""
+            if remaining <= 0:
+                return "..."
+            if isinstance(o, dict):
+                parts = []
+                for k, v in o.items():
+                    if remaining <= 2:
+                        parts.append("...")
+                        break
+                    v_str = _fmt(v, remaining - len(k) - 3)
+                    item = f"{k}={v_str}"
+                    if len(item) > remaining:
+                        parts.append("...")
+                        break
+                    parts.append(item)
+                    remaining -= len(item) + 2  # ", " separator
+                return "{" + ", ".join(parts) + "}"
+            if isinstance(o, list):
+                if not o:
+                    return "[]"
+                first = _fmt(o[0], remaining - 15)
+                total = f"[{first}, ...({len(o)} items)]"
+                if len(total) > remaining:
+                    return f"[...({len(o)} items)]"
+                return total
+            if isinstance(o, str):
+                if len(o) > 35:
+                    return repr(o[:35] + "...")
+                return repr(o)
+            if isinstance(o, float):
+                return f"{o:.3f}"
+            s = str(o)
+            if len(s) > 50:
+                return s[:50] + "..."
+            return s
+        return _fmt(obj, budget)
+
     def __init__(
         self,
         max_iterations: int = 10,
@@ -49,7 +90,7 @@ class ReActAgent:
         question: str,
         conversation_id: Optional[str] = None,
         user_id: Optional[str] = None,
-        context: str = "",
+        conversation_history: str = "",
         context_token_count: int = 0,
         skip_memory: bool = False,
         trace_id: str = "",
@@ -59,6 +100,7 @@ class ReActAgent:
         """同步执行 ReAct 循环，返回最终答案
 
         Args:
+            conversation_history: 对话历史文本，来自 MemoryAgent
             skip_memory: 为 True 时跳过保存记忆和提取偏好（multi-agent 中作为 worker 时使用）
         """
         state = self._create_state(question, conversation_id, user_id,
@@ -66,7 +108,8 @@ class ReActAgent:
 
         try:
             initial_prompt = self.prompts.build_initial_messages(
-                question, context, "", self.tool_registry
+                question=question, conversation_history=conversation_history,
+                context="", tool_registry=self.tool_registry,
             )
             messages = [{"role": "user", "content": initial_prompt}]
 
@@ -76,9 +119,13 @@ class ReActAgent:
             ))
             state.start()
 
+            trace_collector = kwargs.get("trace_collector")
+            worker_label = kwargs.get("worker_label", "")
             return self._run_loop(state, messages, question, conversation_id,
                                   context_token_count=context_token_count,
-                                  skip_memory=skip_memory)
+                                  skip_memory=skip_memory,
+                                  trace_collector=trace_collector,
+                                  worker_label=worker_label)
 
         except Exception as e:
             logger.error(f"[{state.run_id}] ReAct run failed: {e}", exc_info=True)
@@ -94,18 +141,20 @@ class ReActAgent:
         question: str,
         conversation_id: Optional[str] = None,
         user_id: Optional[str] = None,
-        context: str = "",
+        conversation_history: str = "",
         **kwargs,
     ) -> Generator[str, None, None]:
         """流式执行 ReAct 循环，yield JSON 事件"""
         state = self._create_state(question, conversation_id, user_id,
-                                   trace_id=trace_id, parent_run_id=parent_run_id)
+                                   trace_id=kwargs.get("trace_id", ""),
+                                   parent_run_id=kwargs.get("parent_run_id", ""))
 
         try:
             yield json.dumps({"type": "start", "task_type": "react"})
 
             initial_prompt = self.prompts.build_initial_messages(
-                question, context, "", self.tool_registry
+                question=question, conversation_history=conversation_history,
+                context="", tool_registry=self.tool_registry,
             )
             messages = [{"role": "user", "content": initial_prompt}]
 
@@ -214,8 +263,11 @@ class ReActAgent:
         conversation_id: Optional[str],
         context_token_count: int = 0,
         skip_memory: bool = False,
+        trace_collector=None,
+        worker_label: str = "",
     ) -> Dict[str, Any]:
         """ReAct 主循环"""
+        agent_label = f"ReActAgent({worker_label})" if worker_label else "ReActAgent"
         final_answer = None
         last_tool_calls = set()
 
@@ -237,9 +289,13 @@ class ReActAgent:
                 trace_id=state.trace_id
             ))
 
-            # 1. Call LLM
+            # 1. Call LLM（计时器 key 加 worker_label 避免并行时冲突）
+            timer_key = f"react_{worker_label}_iter_{iteration}"
+            if trace_collector:
+                trace_collector.start_timer(timer_key)
             llm_response = self._call_llm(messages)
             parsed = self.parser.parse(llm_response)
+            it_latency, it_start = trace_collector.stop_timer(timer_key) if trace_collector else (0, "")
 
             if parsed.thought:
                 state.add_intermediate_conclusion(
@@ -255,6 +311,22 @@ class ReActAgent:
                 step.complete({"thought": parsed.thought, "final_answer": final_answer})
                 logger.info(f"[{state.run_id}] Iteration {iteration + 1}: "
                             f"Thought → Final Answer ({len(final_answer)} chars)")
+                if trace_collector:
+                    tu = self.llm_service.get_last_token_usage()
+                    trace_collector.record_event(
+                        event_type="REACT_ITERATION",
+                        phase="REACT",
+                        input_data={"question": question[:150], "iteration": iteration + 1,
+                                    "thought": parsed.thought[:200] if parsed.thought else ""},
+                        output_data={"final_answer": final_answer[:300]},
+                        agent_name=agent_label,
+                        model_name="qwen-plus",
+                        latency_ms=it_latency,
+                        event_time=it_start,
+                        input_tokens=tu.get("input_tokens"),
+                        output_tokens=tu.get("output_tokens"),
+                        total_tokens=tu.get("total_tokens"),
+                    )
                 break
 
             # 3. Action → execute tool
@@ -299,6 +371,43 @@ class ReActAgent:
                                 f"estimated tokens: {estimated_tokens}")
 
                 step.complete({"thought": parsed.thought, "action": parsed.action})
+                if trace_collector:
+                    tu = self.llm_service.get_last_token_usage()
+                    output_data = {
+                        "action": parsed.action,
+                        "tool": parsed.tool_name,
+                        "result": ReActAgent._safe_str(tool_result),
+                    }
+                    if parsed.tool_name == "knowledge_search" and isinstance(tool_result, dict):
+                        tool_docs = tool_result.get("documents", [])
+                        tool_scores = tool_result.get("scores", [])
+                        trace_chunks = []
+                        for i, doc in enumerate(tool_docs):
+                            meta = doc.get("metadata", {}) if isinstance(doc, dict) else getattr(doc, "metadata", {})
+                            score = tool_scores[i] if i < len(tool_scores) else doc.get("score", 0) if isinstance(doc, dict) else getattr(doc, "score", 0)
+                            trace_chunks.append({
+                                "doc_id": meta.get("doc_id"),
+                                "chunk_index": meta.get("chunk_index"),
+                                "page": meta.get("page"),
+                                "score": round(score, 3) if isinstance(score, (int, float)) else score,
+                            })
+                        output_data["chunk_count"] = len(tool_docs)
+                        output_data["avg_score"] = round(sum(tool_scores) / len(tool_scores), 3) if tool_scores else 0
+                        output_data["chunks"] = trace_chunks
+                    trace_collector.record_event(
+                        event_type="REACT_ITERATION",
+                        phase="REACT",
+                        input_data={"question": question[:150], "iteration": iteration + 1,
+                                    "thought": parsed.thought[:200] if parsed.thought else ""},
+                        output_data=output_data,
+                        agent_name=agent_label,
+                        model_name="qwen-plus",
+                        latency_ms=it_latency,
+                        event_time=it_start,
+                        input_tokens=tu.get("input_tokens"),
+                        output_tokens=tu.get("output_tokens"),
+                        total_tokens=tu.get("total_tokens"),
+                    )
 
             else:
                 # Parsing failed — prompt LLM to retry
@@ -345,15 +454,16 @@ class ReActAgent:
 
         try:
             if self.llm_service.llm:
-                from langchain_core.output_parsers import StrOutputParser
-                from langchain_core.prompts import PromptTemplate
-                chain = PromptTemplate.from_template("{input}") | self.llm_service.llm | StrOutputParser()
-                return chain.invoke({"input": conversation_text.strip()})
+                result, token_cb = self.llm_service._dashscope_generate(conversation_text.strip())
+                self.llm_service._last_token_callback = token_cb
+                return result
             else:
-                return "Final Answer: 抱歉，AI 服务当前不可用，请稍后再试。"
+                from core.llm_fallback import fallback_handler
+                return f"Final Answer: {fallback_handler.registry.get('generation')}"
         except Exception as e:
             logger.error(f"LLM call failed: {e}")
-            return f"Final Answer: 抱歉，调用 AI 服务时出错：{str(e)}"
+            from core.llm_fallback import fallback_handler
+            return f"Final Answer: {fallback_handler.registry.get('generation')}"
 
     # ── Tool Execution ──────────────────────────────────────────
 
@@ -465,7 +575,8 @@ class ReActAgent:
             return parsed.final_answer or response.strip()
         except Exception as e:
             logger.error(f"[{run_id}] Force final answer failed: {e}")
-            return "抱歉，处理您的问题超时，请稍后重试。"
+            from core.llm_fallback import fallback_handler
+            return fallback_handler.registry.get("timeout")
 
     def _extract_sources_from_state(self, state: AgentState) -> List[Dict[str, Any]]:
         """从 state 的工具调用记录中提取引用来源"""

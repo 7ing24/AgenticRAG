@@ -646,6 +646,32 @@ CREATE TABLE `user_memory` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户画像记忆表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+--
+-- Table structure for table `request_trace`
+--
+
+DROP TABLE IF EXISTS `request_trace`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `request_trace` (
+    `id`            BIGINT        NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+    `trace_id`      VARCHAR(64)   NOT NULL              COMMENT '请求唯一标识',
+    `session_id`    VARCHAR(64)   DEFAULT NULL          COMMENT '会话ID',
+    `user_id`       BIGINT        DEFAULT NULL          COMMENT '用户ID',
+    `status`        VARCHAR(16)   NOT NULL DEFAULT 'SUCCESS' COMMENT 'SUCCESS/FAILED',
+    `event_count`   INT           NOT NULL DEFAULT 0    COMMENT '事件总数',
+    `duration_ms`   BIGINT        DEFAULT NULL          COMMENT '总耗时(ms)',
+    `error_message` VARCHAR(512)  DEFAULT NULL          COMMENT '失败时的错误摘要',
+    `trace_json`    JSON          NOT NULL              COMMENT '完整事件列表 JSON',
+    `created_at`    DATETIME      DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE INDEX `idx_trace_id` (`trace_id`),
+    INDEX `idx_created_at` (`created_at`),
+    INDEX `idx_session_id` (`session_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='全链路请求追踪表（一个trace占一行，事件列表存trace_json）';
+
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

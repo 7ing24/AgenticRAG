@@ -394,15 +394,16 @@ export default function AdminChat() {
     if (!dateTimeStr) return '';
     const date = new Date(dateTimeStr);
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today.getTime() - 86400000);
+    const diffDays = Math.floor((today.getTime() - new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()) / 86400000);
 
-    if (days === 0) {
+    if (date >= today) {
       return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-    } else if (days === 1) {
+    } else if (date >= yesterday) {
       return '昨天';
-    } else if (days < 7) {
-      return `${days}天前`;
+    } else if (diffDays < 7) {
+      return `${diffDays}天前`;
     } else {
       return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
     }

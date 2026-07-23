@@ -2,8 +2,10 @@ package com.demo.aiknowledge.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.demo.aiknowledge.entity.DocViewLog;
+import com.demo.aiknowledge.entity.KnowledgeChunk;
 import com.demo.aiknowledge.entity.KnowledgeDoc;
 import com.demo.aiknowledge.mapper.DocViewLogMapper;
+import com.demo.aiknowledge.mapper.KnowledgeChunkMapper;
 import com.demo.aiknowledge.mapper.KnowledgeDocMapper;
 import com.demo.aiknowledge.service.AiService;
 import com.demo.aiknowledge.service.KnowledgeService;
@@ -33,6 +35,7 @@ import java.util.UUID;
 public class KnowledgeServiceImpl implements KnowledgeService {
 
     private final KnowledgeDocMapper knowledgeDocMapper;
+    private final KnowledgeChunkMapper knowledgeChunkMapper;
     private final DocViewLogMapper docViewLogMapper;
     private final AiService aiService;
 
@@ -171,6 +174,14 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                  }
             }
             
+            // 删除 MySQL 中的分块记录
+            knowledgeChunkMapper.delete(new LambdaQueryWrapper<KnowledgeChunk>()
+                    .eq(KnowledgeChunk::getDocId, docId));
+
+            // 删除文档查看日志
+            docViewLogMapper.delete(new LambdaQueryWrapper<DocViewLog>()
+                    .eq(DocViewLog::getDocId, docId));
+
             // 调用 AI 服务删除向量索引
             try {
                 aiService.deleteDoc(docId);
@@ -178,7 +189,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
             } catch (Exception e) {
                 log.error("Delete vector index failed", e);
             }
-            
+
             knowledgeDocMapper.deleteById(docId);
             log.info("Document deleted successfully: id={}, name={}", docId, doc.getDocName());
         } else {

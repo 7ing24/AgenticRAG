@@ -17,7 +17,7 @@ class ConfigManager:
         # Embedding模型选择: "dashscope" 使用云端API, "local" 使用本地中文模型
         self.EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "dashscope")
         # 本地Embedding模型名称（仅当EMBEDDING_MODEL=local时生效）
-        self.LOCAL_EMBEDDING_MODEL = os.getenv("LOCAL_EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5")
+        self.LOCAL_EMBEDDING_MODEL = os.getenv("LOCAL_EMBEDDING_MODEL", "BAAI/bge-m3")
         
         # Milvus Configuration
         self.MILVUS_HOST = os.getenv("MILVUS_HOST", "localhost")
@@ -55,7 +55,12 @@ class ConfigManager:
         self.CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "500"))
         self.CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
         self.MIN_CHUNK_SIZE = int(os.getenv("MIN_CHUNK_SIZE", "100"))
-        
+
+        # Semantic Chunking Tuning (only used when CHUNK_STRATEGY=semantic)
+        self.SEMANTIC_BREAKPOINT_TYPE = os.getenv("SEMANTIC_BREAKPOINT_TYPE", "percentile")
+        self.SEMANTIC_BREAKPOINT_AMOUNT = float(os.getenv("SEMANTIC_BREAKPOINT_AMOUNT")) if os.getenv("SEMANTIC_BREAKPOINT_AMOUNT") else None
+        self.SEMANTIC_BUFFER_SIZE = int(os.getenv("SEMANTIC_BUFFER_SIZE", "1"))
+
         # Tesseract OCR Configuration（默认为空，由 parser.py 自动检测）
         self.TESSERACT_PATH = os.getenv("TESSERACT_PATH", "")
         
@@ -103,6 +108,9 @@ class ConfigManager:
             "CHUNK_SIZE": self.CHUNK_SIZE,
             "CHUNK_OVERLAP": self.CHUNK_OVERLAP,
             "MIN_CHUNK_SIZE": self.MIN_CHUNK_SIZE,
+            "SEMANTIC_BREAKPOINT_TYPE": self.SEMANTIC_BREAKPOINT_TYPE,
+            "SEMANTIC_BREAKPOINT_AMOUNT": self.SEMANTIC_BREAKPOINT_AMOUNT,
+            "SEMANTIC_BUFFER_SIZE": self.SEMANTIC_BUFFER_SIZE,
             "TESSERACT_PATH": self.TESSERACT_PATH,
             "TEMP_DIR": self.TEMP_DIR,
             "LOG_LEVEL": self.LOG_LEVEL,

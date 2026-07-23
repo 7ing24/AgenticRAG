@@ -159,7 +159,7 @@ class Executor:
             try:
                 result = tool_registry.invoke_tool(
                     "knowledge_search",
-                    {"query": search_query, "top_k": 5, "similarity_threshold": 0.7},
+                    {"query": search_query, "top_k": 5},
                     run_id=state.run_id
                 )
                 chunks = result.get("chunks", [])
@@ -167,10 +167,10 @@ class Executor:
                 tool_call_id = result.get("tool_call_id")
             except Exception as e:
                 logger.warning(f"[{state.run_id}] knowledge_search tool failed: {e}")
-                chunks = self.vector_store.search(search_query, k=5, similarity_threshold=0.7)
+                chunks = self.vector_store.search(search_query, k=5)
                 scores = [getattr(doc, 'score', 0.5) for doc in chunks]
         else:
-            chunks = self.vector_store.search(search_query, k=5, similarity_threshold=0.7)
+            chunks = self.vector_store.search(search_query, k=5)
             scores = [getattr(doc, 'score', 0.5) for doc in chunks]
 
         sufficiency = self.planner.evaluate_retrieval_sufficiency(chunks, query, scores)
@@ -180,7 +180,9 @@ class Executor:
             source_info = {
                 "source": getattr(doc, 'metadata', {}).get('source', ''),
                 "doc_id": getattr(doc, 'metadata', {}).get('doc_id', ''),
-                "page": getattr(doc, 'metadata', {}).get('page', '')
+                "page": getattr(doc, 'metadata', {}).get('page', ''),
+                "chunk_index": getattr(doc, 'metadata', {}).get('chunk_index'),
+                "score": getattr(doc, 'score', 0),
             }
             if source_info["source"]:
                 source_info["doc_name"] = os.path.basename(source_info["source"])

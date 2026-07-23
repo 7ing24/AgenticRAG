@@ -13,6 +13,10 @@ public class AiResponse {
     private List<Map<String, Object>> steps;
     private String traceId;
     private List<AgentRunRecord> runs;
+    /** Python 侧收集的全链路 trace 事件列表 */
+    private List<Map<String, Object>> traces;
+    /** 是否来自缓存 */
+    private boolean cached;
 
     @Data
     public static class AgentRunRecord {

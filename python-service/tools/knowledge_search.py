@@ -102,7 +102,7 @@ class KnowledgeSearchTool(Tool):
                 "content": doc.page_content,
                 "metadata": doc.metadata
             })
-            scores.append(getattr(doc, 'score', 0.5))
+            scores.append(doc.metadata.get('score', 0.5) if hasattr(doc, 'metadata') else getattr(doc, 'score', 0.5))
 
         return {
             "documents": formatted_docs,

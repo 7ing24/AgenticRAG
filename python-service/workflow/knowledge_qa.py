@@ -11,6 +11,7 @@ from core.vector_store import vector_store
 from core.llm import LLMService
 from tools.registry import tool_registry
 from tools.question_rewrite import QuestionRewriteTool
+from engine.trace_collector import TraceCollector
 import logging
 import json
 
@@ -99,7 +100,7 @@ class KnowledgeQAAgent:
                 conversation_id=conversation_id, user_id=user_id, run_id="memory_load"
             )
             memory_result = self.memory_agent.load_memory(memory_state)
-            full_context = memory_result.get("text", "")
+            conversation_history = memory_result.get("text", "")
             context_token_count = memory_result.get("token_count", 0)
 
             # 2. 判断复杂度，选择链路（LLM 优先，关键词 fallback）
@@ -113,11 +114,11 @@ class KnowledgeQAAgent:
                 logger.info(f"[KnowledgeQAAgent] Complexity (LLM): {complexity}")
 
             if complexity == "complex":
-                return self._ask_with_multi_agent(question, conversation_id, user_id, full_context,
-                                                  trace_id=trace_id)
+                return self._ask_with_multi_agent(question, conversation_id, user_id, conversation_history,
+                                                  trace_id=trace_id, **kwargs)
             else:
-                return self._ask_fast(question, conversation_id, user_id, full_context,
-                                     trace_id=trace_id)
+                return self._ask_fast(question, conversation_id, user_id, conversation_history,
+                                     trace_id=trace_id, **kwargs)
 
         except Exception as e:
             logger.error(f"[KnowledgeQAAgent] QA failed: {e}", exc_info=True)
@@ -132,41 +133,84 @@ class KnowledgeQAAgent:
             }
 
     def _ask_fast(self, question: str, conversation_id: Optional[str],
-                  user_id: Optional[str], full_context: str,
-                  trace_id: str = "") -> Dict[str, Any]:
+                  user_id: Optional[str], conversation_history: str,
+                  trace_id: str = "", **kwargs) -> Dict[str, Any]:
         """快速链路：改写 + 检索 + rerank + 自省循环（合并原 L1/L2）"""
         import uuid
         run_id = str(uuid.uuid4())
         best_docs = []
         best_scores = []
         steps = []
+        collector = kwargs.get("trace_collector")  # type: Optional[TraceCollector]
 
         # 首轮改写（指代消解 + 关键词提取）
+        if collector:
+            collector.start_timer("rewrite")
         try:
             rewritten = self.question_rewrite_tool.execute({
                 "question": question,
-                "conversation_context": full_context
+                "conversation_context": conversation_history
             })
             current_query = rewritten.get("rewritten_question", question)
             logger.info(f"[KnowledgeQAAgent] Fast rewritten: '{question[:30]}...' -> '{current_query[:50]}...'")
         except Exception:
             current_query = question
+        if collector:
+            rewrite_latency, rewrite_start = collector.stop_timer("rewrite")
+            collector.record_event(
+                event_type="QUESTION_REWRITTEN",
+                phase="REWRITE",
+                input_data={"original": question[:200]},
+                output_data={"rewritten": current_query[:200]},
+                agent_name="QuestionRewriteTool",
+                latency_ms=rewrite_latency,
+                event_time=rewrite_start,
+            )
 
         for round_num in range(self.max_retrieval_rounds):
+            if collector:
+                collector.start_timer(f"retrieval_r{round_num}")
             retrieval_result = self.retrieval_agent.retrieve(
                 query=current_query,
-                conversation_context=full_context,
+                conversation_context=conversation_history,
                 use_rewrite=False,
                 use_rerank=True,
                 top_k=5,
-                similarity_threshold=0.5
             )
 
             docs = retrieval_result.reranked_documents
             scores = retrieval_result.scores
+            ret_result = collector.stop_timer(f"retrieval_r{round_num}") if collector else (0, "")
+            ret_latency, ret_start = ret_result if isinstance(ret_result, tuple) else (ret_result, "")
             logger.info(f"[KnowledgeQAAgent] Fast round {round_num + 1}: "
                         f"retrieved {len(docs)} docs"
                         + (f", avg_score={sum(scores)/len(scores):.2f}" if scores else ""))
+
+            if collector:
+                collector.record_event(
+                    event_type="RETRIEVAL_EXECUTED",
+                    phase="RETRIEVAL",
+                    input_data={"query": current_query[:200], "round": round_num + 1},
+                    output_data={
+                        "doc_count": len(docs),
+                        "chunk_count": len(docs),
+                        "avg_score": round(sum(scores) / len(scores), 3) if scores else 0,
+                        "chunks": [
+                            {
+                                "doc_id": self._extract_metadata(doc).get("doc_id"),
+                                "chunk_index": self._extract_metadata(doc).get("chunk_index"),
+                                "page": self._extract_metadata(doc).get("page"),
+                                "score": round(score, 3),
+                            }
+                            for doc, score in zip(docs, scores)
+                        ] if docs else [],
+                    },
+                    agent_name="RetrievalAgent",
+                    latency_ms=ret_latency,
+                    event_time=ret_start,
+                    metadata={"mode": "hybrid", "vector_store": "FAISS" if not self.vector_store.use_milvus else "Milvus",
+                              "use_rerank": True, "top_k": 5},
+                )
 
             sufficient = docs and self.planner.evaluate_retrieval_sufficiency(
                 docs, question, scores, score_threshold=0.2
@@ -176,7 +220,17 @@ class KnowledgeQAAgent:
                 "step_type": "knowledge_search",
                 "status": "completed",
                 "doc_count": len(docs),
+                "chunk_count": len(docs),
                 "is_sufficient": sufficient,
+                "chunks": [
+                    {
+                        "doc_id": self._extract_metadata(doc).get("doc_id"),
+                        "chunk_index": self._extract_metadata(doc).get("chunk_index"),
+                        "page": self._extract_metadata(doc).get("page"),
+                        "score": round(score, 3),
+                    }
+                    for doc, score in zip(docs, scores)
+                ] if docs else [],
             })
 
             if sufficient:
@@ -191,19 +245,32 @@ class KnowledgeQAAgent:
 
             if round_num < self.max_retrieval_rounds - 1:
                 current_query = self._rewrite_query_for_retry(
-                    current_query, full_context, round_num
+                    current_query, conversation_history, round_num
                 )
                 logger.info(f"[KnowledgeQAAgent] Fast retry with: {current_query[:50]}...")
         else:
             logger.info(f"[KnowledgeQAAgent] Fast max rounds reached, using best ({len(best_docs)} docs)")
 
         if not best_docs:
-            if full_context:
-                answer = self.llm_service.get_answer(question, [], full_context)
+            if conversation_history:
+                answer = self.llm_service.get_answer(question, [], conversation_history)
             else:
                 answer = "抱歉，知识库中没有找到与您问题相关的内容。"
             steps.append({"step_name": "answer_generation", "step_type": "answer_generation",
                           "status": "completed"})
+            if collector:
+                token_usage = self.llm_service.get_last_token_usage()
+                collector.record_event(
+                    event_type="ANSWER_GENERATED",
+                    phase="GENERATION",
+                    input_data={"question": question[:200]},
+                    output_data={"answer": answer[:200], "chunk_count": 0},
+                    agent_name="KnowledgeQAAgent",
+                    model_name="qwen-plus",
+                    input_tokens=token_usage.get("input_tokens") if token_usage else None,
+                    output_tokens=token_usage.get("output_tokens") if token_usage else None,
+                    total_tokens=token_usage.get("total_tokens") if token_usage else None,
+                )
             self._save_to_memory(conversation_id, question, answer, user_id)
             return {"answer": answer, "sources": [], "has_sources": False,
                     "task_type": "knowledge_qa", "steps": steps,
@@ -211,10 +278,28 @@ class KnowledgeQAAgent:
                     "runs": [{"run_id": run_id, "parent_run_id": None,
                               "agent_type": "knowledge_qa", "steps": steps}]}
 
+        if collector:
+            collector.start_timer("generation")
         llm_docs = self._docs_to_llm_format(best_docs)
-        answer = self.llm_service.get_answer(question, llm_docs, full_context)
+        answer = self.llm_service.get_answer(question, llm_docs, conversation_history)
+        gen_latency, gen_start = collector.stop_timer("generation") if collector else (0, "")
         steps.append({"step_name": "answer_generation", "step_type": "answer_generation",
                       "status": "completed"})
+        if collector:
+            token_usage = self.llm_service.get_last_token_usage()
+            collector.record_event(
+                event_type="ANSWER_GENERATED",
+                phase="GENERATION",
+                input_data={"question": question[:200], "chunk_count": len(best_docs)},
+                output_data={"answer": answer[:200]},
+                agent_name="KnowledgeQAAgent",
+                model_name="qwen-plus",
+                latency_ms=gen_latency,
+                event_time=gen_start,
+                input_tokens=token_usage.get("input_tokens") if token_usage else None,
+                output_tokens=token_usage.get("output_tokens") if token_usage else None,
+                total_tokens=token_usage.get("total_tokens") if token_usage else None,
+            )
         self._save_to_memory(conversation_id, question, answer, user_id)
         sources = self._build_sources(best_docs)
 
@@ -228,31 +313,48 @@ class KnowledgeQAAgent:
         }
 
     def _ask_with_react(self, question: str, conversation_id: Optional[str] = None,
-                        user_id: Optional[str] = None, context: str = "",
+                        user_id: Optional[str] = None, conversation_history: str = "",
                         context_token_count: int = 0,
                         **kwargs) -> Dict[str, Any]:
         """ReAct 链路（降级回退）：LLM 动态决定工具调用，自主判断何时输出答案"""
         logger.info(f"[KnowledgeQAAgent] Using ReAct agent (fallback)...")
-        return self.react_agent.run(
+        collector = kwargs.get("trace_collector")
+        if collector:
+            collector.start_timer("react")
+        result = self.react_agent.run(
             question=question,
             conversation_id=conversation_id,
             user_id=user_id,
-            context=context,
+            conversation_history=conversation_history,
             context_token_count=context_token_count,
             **kwargs
         )
+        if collector:
+            latency, start_time = collector.stop_timer("react")
+            collector.record_event(
+                event_type="REACT_EXECUTED",
+                phase="REACT",
+                input_data={"question": question[:200], "context_tokens": context_token_count},
+                output_data={"answer": result.get("answer", "")[:200]},
+                agent_name="ReActAgent",
+                model_name="qwen-plus",
+                latency_ms=latency,
+                event_time=start_time,
+            )
+        return result
 
     def _ask_with_multi_agent(self, question: str, conversation_id: Optional[str] = None,
-                              user_id: Optional[str] = None, context: str = "",
+                              user_id: Optional[str] = None, conversation_history: str = "",
                               trace_id: str = "",
                               **kwargs) -> Dict[str, Any]:
         """Multi-Agent 链路：Orchestrator 拆解 → 多 worker 并行 → 汇总"""
         logger.info(f"[KnowledgeQAAgent] Using Multi-Agent orchestrator...")
+        # 内部细节由 MultiAgentOrchestrator 自己记录（PLAN / WORKERS / SYNTHESIS / REACT_ITERATION）
         return self.multi_agent_orchestrator.run(
             question=question,
             conversation_id=conversation_id,
             user_id=user_id,
-            context=context,
+            conversation_history=conversation_history,
             trace_id=trace_id,
             **kwargs
         )
@@ -274,7 +376,7 @@ class KnowledgeQAAgent:
     # ── 以下为旧链路方法，保留供未来使用，当前路由不再指向它们 ──
 
     def _ask_l1(self, question: str, conversation_id: Optional[str],
-                full_context: str) -> Dict[str, Any]:
+                conversation_history: str) -> Dict[str, Any]:
         """L1 简化链路：检索 + 自省循环（不充分时改写重试）"""
         best_docs = []
         best_scores = []
@@ -302,21 +404,21 @@ class KnowledgeQAAgent:
 
             if round_num < self.max_retrieval_rounds - 1:
                 current_query = self._rewrite_query_for_retry(
-                    current_query, full_context, round_num
+                    current_query, conversation_history, round_num
                 )
                 logger.info(f"[KnowledgeQAAgent] L1 retry with: {current_query[:50]}...")
         else:
             logger.info(f"[KnowledgeQAAgent] L1 max rounds reached, using best ({len(best_docs)} docs)")
 
         if not best_docs:
-            if full_context:
-                answer = self.llm_service.get_answer(question, [], full_context)
+            if conversation_history:
+                answer = self.llm_service.get_answer(question, [], conversation_history)
             else:
                 answer = "抱歉，知识库中没有找到与您问题相关的内容。"
             self._save_to_memory(conversation_id, question, answer)
             return {"answer": answer, "sources": [], "has_sources": False, "task_type": "knowledge_qa"}
 
-        answer = self.llm_service.get_answer(question, best_docs, full_context)
+        answer = self.llm_service.get_answer(question, best_docs, conversation_history)
         self._save_to_memory(conversation_id, question, answer)
         sources = self._build_sources(best_docs)
 
@@ -326,7 +428,7 @@ class KnowledgeQAAgent:
         }
 
     def _ask_l2(self, question: str, conversation_id: Optional[str],
-                full_context: str) -> Dict[str, Any]:
+                conversation_history: str) -> Dict[str, Any]:
         """L2 标准链路：问题改写/指代消解 + 检索 + 重排序 + 生成 + 自省循环"""
         best_docs = []
         best_scores = []
@@ -335,7 +437,7 @@ class KnowledgeQAAgent:
         # L2 每次都先用重写工具改写，有对话历史时自然消解指代
         rewritten = self.question_rewrite_tool.execute({
             "question": question,
-            "conversation_context": full_context
+            "conversation_context": conversation_history
         })
         current_query = rewritten.get("rewritten_question", question)
         logger.info(f"[KnowledgeQAAgent] L2 rewritten: '{question[:30]}...' -> '{current_query[:50]}...'")
@@ -343,7 +445,7 @@ class KnowledgeQAAgent:
         for round_num in range(self.max_retrieval_rounds):
             retrieval_result = self.retrieval_agent.retrieve(
                 query=current_query,
-                conversation_context=full_context,
+                conversation_context=conversation_history,
                 use_rewrite=False,    # 改写由外层自省循环统一控制
                 use_rerank=True,
                 top_k=5,
@@ -372,7 +474,7 @@ class KnowledgeQAAgent:
 
             if round_num < self.max_retrieval_rounds - 1:
                 current_query = self._rewrite_query_for_retry(
-                    current_query, full_context, round_num
+                    current_query, conversation_history, round_num
                 )
                 logger.info(f"[KnowledgeQAAgent] L2 retry with: {current_query[:50]}...")
         else:
@@ -384,7 +486,7 @@ class KnowledgeQAAgent:
             return {"answer": answer, "sources": [], "has_sources": False, "task_type": "knowledge_qa"}
 
         llm_docs = self._docs_to_llm_format(best_docs)
-        answer = self.llm_service.get_answer(question, llm_docs, full_context)
+        answer = self.llm_service.get_answer(question, llm_docs, conversation_history)
         self._save_to_memory(conversation_id, question, answer)
 
         citation_sources = best_citations.get("sources", []) if best_citations else []
@@ -455,14 +557,21 @@ class KnowledgeQAAgent:
                 ))
         return llm_docs
 
+    @staticmethod
+    def _extract_metadata(doc) -> dict:
+        """从 Document 或 dict 中提取 metadata"""
+        if hasattr(doc, 'metadata'):
+            return getattr(doc, 'metadata', {}) or {}
+        if isinstance(doc, dict):
+            return doc.get('metadata', {}) or {}
+        return {}
+
     def _build_sources(self, docs: list) -> list:
         """构建引用来源（按 doc_id 去重）"""
         seen_doc_ids = set()
         sources = []
         for doc in docs:
-            metadata = getattr(doc, 'metadata', {}) if hasattr(doc, 'metadata') else (
-                doc.get('metadata', {}) if isinstance(doc, dict) else {}
-            )
+            metadata = self._extract_metadata(doc)
             doc_id = metadata.get("doc_id")
             if doc_id and doc_id in seen_doc_ids:
                 continue
@@ -502,7 +611,6 @@ class KnowledgeQAAgent:
             docs = self.vector_store.search(
                 query=question,
                 k=5,
-                similarity_threshold=0.7,
                 use_rerank=False
             )
 
@@ -512,7 +620,8 @@ class KnowledgeQAAgent:
             seen_doc_ids = set()
             sources = []
             for doc in docs:
-                metadata = getattr(doc, 'metadata', {})
+                metadata = self._extract_metadata(doc)
+                score = getattr(doc, 'score', metadata.get('score', 0))
                 doc_id = metadata.get("doc_id")
                 if doc_id and doc_id in seen_doc_ids:
                     continue
@@ -523,6 +632,7 @@ class KnowledgeQAAgent:
                     "doc": metadata.get("source", "未知文档"),
                     "page": metadata.get("page"),
                     "chunk_index": metadata.get("chunk_index"),
+                    "score": round(score, 3) if isinstance(score, (int, float)) else score,
                 })
 
             # 3. 流式 LLM 生成

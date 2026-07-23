@@ -63,12 +63,13 @@ class MySQLClient:
             
             # 批量插入新 chunks
             insert_sql = """
-                INSERT INTO knowledge_chunk (doc_id, chunk_index, chunk_text, create_time)
-                VALUES (%s, %s, %s, NOW())
+                INSERT INTO knowledge_chunk (doc_id, chunk_index, chunk_text, page_number, create_time)
+                VALUES (%s, %s, %s, %s, NOW())
             """
             
             data = [
-                (doc_id, chunk.get('chunk_index', i), chunk.get('page_content', ''),)
+                (doc_id, chunk.get('chunk_index', i), chunk.get('page_content', ''),
+                 chunk.get('page_number', 1),)
                 for i, chunk in enumerate(chunks)
             ]
             

@@ -41,7 +41,8 @@ public interface AiService {
      * @param question 用户问题
      * @param adminId 管理员ID
      * @param conversationId 会话ID
-     * @return AI回答对象
+     * @param traceId 全链路追踪ID
+     * @return AI回答对象（含 traces 字段）
      */
-    java.util.Map<String, Object> askForAdmin(String question, Long adminId, Long conversationId);
+    java.util.Map<String, Object> askForAdmin(String question, Long adminId, Long conversationId, String traceId);
 }

@@ -228,19 +228,19 @@ class OpsAgent:
         # 查询活跃用户
         user_query = """
             SELECT 
-                userId as user_id,
+                user_id,
                 COUNT(*) as qa_count,
                 MAX(create_time) as last_active
             FROM qa_log
             WHERE create_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-            GROUP BY userId
+            GROUP BY user_id
             ORDER BY qa_count DESC
             LIMIT 20
         """
         active_users = mysql_client.fetch_all(user_query) or []
 
         # 查询总用户
-        user_count_query = "SELECT COUNT(*) as user_count FROM users"
+        user_count_query = "SELECT COUNT(*) as user_count FROM user"
         user_count = mysql_client.fetch_one(user_count_query) or {}
 
         answer = f"""👥 用户活跃度分析

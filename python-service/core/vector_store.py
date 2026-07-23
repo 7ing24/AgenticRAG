@@ -4,7 +4,6 @@ from typing import List, Optional, Dict, Any, Tuple
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import DashScopeEmbeddings, HuggingFaceEmbeddings
 from langchain_core.documents import Document
-from service.reranker import create_reranker, BaseReranker
 from core.config import config
 
 # pymilvus 和 Milvus 是可选依赖，仅在使用 Milvus 时需要
@@ -89,6 +88,7 @@ class VectorStoreManager:
             return
 
         try:
+            from service.reranker import create_reranker
             self.reranker = create_reranker(reranker_type)
             config.logger.info(f"Reranker initialized: {reranker_type}")
         except Exception as e:
@@ -303,7 +303,9 @@ class VectorStoreManager:
                 rerank_time = time.time() - rerank_start
                 config.logger.info(f"Rerank completed in {rerank_time:.4f}s, top {len(rerank_results)} results")
 
-                # 提取重排序后的文档
+                # 提取重排序后的文档，回写 rerank 分数到 metadata
+                for r in rerank_results:
+                    r.document.metadata["score"] = r.score
                 reranked_docs = [r.document for r in rerank_results]
 
                 # Rerank已经按相关性排序，这里不再应用similarity_threshold
@@ -344,6 +346,7 @@ class VectorStoreManager:
     def _hybrid_search(self, query: str, k: int, similarity_threshold: float,
                        use_rerank: bool, start_time: float) -> List[Document]:
         """向量 + BM25 混合检索，RRF 融合"""
+        import time
         candidate_k = k * 2
 
         # 1. 向量检索
@@ -393,9 +396,11 @@ class VectorStoreManager:
         )
 
         # 4. 可选 reranker
-        if use_rerank and self.reranker and len(merged) > k:
+        if use_rerank and self.reranker and len(merged) > 1:
             try:
                 reranked = self.reranker.rerank(query, merged, top_k=k)
+                for r in reranked:
+                    r.document.metadata["score"] = r.score
                 merged = [r.document for r in reranked]
             except Exception as e:
                 config.logger.warning(f"[Hybrid] rerank failed: {e}")
@@ -412,7 +417,7 @@ class VectorStoreManager:
                     return [(doc, self._to_similarity(score)) for doc, score in docs_with_scores]
                 return [(doc, 0.5) for doc in docs_with_scores]
         except Exception as e:
-            config.logger.warning(f"[Hybrid] vector search failed: {e}")
+            config.logger.warning(f"[Hybrid] vector search failed: {type(e).__name__}: {e}")
         return []
 
     def delete_document(self, doc_id: int):

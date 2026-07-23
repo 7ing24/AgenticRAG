@@ -1,7 +1,6 @@
 from typing import Dict, Any, Optional, Generator, List
 from tools.question_rewrite import QuestionRewriteTool
 from tools.knowledge_search import KnowledgeSearchTool
-from tools.rerank import RerankTool
 from tools.citation import CitationIntegrator, CitationTracker
 from core.vector_store import vector_store
 from core.config import config
@@ -53,15 +52,12 @@ class RetrievalAgent:
     def __init__(self):
         self.question_rewrite_tool = QuestionRewriteTool()
         self.knowledge_search_tool = KnowledgeSearchTool()
-        self.rerank_tool = RerankTool()
         self.citation_integrator = CitationIntegrator()
         self.citation_tracker = CitationTracker()
         self.vector_store = vector_store
 
         self.config = {
             "top_k": 5,
-            "initial_k": 10,
-            "similarity_threshold": 0.7,
             "use_rerank": False,   # 默认关闭重排序，减少开销
             "use_rewrite": False,  # 默认关闭问题重写，减少LLM调用
             "use_hybrid": True,    # 默认开启向量+BM25混合检索
@@ -76,7 +72,6 @@ class RetrievalAgent:
         use_rerank: bool = False,
         use_hybrid: bool = True,
         top_k: int = 5,
-        similarity_threshold: float = 0.7,
         **kwargs
     ) -> RetrievalResult:
         """
@@ -89,7 +84,6 @@ class RetrievalAgent:
             use_rerank: 是否使用重排序
             use_hybrid: 是否使用向量+BM25混合检索
             top_k: 返回结果数量
-            similarity_threshold: 相似度阈值
 
         Returns:
             RetrievalResult: 检索结果
@@ -110,22 +104,17 @@ class RetrievalAgent:
 
             retrieved_docs = self._retrieve_documents(
                 rewritten_query,
-                k=top_k * 3 if use_rerank else top_k,
-                similarity_threshold=similarity_threshold,
-                use_hybrid=use_hybrid
+                k=top_k,
+                use_hybrid=use_hybrid,
+                use_rerank=use_rerank,
             )
 
-            if use_rerank and retrieved_docs:
-                reranked_result = self._rerank_documents(
-                    rewritten_query,
-                    retrieved_docs,
-                    top_k=top_k
-                )
-                reranked_docs = reranked_result.get("reranked_documents", retrieved_docs)
-                scores = reranked_result.get("scores", [])
-            else:
-                reranked_docs = retrieved_docs[:top_k]
-                scores = [0.5] * len(reranked_docs)
+            reranked_docs = retrieved_docs
+            scores = [
+                doc.get("metadata", {}).get("score", 0.5) if isinstance(doc, dict)
+                else getattr(doc, "metadata", {}).get("score", 0.5)
+                for doc in retrieved_docs
+            ]
 
             citation_result = self.citation_integrator.integrate(
                 answer="",
@@ -170,7 +159,6 @@ class RetrievalAgent:
         use_rerank: bool = False,
         use_hybrid: bool = True,
         top_k: int = 5,
-        similarity_threshold: float = 0.7,
         **kwargs
     ) -> Generator[str, None, None]:
         """
@@ -221,47 +209,27 @@ class RetrievalAgent:
 
             retrieved_docs = self._retrieve_documents(
                 rewritten_query,
-                k=top_k * 3 if use_rerank else top_k,
-                similarity_threshold=similarity_threshold,
-                use_hybrid=use_hybrid
+                k=top_k,
+                use_hybrid=use_hybrid,
+                use_rerank=use_rerank,
             )
+
+            reranked_docs = retrieved_docs
+            scores = [
+                doc.get("metadata", {}).get("score", 0.5) if isinstance(doc, dict)
+                else getattr(doc, "metadata", {}).get("score", 0.5)
+                for doc in retrieved_docs
+            ]
 
             yield json.dumps({
                 "type": "step",
                 "step_name": "knowledge_search",
                 "status": "completed",
                 "output": {
-                    "retrieved_count": len(retrieved_docs)
+                    "retrieved_count": len(retrieved_docs),
+                    "top_scores": scores[:3] if scores else [],
                 }
             })
-
-            if use_rerank and retrieved_docs:
-                yield json.dumps({
-                    "type": "step",
-                    "step_name": "rerank",
-                    "status": "started"
-                })
-
-                reranked_result = self._rerank_documents(
-                    rewritten_query,
-                    retrieved_docs,
-                    top_k=top_k
-                )
-                reranked_docs = reranked_result.get("reranked_documents", retrieved_docs)
-                scores = reranked_result.get("scores", [])
-
-                yield json.dumps({
-                    "type": "step",
-                    "step_name": "rerank",
-                    "status": "completed",
-                    "output": {
-                        "reranked_count": len(reranked_docs),
-                        "top_scores": scores[:3] if scores else []
-                    }
-                })
-            else:
-                reranked_docs = retrieved_docs[:top_k]
-                scores = [0.5] * len(reranked_docs)
 
             yield json.dumps({
                 "type": "retrieval_completed",
@@ -286,8 +254,8 @@ class RetrievalAgent:
         self,
         query: str,
         k: int = 10,
-        similarity_threshold: float = 0.7,
-        use_hybrid: bool = True
+        use_hybrid: bool = True,
+        use_rerank: bool = False,
     ) -> List:
         """执行文档检索"""
         try:
@@ -295,8 +263,7 @@ class RetrievalAgent:
                 result = self.knowledge_search_tool.execute({
                     "query": query,
                     "top_k": k,
-                    "similarity_threshold": similarity_threshold,
-                    "use_rerank": False,
+                    "use_rerank": use_rerank,
                     "use_hybrid": use_hybrid
                 })
                 return result.get("documents", [])
@@ -306,8 +273,7 @@ class RetrievalAgent:
         docs = self.vector_store.search(
             query=query,
             k=k,
-            similarity_threshold=similarity_threshold,
-            use_rerank=False,
+            use_rerank=use_rerank,
             hybrid=use_hybrid
         )
 
@@ -320,27 +286,6 @@ class RetrievalAgent:
             for doc in docs
         ]
 
-    def _rerank_documents(
-        self,
-        query: str,
-        documents: List,
-        top_k: int = 5
-    ) -> Dict[str, Any]:
-        """执行文档重排序"""
-        try:
-            return self.rerank_tool.execute({
-                "query": query,
-                "documents": documents,
-                "top_k": top_k
-            })
-        except Exception as e:
-            logger.warning(f"[RetrievalAgent] rerank failed: {e}")
-            return {
-                "reranked_documents": documents[:top_k],
-                "scores": [0.5] * min(top_k, len(documents)),
-                "original_indices": list(range(min(top_k, len(documents)))),
-                "count": min(top_k, len(documents))
-            }
 
     def integrate_citations(
         self,

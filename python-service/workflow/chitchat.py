@@ -2,6 +2,7 @@ from typing import Dict, Any, Optional, Generator
 from types import SimpleNamespace
 from core.llm import llm
 from agent.memory_agent import MemoryAgent
+from engine.trace_collector import TraceCollector
 import logging
 import json
 
@@ -65,6 +66,7 @@ class ChitChatAgent:
         import uuid
         run_id = str(uuid.uuid4())
         logger.info(f"[ChitChatAgent] Processing chitchat: {question[:50]}...")
+        collector = kwargs.get("trace_collector")  # type: Optional[TraceCollector]
 
         try:
             # 1. 通过 MemoryAgent 加载会话记忆
@@ -79,7 +81,23 @@ class ChitChatAgent:
                     logger.info(f"[ChitChatAgent] Loaded context ({context_result['token_count']} tokens)")
 
             # 2. 生成回复（带会话上下文）
-            answer = self._generate_chitchat_response(question, conversation_history)
+            if collector:
+                collector.start_timer("chitchat")
+            match_method, answer = self._generate_chitchat_response_with_method(question, conversation_history)
+            chitchat_latency, chitchat_start = collector.stop_timer("chitchat") if collector else (0, "")
+
+            if collector:
+                collector.record_event(
+                    event_type="CHITCHAT_HANDLED",
+                    phase="GENERATION",
+                    input_data={"question": question[:200]},
+                    output_data={"answer": answer[:200]},
+                    agent_name="ChitChatAgent",
+                    model_name="qwen-plus" if match_method == "llm" else None,
+                    latency_ms=chitchat_latency,
+                    event_time=chitchat_start,
+                    metadata={"match_method": match_method},
+                )
 
             # 3. 写入会话记忆
             if conversation_id:
@@ -160,6 +178,26 @@ class ChitChatAgent:
                 "type": "error",
                 "content": str(e)
             })
+
+    def _generate_chitchat_response_with_method(self, question: str, conversation_history: str = "") -> tuple:
+        """生成闲聊回复，同时返回匹配方式。返回值: (match_method, answer)"""
+
+        lower_question = question.lower()
+
+        # 问候类 — 规则匹配
+        if any(kw in lower_question for kw in ["你好", "您好", "hello", "hi", "早上好", "下午好", "晚上好", "嗨", "嘿"]):
+            return ("rule_match", self.chitchat_prompts["greeting"][0])
+        # 感谢类 — 规则匹配
+        if any(kw in lower_question for kw in ["谢谢", "感谢", "多谢", "thanks", "thank you"]):
+            return ("rule_match", self.chitchat_prompts["thanks"][0])
+        # 身份询问 — 规则匹配
+        if any(kw in lower_question for kw in ["你叫什么", "你是谁", "你是什么", "你的名字", "你是机器人", "你是AI"]):
+            return ("rule_match", self.chitchat_prompts["identity"][0])
+        # 时间类
+        if any(kw in lower_question for kw in ["几点", "时间", "日期", "今天是"]):
+            return ("rule_match", self.chitchat_prompts["time"][0])
+        # 其余走 LLM
+        return ("llm_generate", self._llm_chitchat(question, conversation_history))
 
     def _generate_chitchat_response(self, question: str, conversation_history: str = "") -> str:
         """

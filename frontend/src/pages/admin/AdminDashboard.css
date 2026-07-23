@@ -272,6 +272,12 @@
   transition: all 0.3s;
 }
 
+.action-btn-group {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .action-btn.edit {
   background-color: #e6f7ff;
   color: #1890ff;
@@ -279,6 +285,24 @@
 
 .action-btn.edit:hover {
   background-color: #bae7ff;
+}
+
+.action-btn.delete {
+  background-color: #fff1f0;
+  color: #ff4d4f;
+}
+
+.action-btn.delete:hover {
+  background-color: #ffccc7;
+}
+
+.action-btn.retry {
+  background-color: #fff7e6;
+  color: #fa8c16;
+}
+
+.action-btn.retry:hover {
+  background-color: #ffe7ba;
 }
 
 /* Detail Content */
@@ -312,15 +336,6 @@
 
 .text-error {
   color: #ff4d4f;
-}
-
-.action-btn.delete {
-  background-color: #fff1f0;
-  color: #ff4d4f;
-}
-
-.action-btn.delete:hover {
-  background-color: #ffccc7;
 }
 
 /* Form Styles */

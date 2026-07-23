@@ -2,24 +2,26 @@ import os
 import re
 from typing import List, Optional, Dict, Any
 from langchain_core.documents import Document
+from langchain_core.embeddings import Embeddings
 try:
     from langchain_text_splitters import RecursiveCharacterTextSplitter, TextSplitter
 except ImportError:
     from langchain.text_splitter import RecursiveCharacterTextSplitter, TextSplitter
-from langchain_experimental.text_splitter import SemanticChunker
 import logging
 
 logger = logging.getLogger(__name__)
 
-class SemanticChunkerSplitter(TextSplitter):
+
+class StructuralChunker(TextSplitter):
     """
-    基于语义的分块器，结合多种策略进行文档切分
+    基于结构的文档切分器，按标点层级降级切分。
 
     策略：
     1. 首先尝试按段落切分（保留段落完整性）
     2. 如果段落太长，再按句子切分
-    3. 保留文档结构信息（标题、列表等）
-    4. 添加重叠以保持上下文连贯性
+    3. 如果句子仍太长，按标点切分
+    4. 最后兜底按字符截断
+    5. 合并过小的 chunk，添加重叠以保持上下文连贯性
     """
 
     def __init__(
@@ -212,27 +214,43 @@ class SemanticChunkerSplitter(TextSplitter):
     def split_documents(self, documents: List[Document]) -> List[Document]:
         """分割文档列表"""
         result = []
+        global_index = 0
+        total_chunks_all = sum(
+            len(self.split_text(doc.page_content)) for doc in documents
+        )
         for doc in documents:
             chunks = self.split_text(doc.page_content)
-            for i, chunk in enumerate(chunks):
+            for chunk in chunks:
                 result.append(Document(
                     page_content=chunk,
                     metadata={
                         **doc.metadata,
-                        "chunk_index": i,
-                        "total_chunks": len(chunks)
+                        "chunk_index": global_index,
+                        "total_chunks": total_chunks_all
                     }
                 ))
+                global_index += 1
         return result
+
+
+# 向后兼容别名
+SemanticChunkerSplitter = StructuralChunker
 
 
 class AdaptiveChunker:
     """
     自适应分块器，根据文档类型和内容动态调整分块策略
+
+    策略：
+    - semantic: embedding-based 语义切分（需要 embeddings 实例，无 embeddings 时回退 structural）
+    - structural: 结构切分（段落→句子→标点→字符）
+    - recursive: 递归字符切分
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: Optional[Dict[str, Any]] = None,
+                 embeddings: Optional[Embeddings] = None):
         self.config = config or {}
+        self.embeddings = embeddings
 
         # 从配置读取参数，使用默认值
         self.chunk_size = self.config.get('chunk_size', 500)
@@ -242,14 +260,42 @@ class AdaptiveChunker:
         # 根据文档类型选择策略
         self.strategy = self.config.get('strategy', 'semantic')
 
+        self._init_splitter()
+
+    def _init_splitter(self):
+        """根据策略初始化切分器"""
         if self.strategy == 'semantic':
-            self.splitter = SemanticChunkerSplitter(
+            if self.embeddings is None:
+                logger.warning(
+                    "No embeddings provided for 'semantic' strategy, "
+                    "falling back to 'structural' strategy"
+                )
+                self.splitter = StructuralChunker(
+                    chunk_size=self.chunk_size,
+                    chunk_overlap=self.chunk_overlap,
+                    min_chunk_size=self.min_chunk_size
+                )
+            else:
+                from service.embedding_chunker import EmbeddingSemanticChunker
+                self.splitter = EmbeddingSemanticChunker(
+                    embeddings=self.embeddings,
+                    chunk_size=self.chunk_size,
+                    chunk_overlap=self.chunk_overlap,
+                    min_chunk_size=self.min_chunk_size,
+                    breakpoint_threshold_type=self.config.get(
+                        'semantic_breakpoint_type', 'percentile'),
+                    breakpoint_threshold_amount=self.config.get(
+                        'semantic_breakpoint_amount'),
+                    buffer_size=self.config.get('semantic_buffer_size', 1),
+                )
+        elif self.strategy == 'structural':
+            self.splitter = StructuralChunker(
                 chunk_size=self.chunk_size,
                 chunk_overlap=self.chunk_overlap,
                 min_chunk_size=self.min_chunk_size
             )
         else:
-            # 默认使用RecursiveCharacterTextSplitter
+            # recursive 策略
             self.splitter = RecursiveCharacterTextSplitter(
                 chunk_size=self.chunk_size,
                 chunk_overlap=self.chunk_overlap,
@@ -285,21 +331,10 @@ class AdaptiveChunker:
         self.chunk_overlap = self.config.get('chunk_overlap', 50)
         self.min_chunk_size = self.config.get('min_chunk_size', 100)
         self.strategy = self.config.get('strategy', 'semantic')
-
-        if self.strategy == 'semantic':
-            self.splitter = SemanticChunkerSplitter(
-                chunk_size=self.chunk_size,
-                chunk_overlap=self.chunk_overlap,
-                min_chunk_size=self.min_chunk_size
-            )
-        else:
-            self.splitter = RecursiveCharacterTextSplitter(
-                chunk_size=self.chunk_size,
-                chunk_overlap=self.chunk_overlap,
-                separators=["\n\n", "\n", "。", "！", "？", "；", "，", " ", ""]
-            )
+        self._init_splitter()
 
 
-def create_chunker(config: Optional[Dict[str, Any]] = None) -> AdaptiveChunker:
+def create_chunker(config: Optional[Dict[str, Any]] = None,
+                   embeddings: Optional[Embeddings] = None) -> AdaptiveChunker:
     """创建分块器的工厂函数"""
-    return AdaptiveChunker(config)
+    return AdaptiveChunker(config, embeddings=embeddings)

@@ -14,6 +14,7 @@ import com.demo.aiknowledge.mapper.KnowledgeDocMapper;
 import com.demo.aiknowledge.service.AiService;
 import com.demo.aiknowledge.service.CacheService;
 import com.demo.aiknowledge.service.UserService;
+import com.demo.aiknowledge.service.AgentTraceService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,7 @@ public class AiServiceImpl implements AiService {
     private final ObjectMapper objectMapper;
     private final UserService userService;
     private final CacheService cacheService;
+    private final AgentTraceService agentTraceService;
 
     @Value("${ai.service.url}")
     private String aiServiceUrl;
@@ -123,52 +125,92 @@ public class AiServiceImpl implements AiService {
     @Override
     @Async
     public void parseDocument(String filePath, Long docId) {
-        log.info("Start parsing document: {}, docId: {}", filePath, docId);
-        
-        // 更新文档状态为PROCESSING
-        KnowledgeDoc doc = knowledgeDocMapper.selectById(docId);
-        if (doc != null) {
-            doc.setStatus("PROCESSING");
-            doc.setErrorMessage(null); // 清除之前的错误信息
-            knowledgeDocMapper.updateById(doc);
-        }
-        
-        try {
-            // 构建请求体
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("file_path", filePath);
-            requestBody.put("doc_id", docId);
+        String traceId = java.util.UUID.randomUUID().toString();
+        log.info("Start parsing document: {}, docId: {}, traceId: {}", filePath, docId, traceId);
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+        try (AgentTraceService.TraceScope scope = agentTraceService.openTrace(
+                traceId, "parse_" + docId, null)) {
 
-            // 调用 Python 服务
-            String url = aiServiceUrl + "/parse";
-            ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
-            
-            if (response.getStatusCode().is2xxSuccessful()) {
-                // 更新文档状态为COMPLETED
-                if (doc != null) {
-                    doc.setStatus("COMPLETED");
-                    doc.setErrorMessage(null);
-                    knowledgeDocMapper.updateById(doc);
-                }
-                log.info("Document parsed successfully: {}", docId);
-            } else {
-                String errorMessage = "AI Service returned error: " + response.getStatusCode();
-                throw new RuntimeException(errorMessage);
-            }
+            agentTraceService.recordEvent("PARSE_START", "HTTP",
+                    Map.of("docId", docId, "filePath", filePath), null);
 
-        } catch (Exception e) {
-            log.error("Document parsing failed", e);
-            // 更新文档状态为FAILED并记录错误原因
+            // 更新文档状态为PROCESSING
+            KnowledgeDoc doc = knowledgeDocMapper.selectById(docId);
             if (doc != null) {
-                doc.setStatus("FAILED");
-                doc.setErrorMessage(e.getMessage());
+                doc.setStatus("PROCESSING");
+                doc.setErrorMessage(null); // 清除之前的错误信息
                 knowledgeDocMapper.updateById(doc);
             }
-            log.error("Document parsing failed: {}, error: {}", docId, e.getMessage());
+
+            try {
+                // 构建请求体
+                Map<String, Object> requestBody = new HashMap<>();
+                requestBody.put("file_path", filePath);
+                requestBody.put("doc_id", docId);
+                requestBody.put("trace_id", traceId);
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+                agentTraceService.recordEvent("PYTHON_CALL_START", "AI_CALL",
+                        Map.of("docId", docId), null);
+
+                long pyStart = System.nanoTime();
+                String url = aiServiceUrl + "/parse";
+                ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
+                long pyLatency = (System.nanoTime() - pyStart) / 1_000_000;
+
+                if (response.getStatusCode().is2xxSuccessful()) {
+                    Map<String, Object> body = response.getBody();
+                    int chunksCount = body != null && body.containsKey("chunks_count")
+                            ? (Integer) body.get("chunks_count") : 0;
+
+                    // 合并 Python 侧 trace（DOCUMENT_PARSED / VECTOR_STORED / CHUNKS_SAVED）
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> traces = body != null
+                            ? (List<Map<String, Object>>) body.getOrDefault("traces", List.of())
+                            : List.of();
+                    if (!traces.isEmpty()) {
+                        agentTraceService.mergePythonTraces(traces);
+                    }
+
+                    agentTraceService.recordEvent("PYTHON_CALL_END", "AI_CALL",
+                            Map.of("docId", docId),
+                            Map.of("chunksCount", chunksCount),
+                            pyLatency);
+
+                    // 更新文档状态为COMPLETED
+                    if (doc != null) {
+                        doc.setStatus("COMPLETED");
+                        doc.setErrorMessage(null);
+                        knowledgeDocMapper.updateById(doc);
+                    }
+                    log.info("Document parsed successfully: {}", docId);
+
+                    agentTraceService.recordEvent("PARSE_FINISHED", "HTTP", null,
+                            Map.of("status", "COMPLETED", "chunksCount", chunksCount));
+                } else {
+                    String errorMessage = "AI Service returned error: " + response.getStatusCode();
+                    throw new RuntimeException(errorMessage);
+                }
+
+            } catch (Exception e) {
+                log.error("Document parsing failed", e);
+                // 更新文档状态为FAILED并记录错误原因
+                if (doc != null) {
+                    doc.setStatus("FAILED");
+                    doc.setErrorMessage(e.getMessage());
+                    knowledgeDocMapper.updateById(doc);
+                }
+                log.error("Document parsing failed: {}, error: {}", docId, e.getMessage());
+
+                agentTraceService.markFailed();
+                agentTraceService.recordEvent("PARSE_FAILED", "HTTP", null,
+                        Map.of("error", e.getClass().getSimpleName() + ": "
+                                + (e.getMessage() != null ? e.getMessage().substring(0,
+                                        Math.min(e.getMessage().length(), 200)) : "")));
+            }
         }
     }
 
@@ -181,27 +223,11 @@ public class AiServiceImpl implements AiService {
         log.info("User question: {}, userId: {}, traceId: {}", question, userId, traceId);
         AiResponse aiResponse = new AiResponse();
 
-        // 生成缓存键（包含userId，避免不同用户共享缓存导致数据泄露）
-        String cacheKey = "ai:answer:" + (userId != null ? userId : "anonymous") + ":" + question.trim().toLowerCase();
+        // 缓存 key（前缀由 CacheService 自动添加，这里只放业务标识）
+        String cacheKey = (userId != null ? userId : "anonymous") + ":" + question.trim().toLowerCase();
 
         try {
-            // 1. 检查缓存（使用新的缓存服务）
-            AiResponse cachedResponse = cacheService.get(
-                CacheConfig.CacheConstants.CACHE_AI_ANSWER,
-                cacheKey,
-                AiResponse.class
-            );
-            if (cachedResponse != null) {
-                // 如果缓存的是错误响应，不使用缓存，重新请求
-                if (isErrorResponse(cachedResponse.getAnswer())) {
-                    log.info("Cache hit but contains error response, refreshing");
-                } else {
-                    log.info("Cache hit for question: {}", question);
-                    return cachedResponse;
-                }
-            }
-
-            // 2. 构建请求（使用 /ask 接口，它内部已使用 RouterAgent）
+            // 构建请求（缓存由 ChatServiceImpl 统一处理，这里只负责调用 Python）
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("question", question);
 
@@ -303,6 +329,12 @@ public class AiServiceImpl implements AiService {
                 // 解析全链路追踪信息
                 if (body.containsKey("trace_id")) {
                     aiResponse.setTraceId((String) body.get("trace_id"));
+                }
+                // 解析 Python 侧收集的 trace 事件（扁平列表）
+                if (body.containsKey("traces")) {
+                    List<Map<String, Object>> tracesData = (List<Map<String, Object>>) body.get("traces");
+                    aiResponse.setTraces(tracesData);
+                    log.info("Trace data received: {} Python trace events", tracesData.size());
                 }
                 if (body.containsKey("runs")) {
                     List<Map<String, Object>> runsData = (List<Map<String, Object>>) body.get("runs");
@@ -419,8 +451,8 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
-    public Map<String, Object> askForAdmin(String question, Long adminId, Long conversationId) {
-        log.info("[Admin AI] Admin question: {}, adminId: {}, conversationId: {}", question, adminId, conversationId);
+    public Map<String, Object> askForAdmin(String question, Long adminId, Long conversationId, String traceId) {
+        log.info("[Admin AI] Admin question: {}, adminId: {}, conversationId: {}, traceId: {}", question, adminId, conversationId, traceId);
         Map<String, Object> response = new HashMap<>();
 
         try {
@@ -430,6 +462,7 @@ public class AiServiceImpl implements AiService {
             requestBody.put("conversation_id", conversationId.toString());
             requestBody.put("user_id", adminId.toString());
             requestBody.put("username", "admin_" + adminId);
+            requestBody.put("trace_id", traceId != null ? traceId : "");
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -445,6 +478,7 @@ public class AiServiceImpl implements AiService {
                 response.put("answer", body.getOrDefault("answer", "抱歉，服务暂时不可用。"));
                 response.put("task_type", body.getOrDefault("task_type", "admin_copilot"));
                 response.put("sources", body.getOrDefault("sources", null));
+                response.put("traces", body.getOrDefault("traces", null));
                 log.info("[Admin AI] Response received, task_type: {}", response.get("task_type"));
             } else {
                 response.put("answer", "抱歉，服务暂时不可用，请稍后再试。");

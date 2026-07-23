@@ -60,4 +60,4 @@ jwt:
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:86400000}
 
 upload:
-  dir: ${UPLOAD_DIR:./aiknowledge/uploads}
+  dir: ${UPLOAD_DIR:/Users/7ing/aiknowledge/uploads}

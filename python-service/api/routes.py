@@ -6,6 +6,7 @@ from core.vector_store import vector_store
 from core.llm import LLMService
 from core.mysql_client import mysql_client
 from agent.router_agent import RouterAgent
+from engine.trace_collector import TraceCollector
 import os
 import re
 import logging
@@ -161,6 +162,7 @@ except Exception as e:
 class ParseRequest(BaseModel):
     file_path: str
     doc_id: int
+    trace_id: str = ""  # 全链路追踪 ID
 
 class ChatRequest(BaseModel):
     question: str
@@ -208,7 +210,11 @@ async def parse_document(request: ParseRequest):
         
         logger.info(f"Saving chunks to MySQL database...")
         mysql_client.insert_chunks(request.doc_id, [
-            {"page_content": chunk.page_content, "chunk_index": chunk.metadata.get("chunk_index", i)}
+            {
+                "page_content": chunk.page_content,
+                "chunk_index": chunk.metadata.get("chunk_index", i),
+                "page_number": chunk.metadata.get("page", 1),
+            }
             for i, chunk in enumerate(chunks)
         ])
         
@@ -282,6 +288,7 @@ async def ask_question(request: ChatRequest):
                 "steps": result.get("steps", []),
                 "trace_id": result.get("trace_id", request.trace_id or ""),
                 "runs": result.get("runs", []),
+                "traces": result.get("traces", []),
             }
         
         logger.info(f"Response generated successfully, task_type: {response.get('task_type')}")

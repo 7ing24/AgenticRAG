@@ -224,27 +224,28 @@ export default function KnowledgeManagement() {
                     }
                   </td>
                   <td>
-                    <button
-                      className="action-btn edit"
-                      onClick={() => window.open(`/api/knowledge/view-file/${doc.id}`, '_blank')}
-                      style={{ marginRight: 10, marginLeft: -40 }}
-                    >
-                      预览
-                    </button>
-                    <button
-                      className="action-btn delete"
-                      onClick={() => handleDelete(doc.id)}
-                    >
-                      删除
-                    </button>
-                    {doc.status === 'FAILED' && (
+                    <div className="action-btn-group">
                       <button
-                        className="action-btn retry"
-                        onClick={() => handleRetry(doc.id, doc.filePath)}
+                        className="action-btn edit"
+                        onClick={() => window.open(`/api/knowledge/view-file/${doc.id}`, '_blank')}
                       >
-                        重试
+                        预览
                       </button>
-                    )}
+                      <button
+                        className="action-btn delete"
+                        onClick={() => handleDelete(doc.id)}
+                      >
+                        删除
+                      </button>
+                      {doc.status === 'FAILED' && (
+                        <button
+                          className="action-btn retry"
+                          onClick={() => handleRetry(doc.id, doc.filePath)}
+                        >
+                          重试
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

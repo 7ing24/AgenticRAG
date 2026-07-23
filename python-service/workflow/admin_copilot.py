@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from core.mysql_client import mysql_client
 from service.ops import ops_agent
 from agent.memory_agent import MemoryAgent
+from engine.trace_collector import TraceCollector
 import logging
 import json
 
@@ -48,6 +49,7 @@ class AdminCopilotAgent:
         import uuid
         run_id = str(uuid.uuid4())
         logger.info(f"[AdminCopilotAgent] Processing admin request: {question[:50]}...")
+        collector = kwargs.get("trace_collector")  # type: Optional[TraceCollector]
 
         # 如果调用方没传 context，自己加载
         if not context and conversation_id:
@@ -57,10 +59,25 @@ class AdminCopilotAgent:
             context = self.memory_agent.load_memory(memory_state, max_rounds=5).get("text", "")
 
         try:
+            if collector:
+                collector.start_timer("admin_op")
             operation = self._parse_operation(question, context)
             steps = [{"step_name": "parse_operation", "step_type": "intent_parsing",
                       "status": "completed", "output": operation}]
             result = self._execute_operation(operation, question)
+            admin_latency, admin_start = collector.stop_timer("admin_op") if collector else (0, "")
+
+            if collector:
+                collector.record_event(
+                    event_type="ADMIN_OPERATION",
+                    phase="GENERATION",
+                    input_data={"question": question[:200], "operation": operation},
+                    output_data={"answer": result.get("answer", "")[:200]},
+                    agent_name="AdminCopilotAgent",
+                    latency_ms=admin_latency,
+                    event_time=admin_start,
+                )
+
             result["trace_id"] = trace_id
             result["run_id"] = run_id
             result["runs"] = [{"run_id": run_id, "parent_run_id": None,
