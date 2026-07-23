@@ -1,0 +1,430 @@
+{
+  "ir_metrics": {
+    "recall@1": 0.8,
+    "ndcg@1": 0.8,
+    "recall@3": 0.8,
+    "ndcg@3": 0.8,
+    "recall@5": 0.8,
+    "ndcg@5": 0.8,
+    "recall@10": 0.8,
+    "ndcg@10": 0.8,
+    "mrr": 0.8
+  },
+  "ir_skipped": 0,
+  "ragas_metrics": {
+    "faithfulness": 0.5901298930710694,
+    "context_precision": 0.7887499999657812,
+    "context_recall": 0.8142857142857143,
+    "answer_relevancy": 0.7761980149985069
+  },
+  "ragas_error": "",
+  "total_queries": 10,
+  "ir_per_query": [
+    {
+      "question": "在第九次比赛结果为A1 > B1 > C1 > D1 > E1 > F1 > G1 > H1的前提下，为什么E组、F组、G组、H组的所有马都可以被排除在全局前四名之外？",
+      "retrieved_chunk_ids": [
+        "doc_68_chunk_482",
+        "doc_75_chunk_484",
+        "doc_73_chunk_484",
+        "doc_75_chunk_485",
+        "doc_75_chunk_483",
+        "doc_68_chunk_481",
+        "doc_68_chunk_240",
+        "doc_74_chunk_86",
+        "doc_72_chunk_86",
+        "doc_68_chunk_168"
+      ],
+      "recall@1": 1.0,
+      "ndcg@1": 1.0,
+      "recall@3": 1.0,
+      "ndcg@3": 1.0,
+      "recall@5": 1.0,
+      "ndcg@5": 1.0,
+      "recall@10": 1.0,
+      "ndcg@10": 1.0,
+      "mrr": 1.0
+    },
+    {
+      "question": "JDK8中方法区的实现从堆内存移到了本地内存，主要原因是什么？",
+      "retrieved_chunk_ids": [
+        "doc_68_chunk_107",
+        "doc_75_chunk_106",
+        "doc_75_chunk_99",
+        "doc_73_chunk_99",
+        "doc_68_chunk_99",
+        "doc_68_chunk_100",
+        "doc_68_chunk_122",
+        "doc_75_chunk_121",
+        "doc_68_chunk_121",
+        "doc_68_chunk_546"
+      ],
+      "recall@1": 1.0,
+      "ndcg@1": 1.0,
+      "recall@3": 1.0,
+      "ndcg@3": 1.0,
+      "recall@5": 1.0,
+      "ndcg@5": 1.0,
+      "recall@10": 1.0,
+      "ndcg@10": 1.0,
+      "mrr": 1.0
+    },
+    {
+      "question": "minimind项目是一个什么样的实现？",
+      "retrieved_chunk_ids": [
+        "doc_74_chunk_146",
+        "doc_72_chunk_146",
+        "doc_72_chunk_182",
+        "doc_74_chunk_182",
+        "doc_68_chunk_546",
+        "doc_68_chunk_547",
+        "doc_68_chunk_544",
+        "doc_74_chunk_188",
+        "doc_68_chunk_549",
+        "doc_74_chunk_142"
+      ],
+      "recall@1": 1.0,
+      "ndcg@1": 1.0,
+      "recall@3": 1.0,
+      "ndcg@3": 1.0,
+      "recall@5": 1.0,
+      "ndcg@5": 1.0,
+      "recall@10": 1.0,
+      "ndcg@10": 1.0,
+      "mrr": 1.0
+    },
+    {
+      "question": "主服务器的dump线程与从服务器的I/O线程之间采用哪种数据传输模式？该模式对从库同步进度管理有何好处？",
+      "retrieved_chunk_ids": [
+        "doc_68_chunk_179",
+        "doc_75_chunk_179",
+        "doc_75_chunk_178",
+        "doc_68_chunk_178",
+        "doc_75_chunk_180",
+        "doc_68_chunk_180",
+        "doc_68_chunk_177",
+        "doc_75_chunk_177",
+        "doc_75_chunk_288",
+        "doc_68_chunk_545"
+      ],
+      "recall@1": 1.0,
+      "ndcg@1": 1.0,
+      "recall@3": 1.0,
+      "ndcg@3": 1.0,
+      "recall@5": 1.0,
+      "ndcg@5": 1.0,
+      "recall@10": 1.0,
+      "ndcg@10": 1.0,
+      "mrr": 1.0
+    },
+    {
+      "question": "这篇论文《Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer》发表在哪本期刊上？",
+      "retrieved_chunk_ids": [
+        "doc_74_chunk_69",
+        "doc_72_chunk_69",
+        "doc_72_chunk_68",
+        "doc_74_chunk_68",
+        "doc_74_chunk_174",
+        "doc_72_chunk_174",
+        "doc_72_chunk_52",
+        "doc_72_chunk_39",
+        "doc_74_chunk_39",
+        "doc_74_chunk_35"
+      ],
+      "recall@1": 1.0,
+      "ndcg@1": 1.0,
+      "recall@3": 1.0,
+      "ndcg@3": 1.0,
+      "recall@5": 1.0,
+      "ndcg@5": 1.0,
+      "recall@10": 1.0,
+      "ndcg@10": 1.0,
+      "mrr": 1.0
+    },
+    {
+      "question": "在模型初始化过程中，当检测到可用GPU数量大于1时，代码如何处理模型以支持多卡训练？",
+      "retrieved_chunk_ids": [
+        "doc_74_chunk_131",
+        "doc_72_chunk_77",
+        "doc_74_chunk_77",
+        "doc_72_chunk_63",
+        "doc_74_chunk_78",
+        "doc_72_chunk_78",
+        "doc_72_chunk_75",
+        "doc_72_chunk_148",
+        "doc_72_chunk_20",
+        "doc_72_chunk_72"
+      ],
+      "recall@1": 0.0,
+      "ndcg@1": 0.0,
+      "recall@3": 0.0,
+      "ndcg@3": 0.0,
+      "recall@5": 0.0,
+      "ndcg@5": 0.0,
+      "recall@10": 0.0,
+      "ndcg@10": 0.0,
+      "mrr": 0.0
+    },
+    {
+      "question": "归并排序的时间复杂度是多少？为什么它与初始序列无关？",
+      "retrieved_chunk_ids": [
+        "doc_68_chunk_406",
+        "doc_75_chunk_407",
+        "doc_75_chunk_413",
+        "doc_75_chunk_382",
+        "doc_68_chunk_553",
+        "doc_75_chunk_555",
+        "doc_75_chunk_406",
+        "doc_68_chunk_405",
+        "doc_68_chunk_554",
+        "doc_68_chunk_121"
+      ],
+      "recall@1": 1.0,
+      "ndcg@1": 1.0,
+      "recall@3": 1.0,
+      "ndcg@3": 1.0,
+      "recall@5": 1.0,
+      "ndcg@5": 1.0,
+      "recall@10": 1.0,
+      "ndcg@10": 1.0,
+      "mrr": 1.0
+    },
+    {
+      "question": "在提供的编程题目列表中，哪些题目涉及链表的反转操作？",
+      "retrieved_chunk_ids": [
+        "doc_75_chunk_463",
+        "doc_75_chunk_462",
+        "doc_75_chunk_452",
+        "doc_68_chunk_264",
+        "doc_68_chunk_273",
+        "doc_68_chunk_189",
+        "doc_68_chunk_75",
+        "doc_68_chunk_190",
+        "doc_75_chunk_190",
+        "doc_73_chunk_190"
+      ],
+      "recall@1": 1.0,
+      "ndcg@1": 1.0,
+      "recall@3": 1.0,
+      "ndcg@3": 1.0,
+      "recall@5": 1.0,
+      "ndcg@5": 1.0,
+      "recall@10": 1.0,
+      "ndcg@10": 1.0,
+      "mrr": 1.0
+    },
+    {
+      "question": "ZeRO-3与ZeRO-2相比，在模型参数存储策略上有什么关键区别？",
+      "retrieved_chunk_ids": [
+        "doc_74_chunk_79",
+        "doc_72_chunk_79",
+        "doc_72_chunk_80",
+        "doc_72_chunk_78",
+        "doc_74_chunk_78",
+        "doc_72_chunk_47",
+        "doc_68_chunk_545",
+        "doc_75_chunk_423",
+        "doc_74_chunk_61",
+        "doc_72_chunk_72"
+      ],
+      "recall@1": 1.0,
+      "ndcg@1": 1.0,
+      "recall@3": 1.0,
+      "ndcg@3": 1.0,
+      "recall@5": 1.0,
+      "ndcg@5": 1.0,
+      "recall@10": 1.0,
+      "ndcg@10": 1.0,
+      "mrr": 1.0
+    },
+    {
+      "question": "多线程交替打印问题的核心要求是什么？",
+      "retrieved_chunk_ids": [
+        "doc_75_chunk_466",
+        "doc_68_chunk_464",
+        "doc_68_chunk_1",
+        "doc_75_chunk_1",
+        "doc_68_chunk_546",
+        "doc_73_chunk_548",
+        "doc_75_chunk_83",
+        "doc_68_chunk_83",
+        "doc_75_chunk_88",
+        "doc_68_chunk_549"
+      ],
+      "recall@1": 0.0,
+      "ndcg@1": 0.0,
+      "recall@3": 0.0,
+      "ndcg@3": 0.0,
+      "recall@5": 0.0,
+      "ndcg@5": 0.0,
+      "recall@10": 0.0,
+      "ndcg@10": 0.0,
+      "mrr": 0.0
+    }
+  ],
+  "ragas_per_query": [
+    {
+      "question": "在第九次比赛结果为A1 > B1 > C1 > D1 > E1 > F1 > G1 > H1的前提下，为什么E组、F组、G组、H组的所有马都可以被排除在全局前四名之外？",
+      "response": "这是一个很经典的“赛马问题”逻辑推导！我们来轻松理一理 😊\n\n在第九次比赛中，让每组第一名（A1～H1）同场竞技，结果是：  \n**A1 > B1 > C1 > D1 > E1 > F1 > G1 > H1**\n\n这个结果告诉我们一个关键事实：**E1 是所有组第一名中排第5的**，也就是说，至少有 A1、B1、C1、D1 这4匹马都比 E1 快。\n\n而 E1 本身只是 E 组最快的马，E 组其余的马（E2、E3、E4…）必然都比 E1 慢 —— 所以它们比 A1、B1、C1、D1 全部都慢。  \n同理，F1、G1、H1 分别排在第6、7、8名，意味着它们前面至少有5匹马（A1～E1）比它们快；而它们各自组内的其他马更慢，自然也进不了前四。\n\n因此，**E组、F组、G组、H组的所有马，都不可能进入全局前四名**——因为每组中最快的那匹（E1/F1/G1/H1）都已经落后于至少4匹马了，组内其他马只会更慢。\n\n这就像一场年级排名赛：如果某班第一名只排全年级第5，那这个班其他同学就不可能进年级前4啦 🐎✨  \n所以放心把这四组全部“划掉”，专注在 A～D 组中寻找前四名即可～",
+      "reference": "371\n第九次，取出每组的第⼀名，⼀起⽐赛\n假设第九次的⽐赛结果是 A1 > B1 > C1 > D1 > E1 > F1 > G1 > H1 \n可以找出最快的⻢是 A1，但是此时还不知道 全局第2、3、4快的⻢是哪个 \n由于E1、F1、G1、H1的排名，可以排除 E组、F组、G组、H组 \n第⼗次，想要找出全局第2、3、4快的⻢ \n全局前四的⻢，有可能是A1、A2、A3、A4，所以需要A2、A3、A4来⽐赛 \n全局前四的⻢，有可能是A1、B1、B2、B3，所以需要B1、B2、B3来⽐赛 \n全局前四的⻢，有可能是A1、B1、C1、C2，所以需要C1、C2来⽐赛 \n全局前四的⻢，有可能是A1、B1、C1、D1，所以需要D1来⽐赛 \n...... 但全局前四的⻢，不可能是A5、B4、C3、D2 以及ABCD组其后的⻢ \n此时有9匹⻢（A2、A3、A4、B1、B2、B3、C1、C2、D1）竞争全局第234快，但只有8\n条道\n因此第⼗次⽐赛需要暂时先去除去⼀匹⻢，去除哪个呢？\n如果去除A4，即让  A2、A3、B1、B2、B3、C1、C2、D1 ⽐赛 \n本次⽐赛只需取⼀⼆三名（实为全局第2、3、",
+      "retrieved_contexts": [
+        "371\n第九次，取出每组的第⼀名，⼀起⽐赛\n假设第九次的⽐赛结果是 A1 > B1 > C1 > D1 > E1 > F1 > G1 > H1 \n可以找出最快的⻢是 A1，但是此时还不知道 全局第2、3、4快的⻢是哪个 \n由于E1、F1、G1、H1的排名，可以排除 E组、F组、G组、H组 \n第⼗次，想要找出全局第2、3、4快的⻢ \n全局前四的⻢，有可能是A1、A2、A3、A4，所以需要A2、A3、A4来⽐赛 \n全局前四的⻢，有可能是A1、B1、B2、B3，所以需要B1、B2、B3来⽐赛 \n全局前四的⻢，有可能是A1、B1、C1、C2，所以需要C1、C2来⽐赛 \n全局前四的⻢，有可能是A1、B1",
+        "371\n第九次，取出每组的第⼀名，⼀起⽐赛\n假设第九次的⽐赛结果是 A1 > B1 > C1 > D1 > E1 > F1 > G1 > H1 \n可以找出最快的⻢是 A1，但是此时还不知道 全局第2、3、4快的⻢是哪个 \n由于E1、F1、G1、H1的排名，可以排除 E组、F组、G组、H组 \n第⼗次，想要找出全局第2、3、4快的⻢ \n全局前四的⻢，有可能是A1、A2、A3、A4，所以需要A2、A3、A4来⽐赛 \n全局前四的⻢，有可能是A1、B1、B2、B3，所以需要B1、B2、B3来⽐赛 \n全局前四的⻢，有可能是A1、B1、C1、C2，所以需要C1、C2来⽐赛 \n全局前四的⻢，有可能是A1、B1",
+        "370\n最快的 X 匹⻢\n问题：有 25 匹⻢、有 5 条跑道，需要⽐赛⼏次才能 找到最快的 3 匹⻢？  \n（⽐赛⽆计时，只能分排名先后）\n将25匹⻢分成5组：A、B、C、D、E，   每组内部⽐赛跑⼀次，跑了五次 \n假设 A组 的五匹⻢的⽐赛结果为 A1 > A2 > A3 > A4 > A5     即在A组中 A1最快，A5最\n慢\nB组、C组、D组、E组，以此类推 \n第六次，每组的第⼀名⽐赛\n假设第六次的⽐赛结果是 A1 > B1 > C1 > D1 > E1 \n可以找出最快的⻢是 A1，但是此时还不知道 全局第⼆快和全局第三快的⻢是哪个 \n由于D1和E1的排名，可以排除 整个D组和E",
+        "370\n最快的 X 匹⻢\n问题：有 25 匹⻢、有 5 条跑道，需要⽐赛⼏次才能 找到最快的 3 匹⻢？  \n（⽐赛⽆计时，只能分排名先后）\n将25匹⻢分成5组：A、B、C、D、E，   每组内部⽐赛跑⼀次，跑了五次 \n假设 A组 的五匹⻢的⽐赛结果为 A1 > A2 > A3 > A4 > A5     即在A组中 A1最快，A5最\n慢\nB组、C组、D组、E组，以此类推 \n第六次，每组的第⼀名⽐赛\n假设第六次的⽐赛结果是 A1 > B1 > C1 > D1 > E1 \n可以找出最快的⻢是 A1，但是此时还不知道 全局第⼆快和全局第三快的⻢是哪个 \n由于D1和E1的排名，可以排除 整个D组和E",
+        "185\n个分区的所有消息，可以调⽤ seekToEnd ⽅法将 offset 设置为最⼤值；如果想要从某个具\n体的位置开始消费，可以调⽤ seek ⽅法将 offset 设置为任意值。 \n⾃动重置：⾃动重置可以让消费者在启动时根据 auto.offset.reset 参数来决定从哪个位置开\n始消费。auto.offset.reset 参数有三个可选值：earliest, latest 和 none。earliest 表示从最\n早的可⽤消息开始消费；latest 表示从最新的可⽤消息开始消费；none 表示如果没有可⽤的 \noffset，则抛出异常。 \n多个消费者，只要指定了相同的 group_"
+      ],
+      "faithfulness": 0.5135135135135135,
+      "context_precision": 0.999999999975,
+      "context_recall": 1.0,
+      "answer_relevancy": 0.5841362022845179
+    },
+    {
+      "question": "JDK8中方法区的实现从堆内存移到了本地内存，主要原因是什么？",
+      "response": "JDK8中将方法区的实现从堆内存移到本地内存（即用“元空间”替代“永久代”），主要原因是为了避免方法区对堆内存GC造成干扰。\n\n因为方法区主要存储类的元信息（如类结构、静态变量、常量池、编译后的字节码等），而随着动态类加载技术（如OSGi、Spring、热部署等）的广泛应用，运行时加载的类数量变得难以预估。在JDK7及之前，方法区以“永久代”的形式存在于堆中，其大小固定，容易因类加载过多导致OOM，同时也让垃圾回收器不得不额外处理这部分区域，增加了GC复杂度和停顿时间。\n\nJDK8改用元空间，将其置于本地内存（Native Memory），不仅支持自动扩容（默认仅受本地内存限制），还彻底解耦了类元数据与对象实例的内存管理——这样，堆GC就不再需要扫描和清理方法区内容，显著提升了GC效率和系统稳定性。",
+      "reference": "84\n我们有时候根据场景可以通过替换垃圾回收器，来进⾏GC调优，JDK8的默认垃圾回收器是 \nParallel GC（并⾏垃圾回收器），例如系统要求低延迟低停顿，我们可以更换垃圾回收器为\nCMS，如果我们的系统有着超⼤堆内存空间且注重可预测停顿STW时间的话，可以更换垃圾回收\n器为G1。根据系统特性来进⾏选择。 \n另外像Java本身他也⼀直在优化GC，例如JDK7到JDK8的⼀个变化是把⽅法区的实现从堆内\n存移到了本地内存，是因为⽅法区存储的是类的元信息，⽽随着动态加载类的技术发展，我们运⾏\n时也会加载很多类，所以⽅法区所占有的内存⼤⼩变得不可预知，为了防⽌它对堆内存的GC影\n响，所以把它从堆中移动出来。（JDK7永久代⼤⼩固定，JDK8元空间⼤⼩⾃动调整） \n还有⽐如逃逸分析和栈上分配也是为了减轻GC压⼒。 \n以上就是我对Java的垃圾回收的整体理解，您看哪⼀点我需要展开说说？",
+      "retrieved_contexts": [
+        "84\n我们有时候根据场景可以通过替换垃圾回收器，来进⾏GC调优，JDK8的默认垃圾回收器是 \nParallel GC（并⾏垃圾回收器），例如系统要求低延迟低停顿，我们可以更换垃圾回收器为\nCMS，如果我们的系统有着超⼤堆内存空间且注重可预测停顿STW时间的话，可以更换垃圾回收\n器为G1。根据系统特性来进⾏选择。 \n另外像Java本身他也⼀直在优化GC，例如JDK7到JDK8的⼀个变化是把⽅法区的实现从堆内\n存移到了本地内存，是因为⽅法区存储的是类的元信息，⽽随着动态加载类的技术发展，我们运⾏\n时也会加载很多类，所以⽅法区所占有的内存⼤⼩变得不可预知，为了防⽌它对堆内存的GC影\n响，所以把它从堆",
+        "84\n我们有时候根据场景可以通过替换垃圾回收器，来进⾏GC调优，JDK8的默认垃圾回收器是 \nParallel GC（并⾏垃圾回收器），例如系统要求低延迟低停顿，我们可以更换垃圾回收器为\nCMS，如果我们的系统有着超⼤堆内存空间且注重可预测停顿STW时间的话，可以更换垃圾回收\n器为G1。根据系统特性来进⾏选择。 \n另外像Java本身他也⼀直在优化GC，例如JDK7到JDK8的⼀个变化是把⽅法区的实现从堆内\n存移到了本地内存，是因为⽅法区存储的是类的元信息，⽽随着动态加载类的技术发展，我们运⾏\n时也会加载很多类，所以⽅法区所占有的内存⼤⼩变得不可预知，为了防⽌它对堆内存的GC影\n响，所以把它从堆",
+        "79\n1. 程序计数器：记录当前线程正在执⾏的字节码指令的地址，物理上程序计数器是使⽤“寄存\n器”完成的。 \n2. 虚拟机栈：\n也叫线程栈，每个线程运⾏时所需要的内存，⼀个栈是由多个栈帧组成\n栈帧对应着每次⽅法调⽤时所占有的内存，存储的内容是：⽅法参数、⽅法内局部变量、⽅法\n返回地址\n⼀个线程每时刻只能有⼀个活动栈帧，对应当前正在执⾏的⽅法\n垃圾回收不涉及到 栈内存 \n⽅法递归过多 会导致 java.lang.StackOverflowError 栈内存溢出 \n3. 本地⽅法栈\n本地⽅法接⼝运⾏时所需要的内存空间\n以 native 修饰的⽅法就是本地⽅法，本地⽅法不是⽤Java写的（没有⽅法实",
+        "79\n1. 程序计数器：记录当前线程正在执⾏的字节码指令的地址，物理上程序计数器是使⽤“寄存\n器”完成的。 \n2. 虚拟机栈：\n也叫线程栈，每个线程运⾏时所需要的内存，⼀个栈是由多个栈帧组成\n栈帧对应着每次⽅法调⽤时所占有的内存，存储的内容是：⽅法参数、⽅法内局部变量、⽅法\n返回地址\n⼀个线程每时刻只能有⼀个活动栈帧，对应当前正在执⾏的⽅法\n垃圾回收不涉及到 栈内存 \n⽅法递归过多 会导致 java.lang.StackOverflowError 栈内存溢出 \n3. 本地⽅法栈\n本地⽅法接⼝运⾏时所需要的内存空间\n以 native 修饰的⽅法就是本地⽅法，本地⽅法不是⽤Java写的（没有⽅法实",
+        "⽅法区\n线程共享的区域，存储的是类信息、静态变量、常量、编译后的代码、运⾏时常量池\nJDK7⽅法区的实现叫：永久代，占⽤的是堆的内存空间，⼤⼩固定 \nJDK8⽅法区的实现叫：元空间，占⽤的是本地内存的空间，⼤⼩⾃动调整 \n6. 直接内存\n●\n●\n●\n●\n●\n●\n●\n●\n●\n●\n●\n●\n●"
+      ],
+      "faithfulness": 0.6190476190476191,
+      "context_precision": 0.99999999998,
+      "context_recall": 1.0,
+      "answer_relevancy": 0.7016224026359525
+    },
+    {
+      "question": "minimind项目是一个什么样的实现？",
+      "response": "minimind 是一个极简主义的大型语言模型（LLM）实现，旨在以最精简的代码和设计帮助开发者理解 LLM 的核心原理与基础架构。根据知识库信息，它是一个开源的 GitHub 项目（[minimind: Minimalist LLM implementation](https://github.com/jingyaogong/minimind)），强调“少而精”——不追求功能完备性或工程优化，而是聚焦于模型前向传播、训练逻辑等关键环节的可读性与教学价值。\n\n如果你正在学习 LLM 的底层机制，比如 Transformer 结构、词嵌入、注意力计算或自回归生成过程，minimind 会是一个非常友好的入门参考：代码轻量、注释清晰、依赖极少，非常适合动手调试和逐步扩展。",
+      "reference": "minimind: Minimalist LLM implementation. GitHub repository. https://github.com/jing\nyaogong/minimind  \n[7] Mobvoi. (2023). seq-monkey-data: Llama2 training/inference data. GitHub repository. https://github.com/m\nobvoi/seq-monkey-data",
+      "retrieved_contexts": [
+        "minimind: Minimalist LLM implementation. GitHub repository. https://github.com/jing\nyaogong/minimind  \n[7] Mobvoi. (2023). seq-monkey-data: Llama2 training/inference data. GitHub repository. https://github.com/m\nobvoi/seq-monkey-data",
+        "minimind: Minimalist LLM implementation. GitHub repository. https://github.com/jing\nyaogong/minimind  \n[7] Mobvoi. (2023). seq-monkey-data: Llama2 training/inference data. GitHub repository. https://github.com/m\nobvoi/seq-monkey-data",
+        "7.2.2 搭建⼀个 RAG 框架  \n接下来我会带领⼤家⼀步⼀步实现⼀个简单的RAG模型，这个模型是基于RAG的⼀个简化版本，我们称之为 Tiny-\nRAG 。Tiny-RAG只保留了 RAG 的核⼼功能，即检索和⽣成，其⽬的是帮助⼤家更好地理解 RAG 模型的原理和实\n现。\nStep 1: RAG流程介绍  \nRAG通过在语⾔模型⽣成答案之前，先从⼴泛的⽂档数据库中检索相关信息，然后利⽤这些信息来引导⽣成过程，\n从⽽极⼤地提升了内容的准确性和相关性。RAG有效地缓解了幻觉问题，提⾼了知识更新的速度，并增强了内容⽣\n成的可追溯性，使得⼤型语⾔模型在实际应⽤中变得更加实⽤和可信。\nRAG的基本",
+        "7.2.2 搭建⼀个 RAG 框架  \n接下来我会带领⼤家⼀步⼀步实现⼀个简单的RAG模型，这个模型是基于RAG的⼀个简化版本，我们称之为 Tiny-\nRAG 。Tiny-RAG只保留了 RAG 的核⼼功能，即检索和⽣成，其⽬的是帮助⼤家更好地理解 RAG 模型的原理和实\n现。\nStep 1: RAG流程介绍  \nRAG通过在语⾔模型⽣成答案之前，先从⼴泛的⽂档数据库中检索相关信息，然后利⽤这些信息来引导⽣成过程，\n从⽽极⼤地提升了内容的准确性和相关性。RAG有效地缓解了幻觉问题，提⾼了知识更新的速度，并增强了内容⽣\n成的可追溯性，使得⼤型语⾔模型在实际应⽤中变得更加实⽤和可信。\nRAG的基本",
+        "418\nZSet为什么使⽤ SkipList 跳表 实现？SkipList跳表是什么？ \nRedis如何实现分布锁？ \nSetNx实现的分布锁有什么问题？ \nRedisson分布式锁底层使⽤什么数据结构？ \nRedisson分布式锁的好处有哪些？ \n解释⼀下如何实现可重⼊？\n超市续约的看⻔狗机制了解吗？\nRedisson分布式锁的问题是什么？如何解决？ \n介绍Redis的持久化⽅式（RDB、AOF、混合持久化）？优缺点？ \nRedis的内存淘汰策略有哪些？ \n什么是缓存击穿/穿透/雪崩？分别怎么解决？\n什么是热Key问题？影响？解决⽅案？ \n什么是⼤ey问题？影响？解决⽅案？ \nRedis的⾼"
+      ],
+      "faithfulness": 0.13636363636363635,
+      "context_precision": 0.99999999995,
+      "context_recall": 1.0,
+      "answer_relevancy": 0.6225872798964948
+    },
+    {
+      "question": "主服务器的dump线程与从服务器的I/O线程之间采用哪种数据传输模式？该模式对从库同步进度管理有何好处？",
+      "response": "主服务器的 dump 线程与从服务器的 I/O 线程之间采用的是**拉取模式（pull-based）**，也就是从库主动向主库请求数据。\n\n具体来说，从库的 I/O 线程会告诉主库的 dump 线程：“我当前需要从 binlog 的某个位置（如文件名 + 偏移量）开始同步”，dump 线程检测到 binlog 变化后，就从该位置读取内容，并由从库的 I/O 线程把数据“拉”过去，写入本地的中继日志（relay log）。\n\n这种拉取模式的好处在于：**从库可以自主控制同步节奏和进度**——比如根据自身负载情况调节拉取频率、应对网络延迟或写入瓶颈时暂不推进位点、甚至暂停/恢复复制而不影响主库。这使得同步更灵活、容错性更强，也便于运维人员精细化管理复制延迟和故障恢复。",
+      "reference": "134\ndump 线程，专⻔来和从服务器的 I/O 线程做交互的 \n3. 从服务器的 I/O 线程会告诉主服务的 dump 线程⾃⼰要从什么位置开始接收 binlog \n4. 主服务器在更新过程中，将更改记录保存到⾃⼰的binlog中，根据不同的 binlog 格式，记录\n的内容可能不⼀样\n5. 在 dump 线程检测到 binlog 变化时，会从指定位置开始读取内容，然后会被 从服务器的的 \nI/O 线程把数据拉取过去（拉的模式，从库可以⾃⾏管理同步进度和处理延迟） \n6.",
+      "retrieved_contexts": [
+        "134\ndump 线程，专⻔来和从服务器的 I/O 线程做交互的 \n3. 从服务器的 I/O 线程会告诉主服务的 dump 线程⾃⼰要从什么位置开始接收 binlog \n4. 主服务器在更新过程中，将更改记录保存到⾃⼰的binlog中，根据不同的 binlog 格式，记录\n的内容可能不⼀样\n5. 在 dump 线程检测到 binlog 变化时，会从指定位置开始读取内容，然后会被 从服务器的的 \nI/O 线程把数据拉取过去（拉的模式，从库可以⾃⾏管理同步进度和处理延迟） \n6.",
+        "134\ndump 线程，专⻔来和从服务器的 I/O 线程做交互的 \n3. 从服务器的 I/O 线程会告诉主服务的 dump 线程⾃⼰要从什么位置开始接收 binlog \n4. 主服务器在更新过程中，将更改记录保存到⾃⼰的binlog中，根据不同的 binlog 格式，记录\n的内容可能不⼀样\n5. 在 dump 线程检测到 binlog 变化时，会从指定位置开始读取内容，然后会被 从服务器的的 \nI/O 线程把数据拉取过去（拉的模式，从库可以⾃⾏管理同步进度和处理延迟） \n6.",
+        "从服务器的 I/O 线程接收到通知事件后，会把内容保存在 中继⽇志 relaylog 中 \n7. 从服务器还有⼀个SQL线程，他会不断地读取 中继⽇志 relay log 中的内容，把他解析成具体\n的操作，然后写⼊到⾃⼰的数据表中\n复制⽅式\nMySQL ⽬前⽀持多种复制⽅式，其中包括了全同步复制、异步复制和半同步复制。 \n异步复制：这是 MySQL 默认的复制⽅式，在异步复制的⽅式中主库在执⾏完事务操作以后，\n会⽴刻给客户端返回。他不需要关⼼从库是否完成该事务的执⾏。\n这种⽅式会导致⼀个问题，那就是当主库出现故障时，主库虽然事务执⾏完了，但是可能还没来得\n及把数据同步给从库，就挂了。那么当从库",
+        "133\n主从复制\nMySQL 的主从复制是指   将主数据库的DDL和DML操作通过⼆进制⽇志传到从库服务器中，然后\n在从库上对这些⽇志进⾏重新执⾏（也叫重做）  从⽽使得从库和主库的数据保持同步。 \n或\n主要过程如下：\n1. 从服务器在开启主从复制后，会创建出两个线程：I/O 线程 和 SQL 线程 \n2.",
+        "133\n主从复制\nMySQL 的主从复制是指   将主数据库的DDL和DML操作通过⼆进制⽇志传到从库服务器中，然后\n在从库上对这些⽇志进⾏重新执⾏（也叫重做）  从⽽使得从库和主库的数据保持同步。 \n或\n主要过程如下：\n1. 从服务器在开启主从复制后，会创建出两个线程：I/O 线程 和 SQL 线程 \n2."
+      ],
+      "faithfulness": 0.4444444444444444,
+      "context_precision": 0.8874999999778125,
+      "context_recall": 1.0,
+      "answer_relevancy": 0.8234038603653046
+    },
+    {
+      "question": "这篇论文《Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer》发表在哪本期刊上？",
+      "response": "这篇论文《Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer》发表在《Journal of Machine Learning Research》（JMLR）上，具体为第21卷第140期，页码范围是1–67（2020年）。",
+      "reference": "(2020). Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer. Journal of Machine Learning Research, 21(140), 1–67. [6] Alec Radford, Karthik Narasimhan. (2018). Improving Language Understanding by Generative Pre-Training. Retrieved from https://api.semanticscholar.org/CorpusID:49313245\n[7] Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared Kaplan, Prafulla Dhariwal, Arvind \nNeelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, Sandhini Agarwal, Ariel ",
+      "retrieved_contexts": [
+        "(2020). Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer. Journal of Machine Learning Research, 21(140), 1–67. [6] Alec Radford, Karthik Narasimhan. (2018). Improving Language Understanding by Generative Pre-Training. Retrieved from https://api.semanticscholar.org/Co",
+        "(2020). Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer. Journal of Machine Learning Research, 21(140), 1–67. [6] Alec Radford, Karthik Narasimhan. (2018). Improving Language Understanding by Generative Pre-Training. Retrieved from https://api.semanticscholar.org/Co",
+        "(2023). Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer. arXiv \npreprint arXiv:1910.10683. [5] Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael Matena, Yanqi Zhou, \nWei Li, Peter J. Liu.",
+        "(2023). Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer. arXiv \npreprint arXiv:1910.10683. [5] Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael Matena, Yanqi Zhou, \nWei Li, Peter J. Liu.",
+        "第三章 预训练语⾔模型  \n3.1 Encoder-only PLM  \n在上⼀章，我们详细讲解了给 NLP 领域带来巨⼤变⾰注意⼒机制以及使⽤注意⼒机制搭建的模型 Transformer，\nNLP 模型的⾥程碑式转变也就⾃此⽽始。在上⽂对 Transformer 的讲解中我们可以看到，Transformer 结构主要\n由 Encoder、Decoder 两个部分组成，两个部分分别具有不⼀样的结构和输⼊输出。\n针对 Encoder、Decoder 的特点，引⼊ ELMo 的预训练思路，开始出现不同的、对 Transformer 进⾏优化的思\n路。例如，Google 仅选择了 Encoder 层"
+      ],
+      "faithfulness": 1.0,
+      "context_precision": 0.99999999995,
+      "context_recall": 1.0,
+      "answer_relevancy": 0.9613857304795629
+    },
+    {
+      "question": "在模型初始化过程中，当检测到可用GPU数量大于1时，代码如何处理模型以支持多卡训练？",
+      "response": "在模型初始化过程中，当检测到可用GPU数量大于1时，代码会自动设置多GPU并行训练（即启用分布式训练支持），这是为了充分利用多卡资源、加速训练过程。\n\n具体来说，根据知识库中的描述，这一步通常包括：  \n- 配置数据并行或更高级的并行策略（如张量并行、ZeRO优化等）；  \n- 将模型和数据合理分配到多个GPU上，确保每张卡承担部分计算与存储负载；  \n- 保持各卡间模型参数同步（如数据并行下梯度聚合更新），或对模型结构进行切分（如模型并行下不同层部署在不同GPU上）。\n\n此外，主流框架如DeepSpeed、Megatron-LM等常被集成进来，其中DeepSpeed凭借ZeRO技术能显著降低单卡显存占用，让更大模型也能在多卡环境下高效训练。\n\n整个流程在初始化阶段就已准备好，后续训练即可无缝运行在多GPU环境中 😊",
+      "reference": "ckp = \nf'{args.save_dir}/sft_dim{lm_config.dim}_layers{lm_config.n_layers}_vocab_size{lm_config.v\nocab_size}_step{step+1}.pth'\n            state_dict = model.module.state_dict() if isinstance(model, \ntorch.nn.DataParallel) else model.state_dict()\n            torch.save(state_dict, ckp)\n            model.train()\ndef init_model():\n    \"\"\"初始化模型\"\"\"\n    def count_parameters(model):\n        \"\"\"计算模型参数量\"\"\"\n        return sum(p.numel() for p in model.parameters() if p.requires_grad)\n    # 加载分词器\n    token",
+      "retrieved_contexts": [
+        "创建Transformer模型\n    3. 设置多GPU并⾏训练（如果可⽤）\n    4. 将模型移动到指定设备\n    5. 统计并打印模型参数量\n    \n    Returns:\n        tuple: (model, tokenizer) 初始化后的模型和分词器\n    \"\"\"\n    def count_parameters(model):\n        \"\"\"\n        统计模型中可训练参数的数量\n        \n        Args:\n            model: PyTorch模型\n            \n        Returns:",
+        "模型 hidden_layers hidden_size heads 整体参数量 预训练数据量\nBERT-base 12 768 12 0.1B 3B\nBERT-large 24 1024 16 0.3B 3B\nQwen-1.8B 24 2048 16 1.8B 2.2T\nLLaMA-7B 32 4096 32 7B 1T\nGPT-3 96 12288 96 175B 300B\n更重要的是，LLM 往往需要使⽤更⼤规模的预训练语料。根据由 OpenAI 提出的 Scaling Law：C ~ 6ND，其中 C \n为计算量，N 为模型参数，D 为训练的 token 数，可以实验得出训练 toke",
+        "最后，经过多个decoder block的处理，hidden_states会通过⼀个线性层进⾏最终的映射，这个线性层的输出维度\n与词表维度相同。这样，模型就可以根据hidden_states⽣成⽬标序列的概率分布，进⽽通过采样或贪婪解码等⽅\n法，⽣成最终的输出序列。这⼀过程体现了LLaMA模型强⼤的序列⽣成能⼒。\n（2） LLaMA模型的发展历程  \nLLaMA-1 系列：\nMeta于2023年2⽉发布了LLaMA-1，包括7B、13B、30B和65B四个参数量版本。\n这些模型在超过1T token的语料上进⾏了预训练，其中最⼤的65B参数模型在2,048张A100 80G GPU上训练\n了近",
+        "但是，当 LLM 扩⼤到上百亿参数，单张 GPU 内存往往就⽆法存放完整的模型参数。如图4.3所示，在这种情况\n下，可以将模型拆分到多个 GPU 上，每个 GPU 上存放不同的层或不同的部分，从⽽实现模型并⾏。\n图4.3 模型并⾏\n \n在数据并⾏和模型并⾏的思想基础上，还演化出了多种更⾼效的分布式⽅式，例如张量并⾏、3D 并⾏、ZeRO\n（Zero Redundancy Optimizer，零冗余优化器）等。⽬前，主流的分布式训练框架包括 Deepspeed、\nMegatron-LM、ColossalAI 等，其中，Deepspeed 使⽤⾯最⼴。\nDeepspeed 的核⼼策略是 ZeRO ",
+        "但是，当 LLM 扩⼤到上百亿参数，单张 GPU 内存往往就⽆法存放完整的模型参数。如图4.3所示，在这种情况\n下，可以将模型拆分到多个 GPU 上，每个 GPU 上存放不同的层或不同的部分，从⽽实现模型并⾏。\n图4.3 模型并⾏\n \n在数据并⾏和模型并⾏的思想基础上，还演化出了多种更⾼效的分布式⽅式，例如张量并⾏、3D 并⾏、ZeRO\n（Zero Redundancy Optimizer，零冗余优化器）等。⽬前，主流的分布式训练框架包括 Deepspeed、\nMegatron-LM、ColossalAI 等，其中，Deepspeed 使⽤⾯最⼴。\nDeepspeed 的核⼼策略是 ZeRO "
+      ],
+      "faithfulness": 0.8181818181818182,
+      "context_precision": 0.9999999999,
+      "context_recall": 0.0,
+      "answer_relevancy": 0.7592868455364896
+    },
+    {
+      "question": "归并排序的时间复杂度是多少？为什么它与初始序列无关？",
+      "response": "归并排序的时间复杂度是 **O(n log n)**，而且这个时间复杂度在最好、最坏和平均情况下都是一致的。\n\n它与初始序列无关，是因为归并排序采用的是“**先分后合**”的固定策略：无论原数组是否已有序，它都会**递归地将数组一分为二，直到每个子数组只剩一个元素**（这一步的分割过程完全由数组长度决定，不看元素大小）；之后再逐层合并两个已排序的子数组。整个过程的比较和移动次数都是可预测且稳定的，不会因为输入顺序不同而跳过或增加步骤。\n\n这也正是它稳定、可靠的原因——不像快排那样依赖基准选择或数据分布，归并排序始终按既定节奏执行，所以时间性能非常均衡 😊",
+      "reference": "312\n时间复杂度：O(nlogn)    归并排序和初始序列是没有关系的，因此最好、最坏、平均时间复杂度\n相同\n空间复杂度：O(n)        临时保存归并后的数组 \n稳定性：归并排序是稳定的\n思路：“先分后合”，将⼤问题拆解为⼩问题解决，再将结果合并，整个过程分为 分 和 治 两步 \n实现步骤\n1. 分：将数组递归地分成左右两半，直到⼦数组只剩⼀个元素（天然有序）\n2.",
+      "retrieved_contexts": [
+        "312\n时间复杂度：O(nlogn)    归并排序和初始序列是没有关系的，因此最好、最坏、平均时间复杂度\n相同\n空间复杂度：O(n)        临时保存归并后的数组 \n稳定性：归并排序是稳定的\n思路：“先分后合”，将⼤问题拆解为⼩问题解决，再将结果合并，整个过程分为 分 和 治 两步 \n实现步骤\n1. 分：将数组递归地分成左右两半，直到⼦数组只剩⼀个元素（天然有序）\n2.",
+        "312\n时间复杂度：O(nlogn)    归并排序和初始序列是没有关系的，因此最好、最坏、平均时间复杂度\n相同\n空间复杂度：O(n)        临时保存归并后的数组 \n稳定性：归并排序是稳定的\n思路：“先分后合”，将⼤问题拆解为⼩问题解决，再将结果合并，整个过程分为 分 和 治 两步 \n实现步骤\n1. 分：将数组递归地分成左右两半，直到⼦数组只剩⼀个元素（天然有序）\n2.",
+        "422\n介绍⼀下进程调度算法? 如何理解CAP定理？ \n如何理解BASE理论？ \n如何实现微服务调⽤链⽇志追踪分析？\n了解负载均衡的架构吗？\n全局分布式ID了解吗，有哪些⽣成⽅案和原理？ \nCPU飙⾼的排查思路？ \n内存泄漏的排查思路？\n可以说说归并排序吗？\n可以说说快速排序吗？\n快速排序的时间复杂度是由什么影响的？\n如何⽤两个栈模拟⼀个队列？\n你了解哪些设计模式？\n单例模式有哪些实现⽅式？饿汉式和懒汉式的区别？\n你会使⽤哪种模式实现单例？\n为什么懒汉式的双重检查锁要加上volataile？ \n分布式\n常⻅问题定位分析\n数据结构与算法\n设计模式",
+        "422\n介绍⼀下进程调度算法? 如何理解CAP定理？ \n如何理解BASE理论？ \n如何实现微服务调⽤链⽇志追踪分析？\n了解负载均衡的架构吗？\n全局分布式ID了解吗，有哪些⽣成⽅案和原理？ \nCPU飙⾼的排查思路？ \n内存泄漏的排查思路？\n可以说说归并排序吗？\n可以说说快速排序吗？\n快速排序的时间复杂度是由什么影响的？\n如何⽤两个栈模拟⼀个队列？\n你了解哪些设计模式？\n单例模式有哪些实现⽅式？饿汉式和懒汉式的区别？\n你会使⽤哪种模式实现单例？\n为什么懒汉式的双重检查锁要加上volataile？ \n分布式\n常⻅问题定位分析\n数据结构与算法\n设计模式",
+        "311\n排序算法\n列举⼀些⾯试官常问的数据结构和算法的知识\n⾯试官的问法可能是：\n你了解哪些排序算法？——  这⾥回答时只需要列举 ⼀两种排序算法的实现原理和时间复杂度 \n你能不能说说堆排序的实现？—— 如果你不会就直接说不会，但是我可以说说快速排序和归\n并排序，⼀般情况下⾯试官都会允许你去说。\n当然快速排序和归并排序这是⾯试官更常考的，但我们⾯试要学会灵活变通，万⼀⾯试官问到 \n你不会的⼀种排序算法，但是你可以主动提出说另外⼀种。另外为了避免我们需要记忆太多东⻄，\n所以只需要学会两种排序算法就可以，减轻负担。\n排序算法\n●\n●\n归并排序"
+      ],
+      "faithfulness": 0.7619047619047619,
+      "context_precision": 0.99999999995,
+      "context_recall": 1.0,
+      "answer_relevancy": 0.9162922487504019
+    },
+    {
+      "question": "在提供的编程题目列表中，哪些题目涉及链表的反转操作？",
+      "response": "在你提供的编程题目列表中，涉及链表反转操作的题目有以下三道：\n\n- **反转链表 II**：对链表中指定位置区间（第 m 到第 n 个节点）进行局部反转。  \n- **K 个一组翻转链表**：将链表按每 K 个节点为一组进行翻转，不足 K 个的部分保持原顺序。  \n- **合并两个有序链表** 虽然核心是“合并”而非“反转”，但其解法常作为反转类题目的基础辅助操作（如反转后合并），不过严格来说它本身不涉及反转逻辑——所以**不计入反转操作题**。\n\n因此，明确以“反转”为核心操作的题目是：  \n✅ 反转链表 II  \n✅ K 个一组翻转链表  \n\n这两道题都要求深入理解链表指针操作与边界处理，是非常经典的链表反转进阶题 😊",
+      "reference": "反转链表 II - ⼒扣（LeetCode）\n21. 合并两个有序链表 - ⼒扣（LeetCode）\n25. K 个⼀组翻转链表 - ⼒扣（LeetCode）\n83. 删除排序链表中的重复元素 - ⼒扣（LeetCode）\n82. 删除排序链表中的重复元素 II - ⼒扣（LeetCode）\n19. 删除链表的倒数第 N 个结点 - ⼒扣（LeetCode）\n27. 移除元素 - ⼒扣（LeetCode）\n189. 轮转数组 - ⼒扣（LeetCode）\n3. ⽆重复字符的最⻓⼦串 - ⼒扣（LeetCode）\n⼤数加法_⽜客题霸_⽜客⽹\n144. ⼆叉树的前序遍历 - ⼒扣（LeetCode）\n94. ⼆叉树的中序遍历 - ⼒扣（LeetCode）\n145. ⼆叉树的后序遍历 - ⼒扣（LeetCode）\n102. ⼆叉树的层序遍历 - ⼒扣（LeetCode）",
+      "retrieved_contexts": [
+        "反转链表 II - ⼒扣（LeetCode）\n21. 合并两个有序链表 - ⼒扣（LeetCode）\n25. K 个⼀组翻转链表 - ⼒扣（LeetCode）\n83. 删除排序链表中的重复元素 - ⼒扣（LeetCode）\n82. 删除排序链表中的重复元素 II - ⼒扣（LeetCode）\n19. 删除链表的倒数第 N 个结点 - ⼒扣（LeetCode）\n27. 移除元素 - ⼒扣（LeetCode）\n189. 轮转数组 - ⼒扣（LeetCode）\n3. ⽆重复字符的最⻓⼦串 - ⼒扣（LeetCode）\n⼤数加法_⽜客题霸_⽜客⽹\n144. ⼆叉树的前序遍历 - ⼒扣（LeetCode",
+        "204\nSpring 事务\n事务管理在系统开发中是不可缺少的⼀部分，Spring提供了很好事务管理机制， \n主要分为编程式事务和声明式事务两种。\n基于底层的APl  如 PlatformTransactionManager、TransactionDefinition 和 \nTransactionTemplate 等核⼼接⼝，开发者完全可以通过编程的⽅式来进⾏事务管理。 \n编程式事务⽅式需要是开发者在代码中⼿动的管理事务的开启、提交、回滚等操作。\nSpring ⽀持声明式事务管理，即@Transactional注解，声明式事务管理建⽴在AOP之上。 \n其本质是通过AOP功能，对加了@Transa",
+        "143\nDict 哈希表 底层存在 两条哈希表（数组+链表实现哈希表） \n⼀条哈希表存储的是当前数据，另外⼀条哈希表⼀般是空，在哈希表扩容 Rehash 时会使⽤到 \nDict 哈希表会扩容或者收缩，此时就需要重新计算key存储的位置，也称为rehash \n在rehash过程中，如果⽤户想要请求数据， \n新增操作，则直接写⼊ ht[1] 即新哈希表 \n查询、修改、删除，则会在 ht[1] 新哈希表 和 ht[0] 旧哈希表 上依次查找并执⾏ \n⼀种连续内存空间的双端链表，因存储格式⽽节省空间，但由于连续内存\n如果元素太多，内存不容易分配，效率低，所以当元素过多时，都会转为另外⼀种数据结构\n且 ",
+        "144\n⼀种双向链表，每个节点是⼀个压缩列表\n⽆论是 ZipList 还是 QuickList，在访问时，本质都是⼀个个遍历的访问，他们在查找⾸尾结点时\n性能⾼。但是要做范围查找时，只能⼀个⼀个遍历直到范围的起始点。\nSkipList 跳表 是⼀种多层链表 \n元素按 score 分数进⾏升序排序存储 \n⼀个节点内可能包含多个指针，每个指针的跨度不同。链表遍历慢的原因就是因为指针的跨度\n为1 \n当做范围查找时，利⽤⾼层级的指针，快速跳过⼤量⽆关节点，快速定位到范围的起始点\n跳表通过牺牲少量内存空间（存储多层指针），换取了更⾼效的范围查找性能\n和 ZipList 压缩列表⼏乎⼀样，但解决了连锁更新",
+        "144\n⼀种双向链表，每个节点是⼀个压缩列表\n⽆论是 ZipList 还是 QuickList，在访问时，本质都是⼀个个遍历的访问，他们在查找⾸尾结点时\n性能⾼。但是要做范围查找时，只能⼀个⼀个遍历直到范围的起始点。\nSkipList 跳表 是⼀种多层链表 \n元素按 score 分数进⾏升序排序存储 \n⼀个节点内可能包含多个指针，每个指针的跨度不同。链表遍历慢的原因就是因为指针的跨度\n为1 \n当做范围查找时，利⽤⾼层级的指针，快速跳过⼤量⽆关节点，快速定位到范围的起始点\n跳表通过牺牲少量内存空间（存储多层指针），换取了更⾼效的范围查找性能\n和 ZipList 压缩列表⼏乎⼀样，但解决了连锁更新"
+      ],
+      "faithfulness": 0.3,
+      "context_precision": 0.0,
+      "context_recall": 0.14285714285714285,
+      "answer_relevancy": 0.8558177507135506
+    },
+    {
+      "question": "ZeRO-3与ZeRO-2相比，在模型参数存储策略上有什么关键区别？",
+      "response": "ZeRO-3 与 ZeRO-2 的关键区别在于：**模型参数是否也被分片（sharded）**。\n\n根据知识库内容：\n- **ZeRO-2** 在 ZeRO-1 的基础上，进一步对**模型梯度和 Adam 状态参数进行分片**，但**模型参数仍保持每张 GPU 上完整存储一份**（即不共享、不拆分）；\n- **ZeRO-3** 则更进一步，**将模型参数也纳入分片范围**，使得每张 GPU 只需存储一部分模型参数、一部分梯度、以及一部分优化器状态——真正实现了模型状态（参数、梯度、优化器状态）的全量分片。\n\n简单来说：  \n🔹 ZeRO-2 是「梯度 + 优化器状态分片，参数仍冗余」；  \n🔹 ZeRO-3 是「参数 + 梯度 + 优化器状态全部分片」，显存节省更彻底，支持训练超大规模模型（如百亿、千亿参数）的能力更强。\n\n这也是为什么 ZeRO-3 常与模型并行、张量并行等技术协同使用，成为大模型训练中降低显存瓶颈的核心策略之一。",
+      "reference": "ZeRO-2，继续对模型梯度进⾏分⽚，每张卡只存储  的模型梯度和 Adam 状态参数，仅模型参数保持每张\n卡⼀份。\n3. ZeRO-3，将模型参数也进⾏分⽚，每张卡只存储  的模型梯度、模型参数和 Adam 状态参数。",
+      "retrieved_contexts": [
+        "ZeRO-2，继续对模型梯度进⾏分⽚，每张卡只存储  的模型梯度和 Adam 状态参数，仅模型参数保持每张\n卡⼀份。\n3. ZeRO-3，将模型参数也进⾏分⽚，每张卡只存储  的模型梯度、模型参数和 Adam 状态参数。",
+        "ZeRO-2，继续对模型梯度进⾏分⽚，每张卡只存储  的模型梯度和 Adam 状态参数，仅模型参数保持每张\n卡⼀份。\n3. ZeRO-3，将模型参数也进⾏分⽚，每张卡只存储  的模型梯度、模型参数和 Adam 状态参数。",
+        "但是，当 LLM 扩⼤到上百亿参数，单张 GPU 内存往往就⽆法存放完整的模型参数。如图4.3所示，在这种情况\n下，可以将模型拆分到多个 GPU 上，每个 GPU 上存放不同的层或不同的部分，从⽽实现模型并⾏。\n图4.3 模型并⾏\n \n在数据并⾏和模型并⾏的思想基础上，还演化出了多种更⾼效的分布式⽅式，例如张量并⾏、3D 并⾏、ZeRO\n（Zero Redundancy Optimizer，零冗余优化器）等。⽬前，主流的分布式训练框架包括 Deepspeed、\nMegatron-LM、ColossalAI 等，其中，Deepspeed 使⽤⾯最⼴。\nDeepspeed 的核⼼策略是 ZeRO ",
+        "但是，当 LLM 扩⼤到上百亿参数，单张 GPU 内存往往就⽆法存放完整的模型参数。如图4.3所示，在这种情况\n下，可以将模型拆分到多个 GPU 上，每个 GPU 上存放不同的层或不同的部分，从⽽实现模型并⾏。\n图4.3 模型并⾏\n \n在数据并⾏和模型并⾏的思想基础上，还演化出了多种更⾼效的分布式⽅式，例如张量并⾏、3D 并⾏、ZeRO\n（Zero Redundancy Optimizer，零冗余优化器）等。⽬前，主流的分布式训练框架包括 Deepspeed、\nMegatron-LM、ColossalAI 等，其中，Deepspeed 使⽤⾯最⼴。\nDeepspeed 的核⼼策略是 ZeRO ",
+        "414\nString 底层数据类型？ \nString 类能被继承吗？ \nString 是不可变的，如何实现？ \nString 存储有⻓度限制吗？ \nString 为什么设计为不可变的 \n字符串常量池是什么？\nString/StringBuffer/StringBuilder的区别 \n深拷⻉&浅拷⻉是什么，区别？ \nError和Exception的区别 \n异常的分类和区别\nfinally中的代码⼀定会被执⾏吗 \nAIO、BIO、NIO分别是什么 \n同步与异步如何理解\n阻塞与⾮阻塞如何理解\n线程有哪⼏种状态？状态如何流转？\n创建线程的⽅式？\n多线程有什么应⽤？\n线程池的好处？\n线程池的七个参数？\n"
+      ],
+      "faithfulness": 0.9411764705882353,
+      "context_precision": 0.999999999975,
+      "context_recall": 1.0,
+      "answer_relevancy": 0.7114721005058563
+    },
+    {
+      "question": "多线程交替打印问题的核心要求是什么？",
+      "response": "多线程交替打印问题（比如交替打印0-100、或ABC等）的核心要求，本质上是**实现多个线程之间的精确协作与有序执行**。\n\n具体来说，它强调三点：\n\n- **顺序性**：各线程必须严格按预定顺序（如T1→T2→T3→T1…）轮流执行，不能跳过、重复或乱序；  \n- **同步性**：线程间需通过合理的同步机制（如synchronized、Lock、Semaphore、wait/notify、AtomicInteger + 自旋等）协调状态，避免竞态；  \n- **无遗漏 & 无死锁**：所有任务必须完整执行完毕（如0到100每个数只打一次），且程序能正常终止，不出现死锁、活锁或饥饿。\n\n这类题目常作为多线程基础能力的“试金石”，考察对锁机制、线程通信、状态控制及JMM内存模型的理解。实际开发中，也对应着资源协同、流水线处理等真实场景。需要的话，我可以为你演示几种经典解法 😊",
+      "reference": "67\n多线程交替打印 \u0000-\u0000\u0000\u0000",
+      "retrieved_contexts": [
+        "356\n \n \n(动态规划、双指针、单调栈) \n \n多线程交替打印0-100 \n多线程交替打印ABC \n快速排序\n归并排序\n模拟\n排序\n300. 最⻓递增⼦序列 - ⼒扣（LeetCode）\n322.",
+        "2\n乐观锁 & 悲观锁\nJMM\n多线程交替打印 \u0000-\u0000\u0000\u0000\n多线程交替打印 ABC\nJUC （扩展）\n多线程的上下⽂切换\n原⼦类\nUnsafe\nJVM （重点）\n内存结构 / 运⾏时数据区\n创建对象⼀定分配在堆⾥吗\n垃圾回收\n垃圾回收器\n根可达性算法\n三⾊标记法\n双亲委派\nJVM 调优经验\nJVM （扩展）\n编译  && 解释\nJIT 编译器\n类的⽣命周期\n为什么区分堆和栈\n如何选择垃圾回收器\nMySQL （重点）\n事务\n如何理解  MVCC\nB+ 树索引\n索引失效的情况\n⽇志 (RedoLog 、 UndoLog 、 BinLog)\n执⾏ SQL 查询语句的过程\n执⾏计划的分析\nSQL 优化",
+        "2\n乐观锁 & 悲观锁\nJMM\n多线程交替打印 \u0000-\u0000\u0000\u0000\n多线程交替打印 ABC\nJUC （扩展）\n多线程的上下⽂切换\n原⼦类\nUnsafe\nJVM （重点）\n内存结构 / 运⾏时数据区\n创建对象⼀定分配在堆⾥吗\n垃圾回收\n垃圾回收器\n根可达性算法\n三⾊标记法\n双亲委派\nJVM 调优经验\nJVM （扩展）\n编译  && 解释\nJIT 编译器\n类的⽣命周期\n为什么区分堆和栈\n如何选择垃圾回收器\nMySQL （重点）\n事务\n如何理解  MVCC\nB+ 树索引\n索引失效的情况\n⽇志 (RedoLog 、 UndoLog 、 BinLog)\n执⾏ SQL 查询语句的过程\n执⾏计划的分析\nSQL 优化",
+        "415\n你怎么理解线程安全？\nsynchronized的原理实现是什么？ \nsynchronized锁升级过程了解吗？ \nCAS是什么？应⽤场景？优缺点？ \nReentrantLock是什么，和synchronized相⽐的区别是什么？ \nAQS是什么？怎么实现的？ \n乐观锁是什么？悲观锁是什么？应⽤场景分别是什么？\n⽤数据库如何实现乐观锁\nJMM是什么？其中原⼦性、可⻅性、有序性问题分别是什么？ \nJMM如何保证的原⼦性、可⻅性、有序性？ \n常考算法：多线程交替打印0-100 \n常考算法：多线程交替打印ABC \n多线程的上下切换是什么？\n什么时候会发⽣上下⽂切换？\n如何减少上下⽂切换？\n原⼦",
+        "67\n多线程交替打印 \u0000-\u0000\u0000\u0000"
+      ],
+      "faithfulness": 0.36666666666666664,
+      "context_precision": 0.0,
+      "context_recall": 1.0,
+      "answer_relevancy": 0.825975728816938
+    }
+  ],
+  "elapsed_seconds": 398.8,
+  "config": {
+    "n_synthetic": 10
+  }
+}

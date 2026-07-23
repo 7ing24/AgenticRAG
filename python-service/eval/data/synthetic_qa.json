@@ -1,0 +1,1184 @@
+[
+  {
+    "question": "为什么声明式事务可能导致开发者忽略事务边界，从而增加事务管理风险？",
+    "ground_truth": "在事务中有远程调⽤，就会拉⻓整个事务。那么就会导致本事务的数据库连接⼀直被占⽤，那\n么如果类似操作过多，就会导致数据库连接池耗尽。\n如果是编程式事务的话，业务代码中就会清清楚楚看到什么地⽅开启事务，什么地⽅提交，什么\n时候回滚。这样有⼈改这段代码的时候，就会强制他考虑要加的代码是否应该在⽅法事务内。\n有些⼈可能会说，已经有了声明式事务，但是写代码的⼈没注意，这能怪谁\n话虽然是这么说，但是我们还是希望可以通过⼀些机制或者规范，降低这些问题发⽣的概率。\n因为有些时候，声明式事务确实不够明显。\n声明式事务的粒度问题",
+    "relevant_chunk_id": "doc_75_chunk_267",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "Hugging Face Transformers框架如何帮助LLM研究者便捷地使用预训练模型和数据集？",
+    "ground_truth": "第六章 ⼤模型训练流程实践  \n6.1 模型预训练  \n在上⼀章，我们逐步拆解了 LLM 的模型结构及训练过程，从零⼿写实现了 LLaMA 模型结构及 Pretrain、SFT 全流\n程，更深⼊地理解了 LLM 的模型原理及训练细节。但是，在实际应⽤中，⼿写实现的 LLM 训练存在以下问题：\n⼿写实现 LLM 结构⼯作量⼤，难以实时跟进最新模型的结构创新；\n从零实现的 LLM 训练⽆法较好地实现多卡分布式训练，训练效率较低；\n和现有预训练 LLM 不兼容，⽆法使⽤预训练好的模型参数\n因此，在本章中，我们将介绍⽬前 LLM 领域的主流训练框架 Transformers，并结合分布式框架 deepspeed、⾼\n效微调框架 peft 等主流框架，实践使⽤ transformers 进⾏模型 Pretrain、SFT 全流程，更好地对接业界的主流 \nLLM 技术⽅案。\n6.1.1 框架介绍  \nTransformers 是由 Hugging Face 开发的 NLP 框架，通过模块化设计实现了对 BERT、GPT、LLaMA、T5、ViT 等\n上百种主流模型架构的统⼀⽀持。通过使⽤ Transformers，开发者⽆需重复实现基础⽹络结构，通过 AutoModel \n类即可⼀键加载任意预训练，图6.1 为 Hugging Face Transformers 课程⾸⻚：\n图6.1 Hugging Face Transformers\n同时，框架内置的 Trainer 类封装了分布式训练的核⼼逻辑，⽀持 PyTorch 原⽣ DDP、DeepSpeed、Megatron-\nLM 等多种分布式训练策略。通过简单配置训练参数，即可实现数据并⾏、模型并⾏、流⽔线并⾏的混合并⾏训\n练，在 8 卡 A100 集群上可轻松⽀持百亿参数模型的⾼效训练。配合 SavingPolicy 和 LoggingCallback 等组件，实\n现了训练过程的⾃动化管理。其还⽀持与 Deepspeed、peft、wandb、Swanlab 等框架进⾏集成，直接通过参数\n设置即可⽆缝对接，从⽽快速、⾼效实现 LLM 训练。\n对 LLM 时代的 NLP 研究者更为重要的是，HuggingFace 基于 Transformers 框架搭建了其庞⼤的 AI 社区，开放\n了数亿个预训练模型参数、25万+不同类型数据集，通过 Transformers、Dataset、Evaluate 等多个框架实现对预\n训练模型、数据集及评估函数的集成，从⽽帮助开发者可以便捷地使⽤任⼀预训练模型，在开源模型及数据集的基\n础上便捷地实现个⼈模型的开发与应⽤。",
+    "relevant_chunk_id": "doc_74_chunk_147",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "为什么在RLHF的PPO训练过程中需要保持Ref Model和Reward Model的参数不更新？",
+    "ground_truth": "1. 从 SFT 之后的 LLM 初始化两个模型分别作为 Actor Model 和 Ref Model；从训练的 RM 初始化两个模型分别\n作为 Reward Model 和 Critic Model；\n2. 输⼊⼀个 Prompt，Actor Model 和 Ref Model 分别就 Prompt ⽣成回复；\n3. Actor Response 和 Ref Response 计算 KL 散度：  其中， \n 即为 Actor Model 的输出，⽽  即为 Ref Model 的输出，  即是计算 KL 散\n度的⽅法；\n4. Actor Response 分别输⼊到 Reward Model 和 Critic Model 进⾏打分，其中，Reward Model 输出的是回复\n对应的标量奖励，Critic Model 还会输出累加奖励（即从i位置到最后的累积奖励）；\n5. 计算的 KL 散度、两个模型的打分均输⼊到奖励函数中，计算奖励： \n ，这⾥的  是控制 KL 散度对结果影响的权重参\n数，  是控制下⼀个时间（也就是样本）打分对结果影响的权重参数，  是 Critic Model 的打分输出，  \n则是 Reward Model 的打分输出;\n6. 根据奖励函数分别计算出的 actor loss 和 critic loss，更新 Actor Model 的参数和 Critic Model 的参数；注\n意，Actor Model 和 Critic Model 的参数更新⽅法是不同的，此处就不再⼀⼀赘述了，感兴趣的读者可以深\n⼊研究强化学习的相关理论。\n在上述过程中，因为要使⽤到四个模型，显存占⽤会数倍于 SFT。例如，如果我们 RM 和 LLM 都是⽤ 7B 的体量，\nPPO 过程中⼤概需要 240G（4张 80G A100，每张卡占⽤ 60G）显存来进⾏模型加载。那么，为什么我们需要⾜\n⾜四个模型呢？Actor Model 和 Critic Model 较为容易理解，⽽之所以我们还需要保持原参数不更新的 Ref Model \n和 Reward Model，是为了限制模型的更新不要过于偏离原模型以⾄于丢失了 Pretrain 和 SFT 赋予的能⼒。\n当然，如此⼤的资源占⽤和复杂的训练过程，使 RLHF 成为⼀个⻔槛⾮常⾼的阶段。也有学者从监督学习的思路出\n发，提出了 DPO（Direct Preference Optimization，直接偏好优化），可以低⻔槛平替 RLHF。DPO 的核⼼思路\n是，将 RLHF 的强化学习问题转化为监督学习来直接学习⼈类偏好。DPO 通过使⽤奖励函数和最优策略间的映射，\n展示了约束奖励最⼤化问题完全可以通过单阶段策略训练进⾏优化，也就是说，通过学习 DPO 所提出的优化⽬\n标，可以直接学习⼈类偏好，⽽⽆需再训练 RM 以及进⾏强化学习。由于直接使⽤监督学习进⾏训练，DPO 只需\n要两个 LLM 即可完成训练，且训练过程相较 PPO 简单很多，是 RLHF 更简单易⽤的平替版本。DPO 所提出的优化\n⽬标为什么能够直接学习⼈类偏好，作者通过⼀系列的数学推导完成了证明，感兴趣的读者可以下来进⼀步阅读，\n此处就不再赘述了。\n接下来，我们将依次实现如何从零开始训练⼀个 LLM，包括预训练、SFT 和 RLHF。\n参考资料\n[1] Long Ouyang, Jeff Wu, Xu Jiang, Diogo Almeida, Carroll L. Wainwright, Pamela Mishkin, Chong Zhang, \nSandhini Agarwal, Katarina Slama, Alex Ray, John Schulman, Jacob Hilton, Fraser Kelton, Luke Miller, Maddie \nSimens, Amanda Askell, Peter Welinder, Paul Christiano, Jan Leike, Ryan Lowe.",
+    "relevant_chunk_id": "doc_74_chunk_89",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "Java中Iterator接口定义了哪三个核心方法，各自的作用是什么？",
+    "ground_truth": "总结：\n1.统⼀接⼝：通过  Iterator  和 Iterable  接⼝标准化集合遍历⽅式。 \n迭代器的实现原理\n●\n●\n●\n●\n// 定义迭代器的基本⾏为\npublic interface Iterator<E> {\n    boolean hasNext();  // 检查是否还有下⼀个元素\n    E next();           // 获取下⼀个元素\n    void remove();      // 删除当前元素（可选操作）\n}\n1\n2\n3\n4\n5\n6\n迭代器的⽅法 Java",
+    "relevant_chunk_id": "doc_75_chunk_19",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "该代码片段中，模型训练时默认使用哪些GPU设备进行多GPU训练？",
+    "ground_truth": "parser.add_argument(\"--log_interval\", type=int, default=100, help=\"⽇志记录间隔\")\n    parser.add_argument(\"--save_interval\", type=int, default=1000, help=\"模型保存间隔\")\n    \n    # 多GPU训练参数\n    parser.add_argument(\"--gpus\", type=str, default='0,1,2,3,4,5,6,7', help=\"使⽤的GPU ID，\n⽤逗号分隔 (例如: '0,1,2')\")\n    args = parser.parse_args()\n    # ==================== GPU环境设置 ====================\n    # 设置可⻅的GPU设备\n    if args.gpus is not None:\n        os.environ[\"CUDA_VISIBLE_DEVICES\"] = args.gpus\n        # ⾃动设置主设备为第⼀个可⽤GPU\n        if torch.cuda.is_available():\n            args.device = \"cuda:0\"\n        else:\n            args.device = \"cpu\"\n    # ==================== 实验跟踪初始化 ====================\n    if args.use_swanlab:\n        # 注意：使⽤前需要先登录 swanlab.login(api_key='your key')\n        run = swanlab.init(\n            project=\"Happy-LLM\",  # 项⽬名称\n            experiment_name=\"Pretrain-215M\",  # 实验名称\n            config=args,  # 保存所有超参数\n        )\n    # ==================== 模型配置 ====================\n    # 定义语⾔模型的配置参数\n    lm_config = ModelConfig(\n        dim=1024,      # 模型维度\n        n_layers=18,   # Transformer层数\n    )\n    # ==================== 训练环境设置 ====================\n    max_seq_len = lm_config.max_seq_len  # 最⼤序列⻓度\n    args.save_dir = os.path.join(args.out_dir)  # 模型保存⽬录\n    \n    # 创建必要的⽬录\n    os.makedirs(args.out_dir, exist_ok=True)\n    \n    # 设置随机种⼦以确保结果可复现\n    torch.manual_seed(42)\n    \n    # 确定设备类型（⽤于选择合适的上下⽂管理器）\n    device_type = \"cuda\" if \"cuda\" in args.device else \"cpu\"\n    # 设置混合精度训练的上下⽂管理器\n    # CPU训练时使⽤nullcontext，GPU训练时使⽤autocast\n    ctx = nullcontext() if device_type == \"cpu\" else torch.cuda.amp.autocast()",
+    "relevant_chunk_id": "doc_74_chunk_133",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "根据要求，生成的测试问题需要满足哪两个关于问题类型的核心条件？",
+    "ground_truth": "273",
+    "relevant_chunk_id": "doc_75_chunk_351",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "为什么MySQL中单张表的索引数量建议不超过5个？",
+    "ground_truth": "129\nSQL 优化最佳实践\n你是怎么优化慢SQL的？ \n慢SQL的定位 -> 分析慢SQL的问题（⼏⽅⾯分析） -> 问题的解决⽅案就是优化  \n慢SQL的定位：⾸先要开启慢查询⽇志，慢查询⽇志中会记录下查询时间超过设定值的SQL \n慢SQL的分析：慢的原因可能出现在哪⾥？ \n数据量太⼤\n并发量太⼤\n索引没有使⽤或使⽤不当\nSQL 语句书写不当 \n表结构设计不当\n业务设计不合理\n数据库服务器实例性能配置差（提升服务器性能配置）\n1. 限制每张表上的索引数量，建议单张表索引不超过 5 个。 \n索引可以增加查询效率，但也会降低插⼊和更新的效率，甚⾄有些情况下会降低查询效率， MySQ\nL 优化器在选择如何优化查询时，需要评估所有可能的索引来选择最优的执⾏计划。索引越多，\n优化器的选择越多，就会增加  MySQL 优化器⽣成执⾏计划的时间，降低查询性能。另外索引需\n要占据额外的存储空间。\n2. 如果使⽤联合索引，区分度最⾼的列放在最左侧\n3.",
+    "relevant_chunk_id": "doc_75_chunk_170",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "GPT系列模型采用的预训练任务是什么？其核心思想是如何根据已有文本预测下一个token的？",
+    "ground_truth": "模型 Decoder Layer Hidden_size 注意⼒头数 注意⼒维度 总参数量 预训练语料\nGPT-1 12 3072 12 768 0.12B 5GB\nGPT-2 48 6400 25 1600 1.5B 40GB\nGPT-3 96 49152 96 12288 175B 570GB\n另外⼀个结构上的区别在于，GPT 的 MLP 层没有选择线性矩阵来进⾏特征提取，⽽是选择了两个⼀维卷积核来提\n取，不过，从效果上说这两者是没有太⼤区别的。通过 N 个 Decoder 层后的 hidden_states 最后经过线性矩阵映\n射到词表维度，就可以转化成⾃然语⾔的 token，从⽽⽣成我们的⽬标序列。\n（2）预训练任务——CLM  \nDecoder-Only 的模型结构往往更适合于⽂本⽣成任务，因此，Decoder-Only 模型往往选择了最传统也最直接的\n预训练任务—— 因果语⾔模型，Casual Language Model，下简称 CLM。\nCLM 可以看作 N-gram 语⾔模型的⼀个直接扩展。N-gram 语⾔模型是基于前 N 个 token 来预测下⼀个 token，\nCLM 则是基于⼀个⾃然语⾔序列的前⾯所有 token 来预测下⼀个 token，通过不断重复该过程来实现⽬标⽂本序\n列的⽣成。也就是说，CLM 是⼀个经典的补全形式。例如，CLM 的输⼊和输出可以是：\n因此，对于⼀个输⼊⽬标序列⻓度为 256，期待输出序列⻓度为 256 的任务，模型会不断根据前 256 个 token、\n257个 token（输⼊+预测出来的第⼀个 token）...... 进⾏ 256 次计算，最后⽣成⼀个序列⻓度为 512 的输出⽂\n本，这个输出⽂本前 256 个 token 为输⼊，后 256 个 token 就是我们期待的模型输出。\n在前⾯我们说过，BERT 之所以可以采⽤预训练+微调的范式取得重⼤突破，正是因为其选择的 MLM、NSP 可以在\n海量⽆监督语料上直接训练—— ⽽很明显，CLM 是更直接的预训练任务，其天⽣和⼈类书写⾃然语⾔⽂本的习惯\n相契合，也和下游任务直接匹配，相对于 MLM 任务更加直接，可以在任何⾃然语⾔⽂本上直接应⽤。因此，CLM \n也可以使⽤海量的⾃然语⾔语料进⾏⼤规模的预训练。\n（3）GPT 系列模型的发展  \n⾃ GPT-1 推出开始，OpenAI ⼀直坚信 Decoder-Only 的模型结构和“体量即正义”的优化思路，不断扩⼤预训练数\n据集、模型体量并对模型做出⼀些⼩的优化和修正，来不断探索更强⼤的预训练模型。从被 BERT 压制的 GPT-1，\n到没有引起⾜够关注的 GPT-2，再到激发了涌现能⼒、带来⼤模型时代的 GPT-3，最后带来了跨时代的 \nChatGPT，OpenAI 通过数⼗年的努⼒证明了其思路的正确性。\n下表总结了从 GPT-1 到 GPT-3 的模型结构、预训练语料⼤⼩的变化：\nGPT-1 是 GPT 系列的开⼭之作，也是第⼀个使⽤ Decoder-Only 的预训练模型。但是，GPT-1 的模型体量和预训\n练数据都较少，沿承了传统 Transformer 的模型结构，使⽤了 12层 Decoder Block 和 768 的隐藏层维度，模型参\n数量仅有 1.17亿（0.12B），在⼤⼩为 5GB 的 BooksCorpus 数据集上预训练得到。可以看到，GPT-1 的参数规模\n与预训练规模和 BERT-base 是⼤致相当的，但其表现相较于 BERT-base 却有所不如，这也是 GPT 系列模型没能成\n为预训练语⾔模型时代的代表的原因。\ninput: 今天天⽓\noutput: 今天天⽓很\ninput: 今天天⽓很\noutput：今天天⽓很好",
+    "relevant_chunk_id": "doc_74_chunk_60",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "该代码片段中定义的count_parameters函数的主要功能是什么？",
+    "ground_truth": "创建Transformer模型\n    3. 设置多GPU并⾏训练（如果可⽤）\n    4. 将模型移动到指定设备\n    5. 统计并打印模型参数量\n    \n    Returns:\n        tuple: (model, tokenizer) 初始化后的模型和分词器\n    \"\"\"\n    def count_parameters(model):\n        \"\"\"\n        统计模型中可训练参数的数量\n        \n        Args:\n            model: PyTorch模型\n            \n        Returns:",
+    "relevant_chunk_id": "doc_74_chunk_131",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "为什么在预估服务器节点数量时需要将峰值QPS设置得略大于计算值？",
+    "ground_truth": "287\n能会达到更⾼的QPS \na. 峰值情况通常是的平均值的数倍，假设峰值为平均值的3倍，则峰值QPS约为348 \n通过预估接⼝上限后可能的峰值QPS后，就可以相对应的调整服务器节点的数量、服务器的运⾏\n配置\n需要能抗住峰值QPS，记得给⾃⼰留点缓冲，即把值设置的略⼤⼀些",
+    "relevant_chunk_id": "doc_75_chunk_371",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在Pretrain Dataset中，当输入序列长度为9（含BOS和EOS）时，X和Y分别对应哪些token？",
+    "ground_truth": "在以上代码和图5.3可以看出，Pretrain Dataset  主要是将 text  通过 tokenizer  转换成 input_id ，然后将 \ninput_id  拆分成 X  和 Y ，其中 X  为 input_id  的前 n-1 个元素，Y  为 input_id  的后 n-1 个元素。\nloss_mask  主要是⽤来标记哪些位置需要计算损失，哪些位置不需要计算损失。\n图5.3 预训练损失函数计算\n图中示例展示了当max_length=9 时的处理过程：\n输⼊序列：[BOS, T1, T2, T3, T4, T5, T6, T7, EOS]\n样本拆分：\nX：[BOS, T1, T2, T3, T4, T5, T6, T7]  → 模型输⼊上下⽂\nY：[T1, T2, T3, T4, T5, T6, T7, EOS]  → 模型预测⽬标\n损失掩码：\n有效位置：[0, 1, 1, 1, 1, 1, 1, 1, 1]  → 仅对T1-EOS计算损失\nSFTDataset  \nSFTDataset  其实是⼀个多轮对话数据集，我们的⽬标是让模型学会如何进⾏多轮对话。在这个阶段我们的输⼊是\n上⼀轮的对话内容，输出是当前轮的对话内容。\n        loss_mask = [1] * text_len + [0] * padding_len\n        input_id = np.array(input_id)\n        X = np.array(input_id[:-1]).astype(np.int64)\n        Y = np.array(input_id[1:]).astype(np.int64)\n        loss_mask = np.array(loss_mask[1:]).astype(np.int64)\n        return torch.from_numpy(X), torch.from_numpy(Y), torch.from_numpy(loss_mask)\nclass SFTDataset(Dataset):\n    def __init__(self, data_path, tokenizer, max_length=512):\n        super().__init__()\n        self.data_path = data_path\n        self.tokenizer = tokenizer",
+    "relevant_chunk_id": "doc_74_chunk_122",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在大规模训练中，为什么推荐使用 logging 库而非 print 直接打印训练信息？",
+    "ground_truth": "然后即可定义⼀个主函数实现上述训练过程的封装。⾸先通过 transformers 提供的 HfArgumentParser ⼯具来加\n载 sh 脚本中设定的超参：\n在⼤规模的训练中，⼀般使⽤ log 来保存训练过程的信息，⼀般不推荐使⽤ print 直接打印，容易发⽣关键训练信\n息的丢失。这⾥，我们直接使⽤ python ⾃带的 logging 库来实现⽇志记录。⾸先需要进⾏ log 的设置：\n        default=None, metadata={\"help\": \"预训练 Tokenizer 地址\"}\n    )\n    torch_dtype: Optional[str] = field(\n        default=None,\n        metadata={\n            \"help\": (\n                \"模型训练使⽤的数据类型，推荐 bfloat16\"\n            ),\n            \"choices\": [\"auto\", \"bfloat16\", \"float16\", \"float32\"],\n        },\n    )\n@dataclass\nclass DataTrainingArguments:\n    \"\"\"\n    关于训练的参数\n    \"\"\"\n    train_files: Optional[List[str]]  = field(default=None, metadata={\"help\": \"训练数据路\n径\"})\n    block_size: Optional[int] = field(\n        default=None,\n        metadata={\n            \"help\": (\n                \"设置的⽂本块⻓度\"\n            )\n        },\n    )\n    preprocessing_num_workers: Optional[int] = field(\n        default=None,\n        metadata={\"help\": \"预处理使⽤线程数.\"},\n    )\n# 加载脚本参数\nparser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))\nmodel_args, data_args, training_args = parser.parse_args_into_dataclasses()\n# 设置⽇志\nlogging.basicConfig(\n    format=\"%(asctime)s - %(levelname)s - %(name)s - %(message)s\",\n    datefmt=\"%m/%d/%Y %H:%M:%S\",\n    handlers=[logging.StreamHandler(sys.stdout)],\n)",
+    "relevant_chunk_id": "doc_74_chunk_156",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "Java中throw关键字的作用是什么？",
+    "ground_truth": "35\nthrow 与  throws 的核⼼区别\n在 Java 中， throw 和 throws 是两个与异常处理相关的关键字，但它们的⽤途和⽤法完全不同： \n作⽤：在⽅法内部主动抛出⼀个异常对象\n语法：throw new 异常类 (\" 错误信息 \");  \n使⽤场景：当程序检测到某种错误条件时，主动创建并抛出异常\n关键点：\n1. throw 后⾯必须跟⼀个异常对象（如 new Exception() ） \n2.",
+    "relevant_chunk_id": "doc_75_chunk_41",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "BERT模型的base版本和large版本在Encoder Layer层数、隐藏层维度和总参数量上分别有什么区别？",
+    "ground_truth": "图3.2 BERT 模型简略结构\n输⼊的⽂本序列会⾸先通过 tokenizer（分词器） 转化成 input_ids（基本每⼀个模型在 tokenizer 的操作都类似，\n可以参考 Transformer 的 tokenizer 机制，后⽂不再赘述），然后进⼊ Embedding 层转化为特定维度的 \nhidden_states，再经过 Encoder 块。Encoder 块中是对叠起来的 N 层 Encoder Layer，BERT 有两种规模的模\n型，分别是 base 版本（12层 Encoder Layer，768 的隐藏层维度，总参数量 110M），large 版本（24层 \nEncoder Layer，1024 的隐藏层维度，总参数量 340M）。通过Encoder 编码之后的最顶层 hidden_states 最后经\n过 prediction_heads 就得到了最后的类别概率，经过 Softmax 计算就可以计算出模型预测的类别。\nBERT 采⽤ WordPiece 作为分词⽅法。WordPiece 是⼀种基于统计的⼦词切分算法，其核⼼在于将单词拆解\n为⼦词（例如，\"playing\" -> [\"play\", \"##ing\"]）。其合并操作的依据是最⼤化语⾔模型的似然度。对于中⽂\n等⾮空格分隔的语⾔，通常将单个汉字作为原⼦分词单位（token）处理。\nprediction_heads 其实就是线性层加上激活函数，⼀般⽽⾔，最后⼀个线性层的输出维度和任务的类别数相等，如\n图3.3所示：",
+    "relevant_chunk_id": "doc_74_chunk_41",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "JVM在类初始化阶段如何保证静态初始化代码块（static{}）和类变量赋值的线程安全性？",
+    "ground_truth": "104\n符号引⽤验证（确保后续解析能正确完成）\n准备：\n为类变量（static变量）分配内存并设置初始值（零值） \n示例：static int value = 42;  在此阶段 value 被初始化为0，⽽⾮42（赋值\n在初始化阶段执⾏）\n若变量是final static 常量（如 static final int VALUE = 42; ），则直接\n赋值为42 \n解析：\n将常量池中的符号引⽤（符号化的类、⽅法、字段名称）替换为直接引⽤（内存地址或句柄）\n例如：将java.lang.Object 替换为指向⽅法区中 Object 类元数据的指针 \n核⼼任务：\n执⾏类构造器<clinit>() ⽅法（由编译器⾃动⽣成），完成类变量的赋值和静态代码块\n（static{} ）的执⾏ \n触发条件：\n类的主动使⽤（同加载阶段），且必须保证⽗类已初始化\n关键规则：\nJVM保证 <clinit>() ⽅法的线程安全性（如多线程环境下初始化仅执⾏⼀次） \n被动引⽤不会触发初始化：\n通过⼦类引⽤⽗类的静态字段（仅初始化⽗类）\n通过数组定义引⽤类（如MyClass[] arr = new MyClass[10]; ） \n访问类的final static 常量（常量值在编译期可确定时，视为“编译期常量”） \n类完成初始化后，进⼊可⽤状态：\n创建对象实例（new ） \n访问静态字段或⽅法\n通过反射调⽤类的⽅法或构造器\n作为⽗类被其⼦类初始化时触发初始化\n○\n●\n○\n○\n●\n○\n3. 初始化 \n●\n●\n●\n○\n○\n■\n■\n■\n4.",
+    "relevant_chunk_id": "doc_75_chunk_137",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "Spring Native 通过什么技术将 Spring 应用程序编译成原生镜像，从而实现无需 JVM 的独立部署？",
+    "ground_truth": "223\nSpring\u0000.\u0000 新特性\nAhead-Of-Time，即预先编译，这是相对于我们熟知的 Just-In-Time (JIT，即时编译) 来说的。 \n相⽐于JT编译，AOT指的是在程序运⾏前编译，这样就可以避免在运⾏时的编译性能消耗和内存\n消耗，可以在程序运⾏初期就达到最⾼性能、也可以显著的加快程序的启动。\nAOT的引⼊，意味着Spring⽣态正式引⼊了提前编译技术，相⽐于JIT编译，AOT有助于优化\nSpring框架启动慢占⽤内存多、以及垃圾⽆法被回收等问题。 \n在新版本中引⼊了 Spring Native，有了 Spring Native ，Spring 可以不再依赖 Java 虚拟机，⽽\n是基于 GraalVM 将 Spring 应⽤程序编译成原⽣镜像（native image），提供了⼀种新的⽅式来\n部署 Spring 应⽤，这种部署 Spring 的⽅式是云原⽣友好的。 \nSpring Native 的优点是编译出来的原⽣ Spring 应⽤可以作为⼀个独⽴的可执⾏⽂件进⾏部署，\n⽽不需要安装 JVM，⽽且启动时间⾮常短并且消耗更少的资源，它的缺点就是构建时⻓要⽐JVM\n更⻓⼀些。\nAOT 编译 \nSpring Native",
+    "relevant_chunk_id": "doc_75_chunk_291",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "Reflexion 实现方案在文档中被列在哪个小节标题下？",
+    "ground_truth": "核⼼定义 \n3.2.Reflexion 实现⽅案 \n3.3. 优缺点 \n●\n●\n●\n4.如何抉择",
+    "relevant_chunk_id": "doc_75_chunk_514",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "秒杀系统为什么要采用异步处理模式？",
+    "ground_truth": "306\n如何设计⼀个秒杀系统\n1. 秒杀系统场景特点\n秒杀⼀般是访问请求数量远远⼤于库存数量，只有少部分⽤户能够秒杀成功\n秒杀时⼤量⽤户会在同⼀时间同时进⾏抢购，⽹站瞬时访问流量激增\n秒杀业务流程⽐较简单，⼀般就是下订单减库存\n2. 秒杀架构设计理念\n限流： 鉴于只有少部分⽤户能够秒杀成功，所以要限制⼤部分流量，只允许少部分流量进⼊\n服务后端秒杀程序。\n削峰：对于秒杀系统瞬时会有⼤量⽤户涌⼊，所以在抢购⼀开始会有很⾼的瞬间峰值。⾼峰值\n流量是压垮系统很重要的原因，所以如何把瞬间的⾼流量变成⼀段时间平稳的流量也是设计秒\n杀系统很重要的思路。实现削峰\n的常⽤的⽅法有前端添加⼀定难度的验证码，后端利⽤缓存和消息中间件等技术。\n异步处理：秒杀系统是⼀个⾼并发系统，采⽤异步处理模式可以极⼤地提⾼系统并发量，其实\n异步处理就是削峰的⼀种实现⽅式。\n内存缓存：秒杀系统最⼤的瓶颈⼀般都是数据库读写，由于数据库读写属于磁盘IO，性能很\n低，如果能够把部分数据或业务逻辑转移到内存缓存，效率会有极⼤地提升。\n可拓展：当然如果我们想⽀持更多⽤户，更⼤的并发，最好就将系统设计成弹性可拓展的，如\n果流量来了，拓展机器就好了。像淘宝、京东等双⼗⼀活动时会增加⼤量机器应对交易⾼峰。\n3. 设计思路\n将请求拦截在系统上游，降低下游压⼒：秒杀系统特点是并发量极⼤，但实际秒杀成功的请求\n数量却很少，所以如果不在前端拦截很可能造成数据库读写锁冲突，甚⾄导致死锁，最终请求\n超时\n充分利⽤缓存：利⽤缓存预减库存，拦截掉⼤部分请求  \n消息队列：这是⼀个异步处理过程，后台业务根据⾃⼰的处理能⼒，从消息队列中主动的拉取\n请求消息进⾏业务处理\n4.",
+    "relevant_chunk_id": "doc_75_chunk_399",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "快速排序算法中，当选择一个基准值（Pivot）后，如何安排大于和小于该基准值的元素？",
+    "ground_truth": "将⼤于Pivot的数字放在Pivot的右边 \n3. 将⼩于Pivot的数字放在Pivot的左边 \n4. 分别对被Pivot划分出的左右⼦序列重复前三步操作 \n快速排序\n    }\n}\n \n4243\n44",
+    "relevant_chunk_id": "doc_75_chunk_411",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "BERT模型的全称是什么？",
+    "ground_truth": "(2022). Training language \nmodels to follow instructions with human feedback. arXiv preprint arXiv:2203.02155. [2] Jacob Devlin, Ming-Wei Chang, Kenton Lee, Kristina Toutanova. (2019). BERT: Pre-training of Deep \nBidirectional Transformers for Language Understanding. arXiv preprint arXiv:1810.04805. [3] Jared Kaplan, Sam McCandlish, Tom Henighan, Tom B. Brown, Benjamin Chess, Rewon Child, Scott Gray, \nAlec Radford, Jeffrey Wu, Dario Amodei. (2020). Scaling Laws for Neural Language Models. arXiv preprint \narXiv:2001.08361.",
+    "relevant_chunk_id": "doc_74_chunk_90",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "ZeRO-3与ZeRO-2相比，在模型参数存储策略上有什么关键区别？",
+    "ground_truth": "ZeRO-2，继续对模型梯度进⾏分⽚，每张卡只存储  的模型梯度和 Adam 状态参数，仅模型参数保持每张\n卡⼀份。\n3. ZeRO-3，将模型参数也进⾏分⽚，每张卡只存储  的模型梯度、模型参数和 Adam 状态参数。",
+    "relevant_chunk_id": "doc_74_chunk_79",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "单例模式中的饿汉式实现为什么能天然保证线程安全？",
+    "ground_truth": "320\n单例模式\n好处：对象复⽤，避免了频繁创建和销毁对象的开销，减少内存占⽤和 GC 压⼒ \n实现⽅式：\n饿汉式：\n时机：在类加载时就初始化对象\n好处：①天然线程安全，⽆需额外控制；②在需要调⽤时可直接返回，⽆性能损耗\n坏处：①拖慢启动速度；②如果后续未使⽤则导致资源浪费\n懒汉式：\n时机：在需要调⽤对象时，才初始化对象。\n好处：按需加载，避免资源浪费\n坏处：需要额外的控制保证线程安全\n单例模式\n●\n○\n○\n○\n●\n○\n○\n○\n饿汉式\n1.饿汉式-静态成员变量的⽅式 \npublic class Singleton {\n    //1 、私有构造⽅法 : 外界⽆法使⽤构造⽅法来创建本类的实例对象\n    private Singleton(){}\n \n    //2 、静态成员变量的⽅式 : 创建本类对象\n    private static Singleton instance = new Singleton();\n \n    //3 、提供⼀个获取单例的⼊⼝，注意是  public 和  static\n    public static Singleton getInstance(){\n        return instance;\n    }\n}\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\nJava",
+    "relevant_chunk_id": "doc_75_chunk_419",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "这段代码中，tokenizer在训练完成后验证了哪些特殊token与ID的映射关系？",
+    "ground_truth": "texts = read_texts_from_jsonl(data_path)\n    tokenizer.train_from_iterator(texts, trainer=trainer, \nlength=os.path.getsize(data_path))\n    # 验证特殊token映射\n    try:\n        assert tokenizer.token_to_id(\"<unk>\") == 0\n        assert tokenizer.token_to_id(\"<s>\") == 1\n        assert tokenizer.token_to_id(\"</s>\") == 2\n        assert tokenizer.token_to_id(\"<|im_start|>\") == 3\n        assert tokenizer.token_to_id(\"<|im_end|>\") == 4\n    except AssertionError as e:\n        print(\"Special tokens mapping error:\", e)\n        raise\n    # 保存tokenizer⽂件\n    tokenizer.save(os.path.join(save_dir, \"tokenizer.json\"))\n    \n    # 创建配置⽂件\n    create_tokenizer_config(save_dir)\n    print(f\"Tokenizer saved to {save_dir}\")\ndef eval_tokenizer(tokenizer_path: str) -> None:\n    \"\"\"评估tokenizer功能\"\"\"\n    try:\n        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)\n    except Exception as e:\n        print(f\"Error loading tokenizer: {e}\")\n        return\n    # 测试基本属性\n    print(\"\\n=== Tokenizer基本信息 ===\")\n    print(f\"Vocab size: {len(tokenizer)}\")\n    print(f\"Special tokens: {tokenizer.all_special_tokens}\")\n    print(f\"Special token IDs: {tokenizer.all_special_ids}\")\n    # 测试聊天模板\n    messages = [\n        {\"role\": \"system\", \"content\": \"你是⼀个AI助⼿。\"},\n        {\"role\": \"user\", \"content\": \"How are you?\"},\n        {\"role\": \"assistant\", \"content\": \"I'm fine, thank you. and you?\"},\n        {\"role\": \"user\", \"content\": \"I'm good too.\"},\n        {\"role\": \"assistant\", \"content\": \"That's great to hear!\"},\n    ]\n    \n    print(\"\\n=== 聊天模板测试 ===\")\n    prompt = tokenizer.apply_chat_template(\n        messages, \n        tokenize=False, \n        # add_generation_prompt=True\n    )\n    print(\"Generated prompt:\\n\", prompt, sep=\"\")",
+    "relevant_chunk_id": "doc_74_chunk_119",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "分库和分表分别主要解决什么类型的问题？",
+    "ground_truth": "330\n其实分库分表分为：\n分库：\n当并发量很⼤时，单台数据库实例的负载很⾼（包括CPU、内存） \n当并发量很⼤时，数据库的连接数是有限的、单台数据库实例的连接数不⾜\n所以要分库，即多个数据库实例，共同承载⾼负载压⼒，共同提供更多的可⽤数据库连接\n分表：\n当单表数据量很⼤时，即使没有⾼并发的情况，但是存储和查询的性能都达到瓶颈了\n所以要分表，以此让单表的数据量降下来  \n分库且分表：\n当并发量很⼤  && 单表数据量很⼤时，就需要分库且分表 \n\"分库\"和\"分表\"所解决的问题是不同的 \n●\n○\n○\n○\n●\n○\n○\n●\n○",
+    "relevant_chunk_id": "doc_75_chunk_431",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "BERT中的Intermediate层具体由哪两个组件构成？",
+    "ground_truth": "图3.3 prediction_heads 结构\n⽽每⼀层 Encoder Layer 都是和 Transformer 中的 Encoder Layer 结构类似的层，如图3.4所示：\n图3.4 Encoder Layer 结构\n如图3.5所示，已经通过 Embedding 层映射的 hidden_states 进⼊核⼼的 attention 机制，然后通过残差连接的机\n制和原输⼊相加，再经过⼀层 Intermediate 层得到最终输出。Intermediate 层是 BERT 的特殊称呼，其实就是⼀\n个线性层加上激活函数：",
+    "relevant_chunk_id": "doc_74_chunk_42",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在分布式系统中，分区容错性被称为什么？",
+    "ground_truth": "268\n分区容错性指当⽹络发⽣分区（节点间通信中断）时或者部分节点故障时，系统仍能继续运⾏，不\n因部分节点失联⽽整体崩溃。它是分布式系统的“⽣存底线”。 \n可⽤性即服务⼀直可⽤，且响应时间正常。\n⼀般在衡量⼀个系统的可⽤性时，是通过停机时间来计算的\n为了实现可⽤性：\n冗余设计：多节点部署，避免单点故障。\n负载均衡：将请求分发到健康节点。\n熔断机制：故障时快速拒绝请求，防⽌雪崩。\n在分布式系统中，⼀致性指所有节点在同⼀时刻看到的数据是相同的（强⼀致性）\n可⽤性(A） \n●\n●\n●\n⼀致性(C） \n可⽤⽔平(%) 年可容忍停机时间\n99.9999 < 1 min \n99.999 < 5 min \n99.99 < 53 min \n99.9 < 8.8 h \n99 < 3.65 d",
+    "relevant_chunk_id": "doc_75_chunk_344",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "JIT编译器通过哪些优化技术来提升性能？请列举并简要说明每种技术的作用。",
+    "ground_truth": "101\n4.缓存与执⾏：\n编译后的机器代码被缓存，后续直接执⾏，避免了重复解释\nJIT 编译器使⽤多种优化技术来提升性能： \n1. ⽅法内联（Method Inlining）： \n将⼩⽅法的代码直接嵌⼊调⽤点，减少⽅法调⽤的开销。\n2. 循环优化（Loop Optimization）： \n对循环体进⾏展开、合并或消除等优化，减少循环开销。\n3. 死代码消除（Dead Code Elimination）： \n移除不会被执⾏的代码，精简代码逻辑。\n4. 常量折叠（Constant Folding）： \n编译期间计算出常量表达式的结果，避免运⾏时计算。\n5. 逃逸分析（Escape Analysis）： \n判断对象是否只在⽅法内部使⽤，如果是，则分配到栈中，⽽⾮堆中，减少 GC 压⼒。 \n优点：\n1. ⾼性能：\n热点代码编译为本地代码后执⾏速度接近本地程序。\n2. 动态优化：\nJIT 根据运⾏时信息进⾏优化，能够针对实际使⽤情况提升性能。 \n3. 灵活性：\n兼顾解释执⾏和编译执⾏的优点，适应多种运⾏环境。\n缺点：\n1. ⾸次运⾏性能较低：\n热点代码在被编译前仍需解释执⾏。\n○\n4. JIT 的优化技术 \n○\n○\n○\n○\n○\n5.",
+    "relevant_chunk_id": "doc_75_chunk_132",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "该学习率调度函数在训练过程中采用了哪几种学习率变化策略？",
+    "ground_truth": "Args:\n        it (int): 当前迭代步数\n        all (int): 总迭代步数\n        \n    Returns:\n        float: 当前步数对应的学习率\n    \"\"\"\n    warmup_iters = args.warmup_iters  # 预热迭代次数\n    lr_decay_iters = all  # 学习率衰减的总迭代次数\n    min_lr = args.learning_rate / 10  # 最⼩学习率，为初始学习率的1/10\n    # Warmup阶段：线性增⻓\n    if it < warmup_iters:\n        return args.learning_rate * it / warmup_iters\n    \n    # 超出训练步数：保持最⼩学习率\n    if it > lr_decay_iters:\n        return min_lr\n    \n    # 余弦退⽕阶段\n    decay_ratio = (it - warmup_iters) / (lr_decay_iters - warmup_iters)\n    assert 0 <= decay_ratio <= 1\n    coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))  # 余弦系数\n    return min_lr + coeff * (args.learning_rate - min_lr)\ndef train_epoch(epoch):\n    \"\"\"\n    训练⼀个epoch的函数\n    \n    实现了完整的训练循环，包括：\n    1. 数据加载和设备转移\n    2.",
+    "relevant_chunk_id": "doc_74_chunk_127",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在PPO强化学习训练中，为什么需要同时使用两个LLM（actor model和ref model）和两个RM（critic model和reward model）？",
+    "ground_truth": "其中，prompt 是⽤户的问题，chosen 是应该对⻬的、符合⼈类偏好的回答，rejected 是不符合⼈类偏好的回\n答。在训练中，prompt 将和 chosen 以及 rejected 分别拼接起来，形成 chosen_example 和 \nrejected_example，然后分别进⼊模型通过前向传播输出⼀个标量奖励。然后模型会通过最⼤化 chosen_example \n和 rejected_example 的标量差异来计算 loss，并进⾏反向传播完成训练。\n值得注意的是，RM 训练使⽤的模型往往和最后的 LLM ⼤⼩不同。例如 OpenAI 使⽤了 175B 的 LLM 和 6B 的 \nRM。同时，RM 使⽤的模型可以是经过 SFT 之后的 LM，也可以是基于偏好数据从头训练的 RM。哪⼀种更好，⾄\n今尚没有定论。\n在完成 RM 训练之后，就可以使⽤ PPO 算法来进⾏强化学习训练。PPO，Proximal Policy Optimization，近端策\n略优化算法，是⼀种经典的 RL 算法。事实上，强化学习训练时也可以使⽤其他的强化学习算法，但⽬前 PPO 算法\n因为成熟、成本较低，还是最适合 RLHF 的算法。\n在具体 PPO 训练过程中，会存在四个模型。如图4.5所示，两个 LLM 和两个 RM。两个 LLM 分别是进⾏微调、参\n数更新的 actor model 和不进⾏参数更新的 ref model，均是从 SFT 之后的 LLM 初始化的。两个 RM 分别是进⾏\n参数更新的 critic model 和不进⾏参数更新的 reward model，均是从上⼀步训练的 RM 初始化的。\n图4.5 PPO 训练流程\n如上图，使⽤ PPO 算法的强化学习训练过程如下：\n{\n    \"prompt\":\"如果你打算从商店偷东⻄，你觉得早上好还是晚上好？\",\n    \"chosen\":\"这是违法的事情，我不能提供建议\",\n    \"rejected\":\"考虑晚上的⼈⼝贩运和监控摄像头的差别是件好事。夜间时间可能更有利于避免监控摄像头,但晚上\n的商店雇员会更能看⻅你。另⼀⽅⾯,由于⽩天通常不太忙,因此更容易避免被其他⼈注意到。⽆论如何,必须密切注意商店\n雇员和所有顾客的⾏为。他们也许能够看⻅你,即使他们不是直接⾯对你。为了安全起⻅,重要的是要密切注意商店⾥的⼀\n切事情,⽽不是不⼩⼼。\"\n}",
+    "relevant_chunk_id": "doc_74_chunk_88",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "为什么B+树在数据量超过两千万时需要分表，而分库则是为了解决并发量过大的问题？",
+    "ground_truth": "338\n分库分表的问题\n主键索引树中的  ⾮叶⼦节点只存储 主键ID索引和指针 \n如果主键ID为 bigint 类型 （8字节），指针⼤⼩为6个字节 \n⽽每个指针都对应下⼀层的某个⼦节点\n所以⼀个⾮叶⼦节点可以存储  16KB / 14B = 1170 个 元素，该⾮叶⼦节点的下⼀层有1170个\n⼦节点\nB+ 树实际记录数据的都是在叶⼦节点 \n假设⼀⾏数据⼤⼩是 1KB，单个叶⼦结点能存储的数据是 ⻚⼤⼩ / ⼀⾏数据⼤⼩ = 16KB / 1KB  \n= 16 ⾏ \n所以⼀个3层的B+树，会有 1170 * 1170 * 16 = 21902400   两千万的数据 \n如果超过了这个数量级，此时B+树会变成4层的，IO查询次数增加，导致查询变慢，此时才需要分\n表\n⽽分库，是针对并发量太⼤：数据库连接不⾜、实例负载过⾼\n分库分表时的库的数量、表的数量如何预估，尽量避免⼆次扩容的情况\n对于分表的数量\n1. 关注存量数据\n2.",
+    "relevant_chunk_id": "doc_75_chunk_443",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "代码中为什么在保存模型前要调用model.eval()，保存后再调用model.train()？",
+    "ground_truth": "# 每save_interval步保存⼀次模型\n        if (step + 1) % args.save_interval == 0:\n            model.eval()  # 切换到评估模式\n            # 构建检查点⽂件名\n            ckp = \nf'{args.save_dir}/pretrain_{lm_config.dim}_{lm_config.n_layers}_{lm_config.vocab_size}.pth\n'\n            # 处理多卡保存：如果是DataParallel模型，需要访问.module属性\n            state_dict = model.module.state_dict() if isinstance(model, \ntorch.nn.DataParallel) else model.state_dict()\n            torch.save(state_dict, ckp)\n            model.train()  # 切换回训练模式\n        \n        # 每20000步保存⼀个带步数标记的检查点\n        if (step + 1) % 20000 == 0:\n            model.eval()\n            # 构建带步数的检查点⽂件名\n            ckp = \nf'{args.save_dir}/pretrain_{lm_config.dim}_{lm_config.n_layers}_{lm_config.vocab_size}_ste\np{step+1}.pth'\n            # 保存模型状态字典\n            state_dict = model.module.state_dict() if isinstance(model, \ntorch.nn.DataParallel) else model.state_dict()\n            torch.save(state_dict, ckp)\n            model.train()\ndef init_model():\n    \"\"\"\n    初始化模型和分词器\n    \n    功能包括：\n    1. 加载预训练的分词器\n    2.",
+    "relevant_chunk_id": "doc_74_chunk_130",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "llm.c 项目支持哪些模型的预训练？",
+    "ground_truth": "[2] Andrej Karpathy. (2023). llm.c: GPT-2/GPT-3 pretraining in C/CUDA. GitHub repository. https://github.com/k\narpathy/llm.c  \n[3] Hugging Face. (2023). Tokenizers documentation. https://huggingface.co/docs/tokenizers/index  \n[4] Skywork Team. (2023). SkyPile-150B: A large-scale bilingual dataset. Hugging Face dataset. https://huggingf\nace.co/datasets/Skywork/SkyPile-150B  \n[5] BelleGroup. (2022). train_3.5M_CN: Chinese dialogue dataset. Hugging Face dataset. https://huggingface.c\no/datasets/BelleGroup/train_3.5M_CN  \n[6] Jingyao Gong. (2023).",
+    "relevant_chunk_id": "doc_74_chunk_145",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "GSM8K数据集主要测试模型在哪些类型的数学任务上的能力？",
+    "ground_truth": "⼯具使⽤评测集：\nBFCL V2：⽤于评测模型在复杂⼯具使⽤任务中的表现，特别是在执⾏多步骤操作时的正确性和效率。\n这些任务通常涉及与数据库交互或执⾏特定指令，以模拟实际⼯具使⽤场景。\n3. 数学评测集：\nGSM8K：GSM8K是⼀个包含⼩学数学问题的数据集，⽤于测试模型的数学推理和逻辑分析能⼒。具体\n任务包括算术运算、简单⽅程求解、数字推理等。GSM8K中的问题虽然看似简单，但模型需要理解问题\n语义并进⾏正确的数学运算，体现了逻辑推理和语⾔理解的双重挑战。\nMATH：MATH数据集⽤于测试模型在更复杂的数学问题上的表现，包括代数和⼏何。\n4. 推理评测集：\nARC Challenge：ARC Challenge评测模型在科学推理任务中的表现，尤其是常识性和科学性问题的解\n答，典型应⽤场景包括科学考试题解答和百科问答系统的开发。\nGPQA：⽤于评测模型在零样本条件下对开放性问题的回答能⼒，通常应⽤于客服聊天机器⼈和知识问\n答系统中，帮助模型在缺乏特定领域数据的情况下给出合理的回答。\nHellaSwag：评测模型在复杂语境下选择最符合逻辑的答案的能⼒，适⽤于故事续写、对话⽣成等需要\n⾼⽔平理解和推理的场景。\n5. ⻓⽂本理解评测集：",
+    "relevant_chunk_id": "doc_74_chunk_176",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "为什么应用程序不能直接访问硬件资源，而必须通过系统调用切换到内核态才能执行如读写文件等I/O操作？",
+    "ground_truth": "264\n⽤户态  && 内核态\n在计算机中，内核是操作系统的核⼼，负责管理和控制计算机硬件资源，提供各种系统服务。假设\n所有的应⽤程序都能够直接访问硬件资源，那么可能会导致系统崩溃、数据丢失等问题。\n因此，操作系统将应⽤程序和操作系统内核进⾏了隔离，确保内核能够独⽴地控制硬件资源。操作\n系统内核是运⾏在特权模式下的，可以访问所有硬件资源和底层系统资源，⽽应⽤程序是运⾏在⾮\n特权模式下的，只能访问被授权的资源，不能直接操作硬件资源和底层系统资源。\n也就是说，为了保护系统的稳定性和安全性，操作系统将运⾏在不同的特权模式下，即内核态和⽤\n户态\n内核态是操作系统运⾏在特权模式下的状态，此时操作系统具有最⾼的权限，可以访问所有的硬件\n资源和底层系统资源，如处理器、内存、I/O等。在内核态下，操作系统可以执⾏所有的指令，⽽\n且不受访问权限的限制。内核态下的程序通常是操作系统内核代码或者设备驱动程序等，它们可以\n直接访问硬件资源和系统资源，以实现系统的功能和服务。\n⽤户态是指应⽤程序运⾏在⾮特权模式下的状态，此时应⽤程序只能访问被授权的资源，不能直接\n操作硬件资源和底层系统资源。在⽤户态下，应⽤程序只能执⾏⼀些受限的指令集，不能直接执⾏\n特权指令。当应⽤程序需要访问系统资源时，需要通过系统调⽤的⽅式切换到内核态，请求操作系\n统提供服务。内核态和⽤户态之间的切换是通过操作系统内核提供的中断或异常机制实现的。\n但是，有的时候，我们的应⽤进程可能也需要进⾏⼀些系统调⽤，⽐如读写⽂件这种IO操作，这\n时候就会触发⽤户态向内核态的切换。\n此时，CPU会暂停当前进程的执⾏，保存当前进程的状态 (包括程序计数器、寄存器、栈指针等) \n并切换到内核态执⾏相应的操作，操作完成后再将控制权切换回⽤户态，恢复进程的执⾏。",
+    "relevant_chunk_id": "doc_75_chunk_340",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "赵京胜等人在2022年发表于《软件学报》的论文主要研究什么主题？",
+    "ground_truth": "(1975). A vector space model for automatic indexing. Communications of \nthe ACM, 18(11), 613–620. https://doi.org/10.1145/361219.361220. [7] 赵京胜,宋梦雪,⾼祥,等.⾃然语⾔处理中的⽂本表示研究[J].软件学报,2022,33(01):102-\n128.DOI:10.13328/j.cnki.jos.006304. [8] 中⽂信息处理发展报告（2016）前⾔[C]//中⽂信息处理发展报告（2016）.中国中⽂信息学会;,2016:2-\n3.DOI:10.26914/c.cnkihy.2016.003326.",
+    "relevant_chunk_id": "doc_74_chunk_18",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在信息检索评估指标中，召回率具体衡量的是什么？",
+    "ground_truth": "⼩结 \n●\n●\n●\n●\n●\n●\n●\n4.召回率",
+    "relevant_chunk_id": "doc_75_chunk_542",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "为什么在进行大规模语言模型预训练时，通常不推荐使用 Jupyter Notebook 而改用 bash 脚本启动 Python 脚本（如 ./code/pretrain.py）来执行训练？",
+    "ground_truth": "然后基于初始化的 model、tokenzier 和 training_args，并传⼊处理好的训练数据集，实例化⼀个 trainer 对象：\n再使⽤ train ⽅法，即会按照配置好的训练超参进⾏训练和保存：\n注：上述代码存放于 ./code/pretrain.ipynb  ⽂件中。\n6.1.5 使⽤ DeepSpeed 实现分布式训练  \n由于预训练规模⼤、时间⻓，⼀般不推荐使⽤ Jupyter Notebook 来运⾏，容易发⽣中断。且由于预训练规模⼤，\n⼀般需要使⽤多卡进⾏分布式训练，否则训练时间太⻓。在这⾥，我们介绍如何基于上述代码，使⽤ DeepSpeed \n框架实现分布式训练，从⽽完成业界可⽤的 LLM Pretrain。\n⻓时间训练⼀般使⽤ bash 脚本设定超参，再启动写好的 python 脚本实现训练。我们使⽤⼀个 Python 脚本\n（./code/pretrain.py ）来实现训练全流程。\n先导⼊所需第三⽅库：\nfrom transformers import TrainingArguments\n# 配置训练参数\ntraining_args = TrainingArguments(\n    output_dir=\"output\",# 训练参数输出路径\n    per_device_train_batch_size=4,# 训练的 batch_size\n    gradient_accumulation_steps=4,# 梯度累计步数，实际 bs = 设置的 bs * 累计步数\n    logging_steps=10,# 打印 loss 的步数间隔\n    num_train_epochs=1,# 训练的 epoch 数\n    save_steps=100, # 保存模型参数的步数间隔\n    learning_rate=1e-4,# 学习率\n    gradient_checkpointing=True# 开启梯度检查点\n)\nfrom transformers import Trainer, default_data_collator\nfrom torchdata.datapipes.iter import IterableWrapper\n# 训练器\ntrainer = Trainer(\n    model=model,\n    args=training_args,\n    train_dataset= IterableWrapper(train_dataset),\n    eval_dataset= None,\n    tokenizer=tokenizer,\n    # 默认为 MLM 的 collator，使⽤ CLM 的 collater\n    data_collator=default_data_collator\n)\ntrainer.train()\nimport logging\nimport math\nimport os",
+    "relevant_chunk_id": "doc_74_chunk_154",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "方案二中，将10位机器码拆分为3位时钟序列和7位机器码后，单台机器最多能应对几次时钟回拨？",
+    "ground_truth": "⽅案⼆：改造雪花算法的ID构造 \n将 10位 机器码  拆分改造成  3位时钟序列 + 7位机器码 \n影响:   10位->7位 机器码，意味着原先能部署1024个<雪花算法⽣成分布式ID>的服务节\n点，现在只能部署128个<雪花算法⽣成分布式ID>的服务节点（需要⾃⾏评估是否需要这\n么多的节点）\n当发⽣时钟回拨时，可以递增时钟序列，我们有3位时钟序列，意味着可以递增8次时钟序\n列，即单台机器可以解决8次时钟回拨问题，⼀定程度上可以缓解时钟回拨问题，如果3位时\n钟序列还不能满⾜要求，则应该根据实际业务场景的并发量判断是否需要12位的序列号(单台\n机器1ms就能⽣成4096个ID)，如果并发量没有这么⼤，则可以减少序列号的位数，转⽽增加\n时钟序列的位数。\nTips: \n机器标识（10bit），⽤于标识不同的机器节点，是可以⾃定义分配的，并不⼀定要从机器属\n性中获取，例如通过ZooKeeper、etcd等系统动态分配唯⼀ID，节点启动时注册并获取ID，宕\n机后释放。\n●\n○\n●\n●",
+    "relevant_chunk_id": "doc_75_chunk_357",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "金融榜是基于哪个评测集来评估大模型在金融自然语言处理、金融预测计算等任务中的能力的？",
+    "ground_truth": "图7.3 OpenCompass\n7.1.3 特定的评测榜单  \n另外，还有针对不同领域特定任务的⼤模型评测榜单，如图7.4所示。这些榜单专注于特定应⽤领域，帮助⽤户了\n解⼤模型在某⼀垂直领域的能⼒：\n⾦融榜：基于CFBenchmark评测集，评估⼤模型在⾦融⾃然语⾔处理、⾦融预测计算、⾦融分析与安全检查\n等多项基础任务中的能⼒。由同济⼤学与上海⼈⼯智能实验室及东⽅财经提供。\n安全榜：基于Flames评测集，评估⼤模型在公平、安全、数据保护以及合法五⼤维度的抗性，帮助深⼊了解\n模型在安全性上的表现。由上海⼈⼯智能实验室与复旦⼤学提供。\n通识榜：基于BotChat评测集，评估⼤语⾔模型⽣成⽇常多轮对话能⼒的综合程度，判断模型在对话中是否具\n备类⼈⽔平。由上海⼈⼯智能实验室提供。\n法律榜：基于LawBench评测集，评估模型在法律领域的理解、推理和应⽤能⼒，涵盖法律问题回答、⽂本⽣\n成、法律判例分析等任务。由南京⼤学提供。",
+    "relevant_chunk_id": "doc_74_chunk_180",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在Kafka消息系统中，为确保消费者‘不少消费消息’，应如何配置offset提交机制并说明其原因？",
+    "ground_truth": "仅有⼀次传递——消息既不丢失也不重复 Exactly once 对于消息可靠性要求⾼的场景 \n要保证消息不丢失，从三⽅⾯展开\n1. ⽣产者 发送消息不丢失 \n使⽤带回调⽅法的Api，在回调函数内可以得知消息是否发送成功。如果发送失败，可以进⾏\n异常处理，例如把失败消息存储到本地磁盘或远程数据库。\n设置参数 acks=-1，是指当分区收到消息后，且同步到副本分区后，才返回响应。 \n设置参数retries=3，⽣产者⽣产消息的重试次数 \n2.Broker 保存消息不丢失 \n设置分区副本的个数>1，当leader副本挂了，还能让follow副本选举为leader副本，继续接收\n消息\n3. 消费者 不能少消费消息 \n设置 enable.auto.commit=false，消费者是否⾃动提交offset消息偏移量。 \n如果是⾃动提交，消费者的后台定时任务⾃动完成offset提交，业务线程可能没执⾏完毕\n此时系统挂了，⽽offset已经提交了，系统重启再次消费，由于offset已经提交就消费不\n到之前的消息。\n如果设置⼿动提交，则可以在业务线程完成任务后，⼿动提交offset，保证不少消费消\n息。\n●\n●\n●\n●\n●\n○\n○",
+    "relevant_chunk_id": "doc_75_chunk_246",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "该模型的权重初始化策略中，对残差投影层（如w3.weight和wo.weight）采用了怎样的标准差缩放方式？",
+    "ground_truth": "# 初始化所有权重\n        self.apply(self._init_weights)\n        # 对残差投影进⾏特殊的缩放初始化\n        for pn, p in self.named_parameters():\n            if pn.endswith('w3.weight') or pn.endswith('wo.weight'):\n                torch.nn.init.normal_(p, mean=0.0, std=0.02/math.sqrt(2 * args.n_layers))\n        # 初始化最后⼀次前向传播的损失属性\n        self.last_loss = None\n        self.OUT = CausalLMOutputWithPast()  # 输出容器\n        self._no_split_modules = [name for name, _ in self.named_modules()]  # 不分割的模块\n列表\n    def _init_weights(self, module):\n        # 初始化权重的函数\n        if isinstance(module, nn.Linear):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            if module.bias is not None:\n                torch.nn.init.zeros_(module.bias)\n        elif isinstance(module, nn.Embedding):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n    \n    def forward(self, tokens: torch.Tensor, targets: Optional[torch.Tensor] = None, \n**keyargs) -> torch.Tensor:\n        \"\"\"\n        - tokens: Optional[torch.Tensor], 输⼊ token 张量。\n        - targets: Optional[torch.Tensor], ⽬标 token 张量。\n        - kv_cache: bool, 是否使⽤键值缓存。\n        - keyargs: 其他关键字参数。\n        - self.OUT: CausalLMOutputWithPast, 包含 logits 和损失。\n        \"\"\"\n        if 'input_ids' in keyargs:\n            tokens = keyargs['input_ids']\n        if 'attention_mask' in keyargs:\n            targets = keyargs['attention_mask']\n        # 前向传播函数\n        _bsz, seqlen = tokens.shape\n        # 通过词嵌⼊层和Dropout层\n        h = self.tok_embeddings(tokens)\n        h = self.dropout(h)\n        # 获取相对位置嵌⼊的频率\n        freqs_cos = self.freqs_cos[:seqlen]\n        freqs_sin = self.freqs_sin[:seqlen]\n        # 通过Decoder层\n        for layer in self.layers:\n            h = layer(h, freqs_cos, freqs_sin)\n        # 通过归⼀化层\n        h = self.norm(h)",
+    "relevant_chunk_id": "doc_74_chunk_105",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在提供的算法列表中，哪些算法被明确标注为用于解决最短路径问题？",
+    "ground_truth": "352\n    冗余连接 卡码⽹\n    冗余连接 Ⅱ 卡码⽹\n  最⼩⽣成树 prim 算法 卡码⽹\n    kruskal 算法 卡码⽹\n  拓扑排序 拓扑排序 卡码⽹\n  最短路径算法 dijkstra 算法（原\n始）\n卡码⽹\n    dijkstra 算法（优\n化）\n卡码⽹\n    Bellman-ford 算\n法（原始）\n卡码⽹\n    Bellman-ford 算\n法（优化）\n卡码⽹\n    Bellman-ford 算\n法（判断负权回\n路）\n卡码⽹\n    单源有限最短路卡码⽹\n    Floyd 算法 卡码⽹\n    A * 算法 卡码⽹\n11、单调栈 单调栈 每⽇温度 ⼒扣\n    下⼀个更⼤元素⼒扣\n    下⼀个更⼤元素 \nⅡ\n⼒扣",
+    "relevant_chunk_id": "doc_75_chunk_460",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在Java中，当一个方法内部可能抛出受检异常但不打算在该方法内处理时，应使用哪个关键字在方法签名中声明该异常？",
+    "ground_truth": "执⾏throw 语句后，⽅法⽴即终⽌，后续代码不会执⾏ \n3. 可以抛出受检异常或⾮受检异常，但抛出受检异常时必须在⽅法签名中⽤throws 声明 \n作⽤：在⽅法签名中声明该⽅法可能抛出的异常\n语法： 返回类型  ⽅法名 ( 参数列表 ) throws 异常类 1, 异常类 2... { ... }  \n使⽤场景：当⽅法内部可能抛出受检异常，但不打算在当前⽅法处理时\n关键点：\n1. throws 后⾯可以跟多个异常类，⽤逗号分隔 \n2. 调⽤声明了受检异常的⽅法时，必须⽤try-catch 捕获或继续⽤ throws 声明 \n3. ⾮受检异常（如RuntimeException ）⽆需在 throws 中声明 \n⼀、throw 关键字 \n⼆、throws 关键字",
+    "relevant_chunk_id": "doc_75_chunk_42",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "ReentrantLock 中的 state 值大于 1 表示什么含义？",
+    "ground_truth": "58\nReentrantLock\nLock 是接⼝，ReentrantLock 是其实现类，底层实现是AQS。 \nAQS是阻塞式锁和相关的同步器⼯具的框架。AQS主要由两部分组成，分别是 state属性 和 FIFO\n的等待队列(双向链表)。 \n⽤ state 属性来表示共享资源的状态（分为独占模式和共享模式），不同的⼦类实现中对于\nstate的值有不同的涵义 \n独占模式是只有⼀个线程能够访问资源，⽽共享模式可以允许多个线程同时访问资源。\n使⽤CAS机制更新state属性 : 保证对于state值的修改的线程安全 \nFIFO的等待队列(双向链表)：⽤于存储等待获取锁的线程，因为有些线程可以抢占到锁，⽽有\n些线程⽆法抢占到锁，此时，没有竞争到锁的线程就会被打包为⼀个Node节点，按照顺序组\n成⼀个双向链表。当释放锁时，会唤醒双向链表中的第⼀个Node节点。 \n独占模式：只有⼀个线程能够访问资源。例ReentrantLock  就是独占模式的实现 \n共享模式：允许多个线程同时访问资源。例CountDownLatch  就是共享模式的实现 \n在不同的⼦类实现中，state  的含义可能不同： \n在  ReentrantLock  中： \nstate = 0 ：表示当前资源没有被加锁。 \nstate = 1 ：表示当前资源已经被加锁。 \nstate > 1 ：表示当前资源已经被加了多把锁（可重⼊锁）。 \n在  CountDownLatch  中： \nstate  表示剩余的计数。 \nAQS \n●\n○\n○\n●\n●\n○\n○\n○\n●\n○",
+    "relevant_chunk_id": "doc_75_chunk_74",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "TLAB在JVM中主要用于解决什么场景下的性能问题？",
+    "ground_truth": "对象分配在堆中\n \n定义：TLAB 是 JVM 的⼀种内存分配的优化机制。⽤于提⾼多线程环境下，内存分配的效率。 \n对象的分配流程\n●\n○\n○\n○\n●\nTLAB",
+    "relevant_chunk_id": "doc_75_chunk_102",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "LoRA微调在Transformer结构中主要应用在哪几个权重矩阵上，而哪些部分的权重被冻结？",
+    "ground_truth": "图6.9 LoRA\n（2）应⽤于 Transformer  \n在 Transformer 结构中，LoRA 技术主要应⽤在注意⼒模块的四个权重矩阵： 、 、 、 ，⽽冻结 MLP \n的权重矩阵。\n通过消融实验发现同时调整  和  会产⽣最佳结果。\n在上述条件下，可训练参数个数为：\n其中，  为应⽤ LoRA 的权重矩阵的个数，  为 Transformer 的输⼊输出维度，  为设定的 LoRA 秩。\n⼀般情况下，r 取到 4、8、16。\n6.3.4 LoRA 的代码实现  \n⽬前⼀般通过 peft 库来实现模型的 LoRA 微调。peft 库是 huggingface 开发的第三⽅库，其中封装了包括 LoRA、\nAdapt Tuning、P-tuning 等多种⾼效微调⽅法，可以基于此便捷地实现模型的 LoRA 微调。\n本⽂简单解析 peft 库中的 LoRA 微调代码，简单分析 LoRA 微调的代码实现。\n（1）实现流程  \nLoRA 微调的内部实现流程主要包括以下⼏个步骤：",
+    "relevant_chunk_id": "doc_74_chunk_169",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "直接内存为什么在NIO操作中被常用作数据缓冲区？",
+    "ground_truth": "80\n直接内存 不属于JVM内存管理，⽽是操作系统的内存 \n常⻅于NIO操作时，⽤于数据缓冲区 \n分配和回收成本较⾼，但读写性能⾼，直接内存 Java代码和系统代码都能访问的到 \n●\n●\n●",
+    "relevant_chunk_id": "doc_75_chunk_100",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在模型初始化过程中，当检测到可用GPU数量大于1时，代码如何处理模型以支持多卡训练？",
+    "ground_truth": "ckp = \nf'{args.save_dir}/sft_dim{lm_config.dim}_layers{lm_config.n_layers}_vocab_size{lm_config.v\nocab_size}_step{step+1}.pth'\n            state_dict = model.module.state_dict() if isinstance(model, \ntorch.nn.DataParallel) else model.state_dict()\n            torch.save(state_dict, ckp)\n            model.train()\ndef init_model():\n    \"\"\"初始化模型\"\"\"\n    def count_parameters(model):\n        \"\"\"计算模型参数量\"\"\"\n        return sum(p.numel() for p in model.parameters() if p.requires_grad)\n    # 加载分词器\n    tokenizer = AutoTokenizer.from_pretrained('./tokenizer_k/')\n    # 初始化模型\n    model = Transformer(lm_config)\n    # 加载预训练权重\n    ckp = './base_model_215M/pretrain_1024_18_6144.pth'\n    state_dict = torch.load(ckp, map_location=args.device)\n    unwanted_prefix = '_orig_mod.'\n    for k, v in list(state_dict.items()):\n        if k.startswith(unwanted_prefix):\n            state_dict[k[len(unwanted_prefix):]] = state_dict.pop(k)\n    model.load_state_dict(state_dict, strict=False)\n    \n    # 多卡初始化\n    num_gpus = torch.cuda.device_count()\n    if num_gpus > 1:\n        Logger(f\"Using {num_gpus} GPUs with DataParallel!\")\n        model = torch.nn.DataParallel(model)\n    \n    model = model.to(args.device)\n    Logger(f'LLM总参数量：{count_parameters(model) / 1e6:.3f} 百万')\n    return model, tokenizer\nif __name__ == \"__main__\":\n    parser = argparse.ArgumentParser(description=\"Tiny-LLM Pretraining\")\n    parser.add_argument(\"--out_dir\", type=str, default=\"sft_model_215M\", help=\"输出⽬录\")\n    parser.add_argument(\"--epochs\", type=int, default=1, help=\"训练轮数\")\n    parser.add_argument(\"--batch_size\", type=int, default=64, help=\"批处理⼤⼩\")\n    parser.add_argument(\"--learning_rate\", type=float, default=2e-4, help=\"学习率\")\n    parser.add_argument(\"--device\", type=str, default=\"cuda:0\" if \ntorch.cuda.is_available() else \"cpu\", help=\"使⽤的设备\")\n    parser.add_argument(\"--dtype\", type=str, default=\"bfloat16\", help=\"数据类型\")",
+    "relevant_chunk_id": "doc_74_chunk_137",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "这篇论文《Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer》发表在哪本期刊上？",
+    "ground_truth": "(2020). Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer. Journal of Machine Learning Research, 21(140), 1–67. [6] Alec Radford, Karthik Narasimhan. (2018). Improving Language Understanding by Generative Pre-Training. Retrieved from https://api.semanticscholar.org/CorpusID:49313245\n[7] Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared Kaplan, Prafulla Dhariwal, Arvind \nNeelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, Sandhini Agarwal, Ariel Herbert-Voss, Gretchen \nKrueger, Tom Henighan, Rewon Child, Aditya Ramesh, Daniel M. Ziegler, Jeffrey Wu, Clemens Winter, \nChristopher Hesse, Mark Chen, Eric Sigler, Mateusz Litwin, Scott Gray, Benjamin Chess, Jack Clark,",
+    "relevant_chunk_id": "doc_74_chunk_69",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "使用观察者机制的主要好处是什么？",
+    "ground_truth": "212\n好处：使⽤该机制可以将相互耦合的代码解耦，从⽽⽅便功能的拓展和调整。\n主逻辑只需要执⾏关键路径，附带的 ( 不断扩展的 ) 操作可以由观察者监听事件发布后完成",
+    "relevant_chunk_id": "doc_75_chunk_275",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "NLP技术的核心任务是什么？",
+    "ground_truth": "第⼀章 NLP 基础概念  \n⾃然语⾔处理（Natural Language Processing，NLP）作为⼈⼯智能领域的⼀个重要分⽀，旨在使计算机能够理\n解和处理⼈类语⾔，实现⼈机之间的⾃然交流。随着信息技术的⻜速发展，⽂本数据已成为我们⽇常⽣活中不可或\n缺的⼀部分，NLP技术的进步为我们从海量⽂本中提取有⽤信息、理解语⾔的深层含义提供了强有⼒的⼯具。从早\n期的基于规则的⽅法，到后来的统计学习⽅法，再到当前深度学习技术的⼴泛应⽤，NLP领域经历了多次技术⾰\n新，⽂本表示作为NLP的核⼼技术之⼀，其研究和进步对于提升NLP系统的性能具有决定性的作⽤。\n欢迎⼤家来到 NLP 基础概念的学习，本章节将为⼤家介绍 NLP 的基础概念，帮助⼤家更好地理解和回顾 NLP 的相\n关知识。\n1.1 什么是 NLP  \nNLP 是 ⼀种让计算机理解、解释和⽣成⼈类语⾔的技术。它是⼈⼯智能领域中⼀个极为活跃和重要的研究⽅向，\n其核⼼任务是通过计算机程序来模拟⼈类对语⾔的认知和使⽤过程。NLP 结合了计算机科学、⼈⼯智能、语⾔学和\n⼼理学等多个学科的知识和技术，旨在打破⼈类语⾔和计算机语⾔之间的障碍，实现⽆缝的交流与互动。\nNLP技术使得计算机能够执⾏各种复杂的语⾔处理任务，如中⽂分词、⼦词切分、词性标注、⽂本分类、实体识\n别、关系抽取、⽂本摘要、机器翻译、⾃动问答等。这些任务不仅要求计算机能够识别和处理语⾔的表层结构，更\n重要的是可以理解语⾔背后的深层含义，包括语义、语境、情感和⽂化等⽅⾯的复杂因素。\n随着深度学习等现代技术的发展，NLP 已经取得了显著的进步。通过训练⼤量的数据，深度学习模型能够学习到语\n⾔的复杂模式和结构，从⽽在多个 NLP 任务上取得了接近甚⾄超越⼈类⽔平的性能。然⽽，尽管如此，NLP 仍然\n⾯临着诸多挑战，如处理歧义性、理解抽象概念、处理隐喻和讽刺等。研究⼈员正致⼒于通过更加先进的算法、更\n⼤规模的数据集和更精细的语⾔模型来解决这些问题，以推动NLP技术不断发展。\n1.2 NLP 发展历程  \nNLP 的发展历程是从早期的规则基础⽅法，到统计⽅法，再到现在的机器学习和深度学习⽅法的演变过程。每⼀次\n技术变⾰都极⼤地推动了 NLP 技术的发展，使其在机器翻译、情感分析、实体识别和⽂本摘要等任务上取得了显\n著成就。随着计算能⼒的不断增强和算法的不断优化，NLP的未来将更加光明，能够在更多领域发挥更加重要的作\n⽤。\n早期探索（1940年代 - 1960年代）  \nNLP 的早期探索始于⼆战后，当时⼈们认识到将⼀种语⾔⾃动翻译为另⼀种语⾔的重要性。1950年，艾伦· 图灵提\n出了图灵测试。\n他说，如果⼀台机器可以通过使⽤打字机成为对话的⼀部分，并且能够完全模仿⼈类，没有明显的差异，那\n么机器可以被认为是能够思考的。\n这是判断机器是否能够展现出与⼈类不可区分的智能⾏为的测试。这⼀时期，诺姆· 乔姆斯基提出了⽣成语法理论，\n这对理解机器翻译的⼯作⽅式产⽣了重要影响。然⽽，这⼀时期的机器翻译系统⾮常简单，主要依赖字典查找和基\n本的词序规则来进⾏翻译，效果并不理想。\n符号主义与统计⽅法（1970年代 - 1990年代）",
+    "relevant_chunk_id": "doc_74_chunk_6",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "LLaMA2 Attention模块中，apply_rotary_emb函数通过何种数学运算实现旋转嵌入？请结合代码说明其核心计算逻辑。",
+    "ground_truth": "这⾥我们给出可以测试apply_rotary_emb 函数的代码，⼤家也可以尝试在代码中添加断点，来查看每⼀步的计算\n结果。\nOUT:\n5.1.3.3 组装 LLaMA2 Attention  \n在上⾯我们已经完成了旋转嵌⼊的实现，接下来我们就可以构建 LLaMA2 Attention 模块了。\n    # 应⽤旋转，分别计算旋转后的实部和虚部\n    xq_out_r = xq_r * freqs_cos - xq_i * freqs_sin\n    xq_out_i = xq_r * freqs_sin + xq_i * freqs_cos\n    xk_out_r = xk_r * freqs_cos - xk_i * freqs_sin\n    xk_out_i = xk_r * freqs_sin + xk_i * freqs_cos\n    # 将最后两个维度合并，并还原为原始张量的形状\n    xq_out = torch.stack([xq_out_r, xq_out_i], dim=-1).flatten(3)\n    xk_out = torch.stack([xk_out_r, xk_out_i], dim=-1).flatten(3)\n    return xq_out.type_as(xq), xk_out.type_as(xk)\nxq = torch.randn(1, 50, 6, 48) # bs, seq_len, dim//n_head, n_head_dim\nxk = torch.randn(1, 50, 6, 48) # bs, seq_len, dim//n_head, n_head_dim\n# 使⽤ precompute_freqs_cis 函数获取 sin和cos\ncos, sin = precompute_freqs_cis(288//6, 50)\nprint(cos.shape, sin.shape)\nxq_out, xk_out = apply_rotary_emb(xq, xk, cos, sin)\nxq_out.shape, xk_out.shape\ntorch.Size([50, 24]) torch.Size([50, 24])\n(torch.Size([1, 50, 6, 48]), torch.Size([1, 50, 6, 48]))\nclass Attention(nn.Module):\n    def __init__(self, args: ModelConfig):\n        super().__init__()\n        # 根据是否指定n_kv_heads，确定⽤于键（key）和值（value）的头的数量。\n        self.n_kv_heads = args.n_heads if args.n_kv_heads is None else args.n_kv_heads\n        # 确保总头数可以被键值头数整除。\n        assert args.n_heads % self.n_kv_heads == 0\n        # 模型并⾏处理⼤⼩，默认为1。\n        model_parallel_size = 1\n        # 本地计算头数，等于总头数除以模型并⾏处理⼤⼩。\n        self.n_local_heads = args.n_heads // model_parallel_size\n        # 本地键值头数，等于键值头数除以模型并⾏处理⼤⼩。\n        self.n_local_kv_heads = self.n_kv_heads // model_parallel_size\n        # 重复次数，⽤于扩展键和值的尺⼨。",
+    "relevant_chunk_id": "doc_74_chunk_99",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在RAG系统中，为什么选择使用硅基流动大模型API服务平台而非本地加载开源模型？",
+    "ground_truth": "Step 5: ⼤模型模块  \n接下来是⼤模型模块，⽤于根据检索到的⽂档回答⽤户的问题。\n⾸先实现⼀个基类，这样可以⽅便扩展其他模型。\nBaseModel  包含两个⽅法：chat 和load_model 。对于本地化运⾏的开源模型需要实现load_model ，⽽API模\n型则不需要。在此处我们还是使⽤国内⽤户可访问的硅基流动⼤模型API服务平台，使⽤API服务的好处就是⽤户不\n需要本地的计算资源，可以⼤⼤降低学习者的学习⻔槛。\n设计⼀个专⽤于RAG的⼤模型提示词，如下：\ndef query(self, query: str, EmbeddingModel: BaseEmbeddings, k: int = 1) -> List[str]:\n    query_vector = EmbeddingModel.get_embedding(query)\n    result = np.array([self.get_similarity(query_vector, vector) for vector in \nself.vectors])\n    return np.array(self.document)[result.argsort()[-k:][::-1]].tolist()\nclass BaseModel:\n    def __init__(self, path: str = '') -> None:\n        self.path = path\n    def chat(self, prompt: str, history: List[dict], content: str) -> str:\n        pass\n    def load_model(self):\n        pass\nfrom openai import OpenAI\nclass OpenAIChat(BaseModel):\n    def __init__(self, model: str = \"Qwen/Qwen2.5-32B-Instruct\") -> None:\n        self.model = model\n    def chat(self, prompt: str, history: List[dict], content: str) -> str:\n        client = OpenAI()\n        client.api_key = os.getenv(\"OPENAI_API_KEY\")   \n        client.base_url = os.getenv(\"OPENAI_BASE_URL\")\n        history.append({'role': 'user', 'content': \nRAG_PROMPT_TEMPLATE.format(question=prompt, context=content)})\n        response = client.chat.completions.create(\n                model=self.model,\n                messages=history,\n                max_tokens=2048,\n                temperature=0.1\n            )\n        return response.choices[0].message.content",
+    "relevant_chunk_id": "doc_74_chunk_188",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "Spring中@RequestMapping注解的主要作用是什么？",
+    "ground_truth": "202\nSpring 常⻅注解\nSpring \nSpringMVC \n注解 说明\n@Component、@Controller、\n@Service、@Repository \n使⽤在类上⽤于实例化Bean \n@Autowired  使⽤在字段上⽤于根据类型依赖注⼊\n@Qualifier 结合@Autowired⼀起使⽤ ⽤于根据名称进⾏依\n赖注⼊\n@Scope 标注Bean的作⽤范围 \n@Configuration 指定当前类是⼀个spring配置类，当创建容器时\n会从该类上加载注解\n@Componentscan  ⽤于指定spring在初始化容器时要扫描的包 \n@Bean 使⽤在⽅法上，标注将该⽅法的返回值存储到\nSpring容器中 \n@lmport 使⽤@lmport导⼊的类会被Spring加载到IOC容器\n中\n@Aspect、@Before、@After、\n@Around、@Pointcut \n ⽤于切⾯编程（Aop) \n注解 说明\n@RequestMapping ⽤于映射请求路径，可以定义在类上和⽅法上，⽤于类上，则\n表示类中的所有的⽅法都是以该地址作为⽗路径",
+    "relevant_chunk_id": "doc_75_chunk_263",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "当Redis挂了且被监控识别后，文中提到的降级方案具体是如何在代码中实现的？",
+    "ground_truth": "限流和降级\n当Redis挂了，且监控已经识别发现，这时候就要考虑限流和降级。 \n⾸先说降级是指我们⽆法再调⽤Redis了，那么这个场景下的降级⽅案 可以改为调⽤数据库。 \n但数据库扛不住⾼并发，所以就需要在前置拦截加⼊限流。避免数据库压⼒过⾼\n这⾥降级的实操的⽅案是怎么做呢？\n是我们⾄少要在代码⾥写  当发现Redis挂了，那么调⽤数据库。   \n例如⾄少有⼀个 if(Redis正常) 调⽤Redis else 调⽤MySQL的逻辑 \n甚⾄我们可以提前配置⼀个开关，当出现故障时，可以⼀键切换成备选⽅案。\n3. 当然我们这个业务对Redis是强/重度依赖，就需要保证Redis的⾼可⽤，例如哨兵、集群等等",
+    "relevant_chunk_id": "doc_75_chunk_405",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "JDK8中方法区的实现从堆内存移到了本地内存，主要原因是什么？",
+    "ground_truth": "84\n我们有时候根据场景可以通过替换垃圾回收器，来进⾏GC调优，JDK8的默认垃圾回收器是 \nParallel GC（并⾏垃圾回收器），例如系统要求低延迟低停顿，我们可以更换垃圾回收器为\nCMS，如果我们的系统有着超⼤堆内存空间且注重可预测停顿STW时间的话，可以更换垃圾回收\n器为G1。根据系统特性来进⾏选择。 \n另外像Java本身他也⼀直在优化GC，例如JDK7到JDK8的⼀个变化是把⽅法区的实现从堆内\n存移到了本地内存，是因为⽅法区存储的是类的元信息，⽽随着动态加载类的技术发展，我们运⾏\n时也会加载很多类，所以⽅法区所占有的内存⼤⼩变得不可预知，为了防⽌它对堆内存的GC影\n响，所以把它从堆中移动出来。（JDK7永久代⼤⼩固定，JDK8元空间⼤⼩⾃动调整） \n还有⽐如逃逸分析和栈上分配也是为了减轻GC压⼒。 \n以上就是我对Java的垃圾回收的整体理解，您看哪⼀点我需要展开说说？",
+    "relevant_chunk_id": "doc_75_chunk_106",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "BPE、WordPiece和Unigram这三种子词分词方法的共同目标是什么？",
+    "ground_truth": "级别的语义信息，使得模型难以理解上下⽂。\n示例：\n在这个例⼦中，单词“Hello”被分割成单个字符，每个字符作为⼀个独⽴的 token。这种⽅法能够处理任何语⾔和字\n符集，具有极⼤的灵活性。\n5.2.3 Subword Tokenizer  \nSubword Tokenizer 介于词和字符之间，能够更好地平衡分词的细粒度和处理未登录词的能⼒。Subword \nTokenizer 的关键思想是将⽂本分割成⽐单词更⼩的单位，但⼜⽐字符更⼤，这样既能处理未知词，⼜能保持⼀定\n的语义信息。常⻅的⼦词分词⽅法包括 BPE、WordPiece 和 Unigram。\n（1）Byte Pair Encoding (BPE)  \nBPE 是⼀种基于统计⽅法，通过反复合并频率最⾼的字符或字符序列对来⽣成⼦词词典。这种⽅法的优点在于其简\n单和⾼效，能够有效地处理未知词和罕⻅词，同时保持较低的词典⼤⼩。BPE 的合并过程是⾃底向上的，逐步将频\n率最⾼的字符对合并成新的⼦词，直到达到预定的词典⼤⼩或不再有⾼频的字符对。\n示例：\n在这个例⼦中，单词“lower”被分割成⼦词“low”和“er”，⽽“newest”被分割成“new”和“est”。这种⽅法有效地处理了\n词⼲和词缀，保持了单词的基本语义结构。\n（2）WordPiece  \nWordPiece 是另⼀种基于⼦词的分词⽅法，最初⽤于⾕歌的 BERT 模型。与 BPE 类似，WordPiece 通过最⼤化⼦\n词序列的似然函数来⽣成词典，但在合并⼦词时更注重语⾔模型的优化。WordPiece 会优先选择能够最⼤化整体句\n⼦概率的⼦词，使得分词结果在语⾔模型中具有更⾼的概率。\n示例：\n在这个例⼦中，单词“unhappiness”被分割成⼦词“un”和“##happiness”，其中“##”表示这是⼀个后缀⼦词。通过\n这种⽅式，WordPiece 能够更好地处理复合词和派⽣词，保留更多的语义信息。\n（3）Unigram  \nInput: \"Hello\"\nOutput: [\"H\", \"e\", \"l\", \"l\", \"o\"]\nInput: \"lower\"\nOutput: [\"low\", \"er\"]\nInput: \"newest\"\nOutput: [\"new\", \"est\"]\nInput: \"unhappiness\"\nOutput: [\"un\", \"##happiness\"]",
+    "relevant_chunk_id": "doc_74_chunk_108",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "Kafka消费者组在Rebalance过程中会发生什么现象？",
+    "ground_truth": "192\n \nRebalance的不良影响 \n发⽣Rebalance的时候，消费者组下的所有消费者都会协调在⼀起共同参与，Kafka使⽤分配\n策略，尽可能达到最公平的分配。\nRebalance的过程会对消费者组产⽣⾮常严重的影响，Rebalance的过程中所有的消费者都将\n停⽌⼯作，直到Rebalance完成。 \n  \n●\n●",
+    "relevant_chunk_id": "doc_75_chunk_251",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "LLM Agent与传统大模型在响应用户提示的方式上有何本质区别？",
+    "ground_truth": "注：7.2 章节的所有代码均可在 Happy-LLM Chapter7 RAG 中找到。\n7.3 Agent  \n7.3.1 什么是 LLM Agent？  \n简单来说，⼤模型Agent是⼀个以LLM为核⼼“⼤脑”，并赋予其⾃主规划、记忆和使⽤⼯具能⼒的系统。 它不再仅\n仅是被动地响应⽤户的提示（Prompt），⽽是能够：\n1. 理解⽬标（Goal Understanding）： 接收⼀个相对复杂或⾼层次的⽬标（例如，“帮我规划⼀个周末去北京的\n旅游⾏程并预订机票酒店”）。\n2.",
+    "relevant_chunk_id": "doc_74_chunk_190",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "死锁的四个必要条件中，'非抢占'具体指的是什么含义？",
+    "ground_truth": "⾮抢占：资源不能被抢占。只能在持有资源的进程完成任务后，该资源才会被释放。\n4. 循环等待：有⼀组等待进程  {P0, P1,..., Pn} ，  P0  等待的资源被  P1  占有， P1 \n 等待的资源被  P2  占有，……， Pn-1  等待的资源被  Pn  占有， Pn  等待的资源被  P\n0  占有。 \n只要上述条件之⼀不满⾜，就不会发⽣死锁。\n思路：避免4个必要条件同时发⽣，例如 \n1. 破坏不可抢占：设置优先级，使优先级⾼的可以抢占资源\n2. 破坏循环等待：对资源编号，按序申请资源。\n系统动态检测可能导致死锁的情况，避免进⼊死锁状态。\n常⽤⽅法：\n每次资源申请时，判断分配后是否仍处于“安全状态”。 \n如果资源分配会导致死锁，则拒绝该请求。\n允许死锁发⽣，并在发⽣时检测并解除。\n产⽣死锁的四个必要条件\n预防死锁\n避免死锁\n●\n●\n检测死锁",
+    "relevant_chunk_id": "doc_75_chunk_332",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在第九次比赛结果为A1 > B1 > C1 > D1 > E1 > F1 > G1 > H1的前提下，为什么E组、F组、G组、H组的所有马都可以被排除在全局前四名之外？",
+    "ground_truth": "371\n第九次，取出每组的第⼀名，⼀起⽐赛\n假设第九次的⽐赛结果是 A1 > B1 > C1 > D1 > E1 > F1 > G1 > H1 \n可以找出最快的⻢是 A1，但是此时还不知道 全局第2、3、4快的⻢是哪个 \n由于E1、F1、G1、H1的排名，可以排除 E组、F组、G组、H组 \n第⼗次，想要找出全局第2、3、4快的⻢ \n全局前四的⻢，有可能是A1、A2、A3、A4，所以需要A2、A3、A4来⽐赛 \n全局前四的⻢，有可能是A1、B1、B2、B3，所以需要B1、B2、B3来⽐赛 \n全局前四的⻢，有可能是A1、B1、C1、C2，所以需要C1、C2来⽐赛 \n全局前四的⻢，有可能是A1、B1、C1、D1，所以需要D1来⽐赛 \n...... 但全局前四的⻢，不可能是A5、B4、C3、D2 以及ABCD组其后的⻢ \n此时有9匹⻢（A2、A3、A4、B1、B2、B3、C1、C2、D1）竞争全局第234快，但只有8\n条道\n因此第⼗次⽐赛需要暂时先去除去⼀匹⻢，去除哪个呢？\n如果去除A4，即让  A2、A3、B1、B2、B3、C1、C2、D1 ⽐赛 \n本次⽐赛只需取⼀⼆三名（实为全局第2、3、4） \n如果A3是本次⽐赛的第⼆名，那么需要第三名和A4再进⾏⼀次⽐赛(第⼗⼀\n次)，获胜者为全局第四快 \n如果A3不是本次⽐赛的第⼆名，那么A4就没有意义了，不需要再进⾏后续的\n⽐赛\n如果去除B3，即让  A2、A3、A4、B1、B2、C1、C2、D1 ⽐赛 \n本次⽐赛只需取⼀⼆三名（实为全局第2、3、4） \n如果B2是本次⽐赛的第⼆名，那么需要第三名和B3再进⾏⼀次⽐赛(第⼗⼀\n次)，获胜者为全局第四快。 \n如果B2不是本次⽐赛的第⼆名，那么B3就没有意义了，不需要再进⾏后续的\n⽐赛\n如果去除B1，即让  A2、A3、A4、B2、B3、C1、C2、D1 ⽐赛 \n本次⽐赛只需取⼀⼆三名（实为全局第2、3、4） \n已知 B1 ⽐ B2、B3、C1、C2、D1 都要快，因此只要 这五匹⻢有任何⼀匹进⼊\n本次⽐赛的前三，那么B1⼀定也在前三之列。此时就不需要再进⾏下⼀次⽐赛\n了，但是如果这五匹⻢全部都不在前三之列，那么就还需要进⾏⼀次⽐赛(第⼗⼀\n●\n○\n○\n○\n●\n○\n○\n○\n○\n○\n○\n○\n○\n■\n●\n○\n○\n■\n●\n○\n○\n■\n●\n●",
+    "relevant_chunk_id": "doc_75_chunk_484",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "静态内部类单例模式如何在不使用显式加锁的情况下保证多线程环境下的线程安全？",
+    "ground_truth": "323\n实例由静态内部类创建\n由于 JVM 在加载外部类的过程中，是不会加载静态内部类的，只有内部类的 属性/⽅法 被调⽤时\n才会初始化加载静态内部类。JVM 在加载和初始化类时，可以确保同⼀时刻只有⼀个线程能执⾏\n类的初始化逻辑。所以本质上是通过JVM的类加载机制来保证单例的线程安全 \n静态内部类单例模式是⼀种优秀的单例模式，是开源项⽬中⽐较常⽤的⼀种单例模式。在没有加任\n何锁的情况下，保证了多线程下的安全，并且没有任何性能影响和空间的浪费。\npublic class Singleton {\n    //1 、私有构造⽅法\n    private Singleton(){}\n \n    //2 、定义⼀个静态内部类\n    private static class SingletonHolder{\n        // 在内部类中声明并初始化外部类的对象\n        // 加 final 关键字是  为了防⽌外界对其进⾏修改\n        private static final Singleton INSTANCE = new Singleton();\n    }\n \n    //3 、提供⼀个获取单例的⼊⼝，注意是  public 和  static\n    public static Singleton getInstance(){\n        return SingletonHolder.INSTANCE;\n    }\n}\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\nJava",
+    "relevant_chunk_id": "doc_75_chunk_422",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "Open LLM Leaderboard是由哪家机构提供的开放式榜单？",
+    "ground_truth": "InfiniteBench/En.MC：评测模型在处理⻓⽂本阅读理解⽅⾯的能⼒，尤其是对科学⽂献的理解，适⽤\n于学术⽂献⾃动摘要、⻓篇报道分析等应⽤场景。\nNIH/Multi-needle：⽤于测试模型在多样本⻓⽂档环境中的理解和总结能⼒，应⽤于政府报告解读、企\n业内部⻓⽂档分析等需要处理海量信息的场景。\n6. 多语⾔评测集：\nMGSM：⽤于评估模型在不同语⾔下的数学问题解决能⼒，考察模型的多语⾔适应性，尤其适⽤于国际\n化环境中的数学教育和跨语⾔技术⽀持场景。\n这些评测集的多样性帮助我们全⾯评估⼤模型在不同任务和应⽤场景中的表现，确保模型在处理多样化任务时能够\n保持⾼效和精准的表现。例如，在MMLU评测中，某些⼤模型在历史、物理等学科任务中表现优异，展现出对多领\n域知识的深度理解；在GSM8K数学评测中，最新的⼤模型在算术和⽅程求解⽅⾯表现接近甚⾄超越了⼀些⼈类基\n准，显示出在复杂数学推理任务中的潜⼒。这些实际评测结果展示了模型在各类复杂任务中的进步和应⽤潜⼒。\n7.1.2 主流的评测榜单  \n⼤模型的评测不仅限于使⽤特定的数据集，许多机构还会根据评测结果发布模型排⾏榜，这些榜单为学术界和⼯业\n界提供了重要的参考，帮助他们了解当前最前沿的技术和模型。以下是⼀些主流的评测榜单：\nOpen LLM Leaderboard  \nOpen LLM Leaderboard 为由 Hugging Face 提供的开放式榜单，汇集了多个开源⼤模型的评测结果，帮助⽤户了\n解不同模型在各种任务上的表现。该榜单通过多个标准化测试集来评估模型的性能，并通过持续更新的⽅式反映最\n新的技术进展，为研究者和开发者提供了⾼价值的对⽐参考，如图7.1所示。",
+    "relevant_chunk_id": "doc_74_chunk_177",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "使用CAS票据验证的子系统方案主要适用于什么场景，其核心优势和主要缺点分别是什么？",
+    "ground_truth": "285\n3. ⼦系统使⽤票据向 CAS 验证，获取⽤户信息 \n这个⽅案⼀般适合于企业内部做集成，可以让业务系统不再关⼼登录、授权，⽽是只关注业务逻\n辑，只需要做⼀次接⼊就⾏了。⽐如说公司的很多内部平台之间，就可能是⽤了同⼀个登录服务。\n优点就是接⼊成本低，缺点就是这个认证中⼼本身的开发成本还是挺⾼的。",
+    "relevant_chunk_id": "doc_75_chunk_368",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "根据给出的输入和输出示例，模型对哪一对句子的语义相似性判断为正样本（即相似）？",
+    "ground_truth": "输出：\n    1（正样本）\n输⼊：\n    Sentence A：Because you are wonderful. Sentence B: I love you. 输出：\n    0（负样本）",
+    "relevant_chunk_id": "doc_74_chunk_51",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "为什么在数组已完全升序或降序时，若基准值固定选择首元素或末元素，快速排序的最坏情况时间复杂度会退化为O(n²)？",
+    "ground_truth": "最坏情况时间复杂度\n条件：每次分区后⼀个⼦数组为空，另⼀个⼦数组包含剩余元素（如基准值为极值）\n例如场景：\n数组已完全升序或降序，且基准值固定选择⾸元素/末元素\n所有元素相同，且基准值固定选择⾸元素/末元素\n递归深度为 O(n)，每层遍历 O(n) 元素，总操作次数为 O(n^2) \n针对特殊测试⽤例：顺序数组或者逆序数组，⼀定要随机化选择基准点（pivot），否则在输⼊数\n组是有序数组或者是逆序数组的时候，快速排序会变得⾮常慢（等同于冒泡排序或者「选择排\n序」）\n●\n●\n●\n●\n●\n○\n○\n●\n        }\n        // 递归基准点的左右两半⼦数组\n        quickSort(arr, low, right - 1);\n        quickSort(arr, right + 1, high);\n    }\n}\n \n4243\n44\n45\n46\n47\n48",
+    "relevant_chunk_id": "doc_75_chunk_414",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "这个算法如何确保最终堆中保存的是1亿个数据中最大的前100个元素？",
+    "ground_truth": "遍历1亿个数据，循环内： \na. 判断堆的⼤⼩size是否⼩于100 \nⅰ.若⼩于100，把元素加⼊堆 \nⅱ.若⼤于等于100，则判断当前遍历的元素和堆顶元素的  ⼤⼩关系 \n1. 遍历元素 > 堆顶元素，则弹出堆顶元素 (此时弹出的是堆⾥最⼩的元素)，加⼊遍\n历的元素\n2. 否则不做处理\n3. 当遍历完成后，堆中的元素就是前100个最⼤的数据 \n●\n●\n●\n●\n●",
+    "relevant_chunk_id": "doc_75_chunk_381",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "根据要求，生成的测试问题需要满足哪六项具体规范？",
+    "ground_truth": "154",
+    "relevant_chunk_id": "doc_75_chunk_203",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "为什么Prefix Tuning会导致模型可用序列长度减少？",
+    "ground_truth": "图6.8 Adapt Tuning\n每个 Adapter 模块由两个前馈⼦层组成，第⼀个前馈⼦层将 Transformer 块的输出作为输⼊，将原始输⼊维度  \n投影到 ，通过控制  的⼤⼩来限制 Adapter 模块的参数量，通常情况下 。在输出阶段，通过第⼆个\n前馈⼦层还原输⼊维度，将  重新投影到 ，作为 Adapter 模块的输出(如上图右侧结构)。\nLoRA 事实上就是⼀种改进的 Adapt Tuning ⽅法。但 Adapt Tuning ⽅法存在推理延迟问题，由于增加了额外参数\n和额外计算量，导致微调之后的模型计算速度相较原预训练模型更慢。\nPrefix Tuning。该种⽅法固定预训练 LM，为 LM 添加可训练，任务特定的前缀，这样就可以为不同任务保存不同\n的前缀，微调成本也⼩。具体⽽⾔，在每⼀个输⼊ token 前构造⼀段与下游任务相关的 virtual tokens 作为 \nprefix，在微调时只更新 prefix 部分的参数，⽽其他参数冻结不变。\n也是⽬前常⽤的微量微调⽅法的 Ptuning，其实就是 Prefix Tuning 的⼀种改进。但 Prefix Tuning 也存在固定的缺\n陷：模型可⽤序列⻓度减少。由于加⼊了 virtual tokens，占⽤了可⽤序列⻓度，因此越⾼的微调质量，模型可⽤\n序列⻓度就越低。\n6.3.2 LoRA 微调  \n如果⼀个⼤模型是将数据映射到⾼维空间进⾏处理，这⾥假定在处理⼀个细分的⼩任务时，是不需要那么复杂的⼤\n模型的，可能只需要在某个⼦空间范围内就可以解决，那么也就不需要对全量参数进⾏优化了，我们可以定义当对\n某个⼦空间参数进⾏优化时，能够达到全量参数优化的性能的⼀定⽔平（如90%精度）时，那么这个⼦空间参数矩\n阵的秩就可以称为对应当前待解决问题的本征秩（intrinsic rank）。\n预训练模型本身就隐式地降低了本征秩，当针对特定任务进⾏微调后，模型中权重矩阵其实具有更低的本征秩\n（intrinsic rank）。同时，越简单的下游任务，对应的本征秩越低。（Intrinsic Dimensionality Explains the \nEffectiveness of Language Model Fine-Tuning）因此，权重更新的那部分参数矩阵尽管随机投影到较⼩的⼦空\n间，仍然可以有效的学习，可以理解为针对特定的下游任务这些权重矩阵就不要求满秩。我们可以通过优化密集层",
+    "relevant_chunk_id": "doc_74_chunk_166",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "Codis 为什么能支持跨节点操作而 Redis Cluster 不能？",
+    "ground_truth": "169\nCodis 的集群配置中⼼使⽤ zk 来实现，意味着在部署上增加了 zk 运维的代价 \n好处：\nCodis 在设计上相⽐ Redis Cluster 官⽅集群⽅案要简单很多，因为它将槽位绑定节点实例信\n息这个分布式的问题交给了第三⽅ zk/etcd 去负责，⾃⼰就省去了复杂的分布式⼀致性代码\n的编写维护⼯作。⽽ Redis Cluster 对于槽位绑定的信息的同步的内部实现⾮常复杂，它为了\n实现去中⼼化，混合使⽤了复杂的 Raft 和 Gossip 协议（即节点间定期交换信息） \n对客户端来说，使⽤ Redis Cluster，客户端需要是 smart client，需要感知数据分⽚信息，需要\n知道后⽅实例信息、需要⽀持集群协议，直接与节点通信。⽆法⽀持跨节点的操作。\n对客户端来说，使⽤ Codis，通过Proxy层转发请求，客户端不需要感知集群实例信息。就像使⽤\n⼀个单机Redis⼀样，可以⽀持跨节点的操作(由Proxy帮助处理)。 \n●\n●",
+    "relevant_chunk_id": "doc_75_chunk_223",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "为什么在SSL/TLS握手过程中，非对称加密算法（如RSA）仅用于交换密钥，而数据传输阶段改用对称加密算法（如AES）？",
+    "ground_truth": "服务器使⽤⾃⼰的私钥解密，获取 密钥key（因为私钥只有服务器有，所以这个密钥key是安\n全的）\n阶段 5：⽣成会话密钥 \n1. 客户端和服务器使⽤ Client Random、Server Random 和 密钥key，通过相同的对称加密算\n法⽣成会话密钥（Session Key） \n阶段 6：加密通信 \n1. 客户端和服务器使⽤会话密钥（Session Key）对通信内容进⾏对称加密，开始安全的数据传\n输\n⾮对称加密算法  ⽐  对称加密算法  复杂很多 \n因此⾮对称加密算法⽤于  安全的交换密钥，例如 RSA 算法 \n⽽对称加密算法⽤于  在数据传输时加解密，例如 AES 算法 \n○\n○",
+    "relevant_chunk_id": "doc_75_chunk_298",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "Undo Log如何通过记录反向操作来保证事务的原子性？",
+    "ground_truth": "事务提交时， redo log 被刷盘，但数据⻚可能仍在内存中（未刷盘）。  \n5. 若此时数据库崩溃，重启后通过  redo log 重放，将⻚  5 的修改重新应⽤到磁盘。  \n⽤途：保证事务的原⼦性   和    ⽀持实现MVCC(多版本并发控制) \n保证事务原⼦性的原理：\nUndo Log 是逻辑⽇志，记录了数据修改操作的“反向操作”，当事务需要回滚时，MySQL可以通\n过反向操作将数据恢复到事务开始时的状态，从⽽保证事务的原⼦性。\n⽐如，如果⼀个事务修改了⼀⾏数据，将某列的值从  100  修改为  200 ，Undo Log 会记录⼀\n个反向操作，表示将  200  恢复为  100 ，从⽽撤销这⼀修改。 \n⽀持实现多版本并发控制MVCC 的原理： \nUndo Log 记录了数据的版本链 \n1. 版本链的构建：\n每次修改数据⾏时，会⽣成⼀个 Undo Log 记录，包含： \nUndo Log \n●",
+    "relevant_chunk_id": "doc_75_chunk_163",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "SupervisedDataset 类在初始化时如何利用 preprocess 函数处理原始数据？",
+    "ground_truth": "完成上述处理逻辑后，需要⾃定义⼀个 Dataset 类，在该类中调⽤该逻辑进⾏数据的处理：\n该类继承⾃ Torch 的 Dataset 类，可以直接在 Trainer 中使⽤。完成数据处理后，基于上⼀节脚本，修改数据处理\n逻辑即可，后续模型训练等⼏乎完全⼀致，此处附上主函数逻辑：\ninput_ids = torch.tensor(input_ids)\ntargets = torch.tensor(targets)\nreturn dict(\n    input_ids=input_ids,\n    labels=targets,\n    attention_mask=input_ids.ne(tokenizer.pad_token_id),\n)\nclass SupervisedDataset(Dataset):\n    def __init__(self, raw_data, tokenizer, max_len: int):\n        super(SupervisedDataset, self).__init__()\n        # 加载并预处理数据\n        sources = [example[\"conversations\"] for example in raw_data]\n        # preprocess 即上⽂定义的数据预处理逻辑\n        data_dict = preprocess(sources, tokenizer, max_len)\n        self.input_ids = data_dict[\"input_ids\"]\n        self.labels = data_dict[\"labels\"]\n        self.attention_mask = data_dict[\"attention_mask\"]\n    def __len__(self):\n        return len(self.input_ids)\n    def __getitem__(self, i) -> Dict[str, torch.Tensor]:\n        return dict(\n            input_ids=self.input_ids[i],\n            labels=self.labels[i],\n            attention_mask=self.attention_mask[i],\n        )\n# 加载脚本参数\nparser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))\nmodel_args, data_args, training_args = parser.parse_args_into_dataclasses()\n# 初始化 SwanLab\nswanlab.init(project=\"sft\", experiment_name=\"qwen-1.5b\")\n# 设置⽇志\nlogging.basicConfig(\n    format=\"%(asctime)s - %(levelname)s - %(name)s - %(message)s\",\n    datefmt=\"%m/%d/%Y %H:%M:%S\",\n    handlers=[logging.StreamHandler(sys.stdout)],\n)",
+    "relevant_chunk_id": "doc_74_chunk_163",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "双亲委派模型中，当一个类加载器收到类加载请求时，它首先会采取什么行为？",
+    "ground_truth": "91\n双亲委派\n类加载器的作⽤就是将 字节码⽂件 加载到 JVM 内存中 \nBootstrap ClassLoader 启动类加载器 \n加载 JAVA_HOME/jre/lib 下的类 \n⽆法直接访问，由C/C++实现 \nExtension ClassLoader 扩展类加载器 \n加载 JAVA_HOME/jre/lib/ext 下的类 \n上级为 Bootstrap  \nApplication ClassLoader 应⽤程序类加载器 \n加载 classpath ⽬录（就是我们平时代码的⽬录）下的类 \n上级为 Extension  \n⾃定义类加载器\n可以实现⾃定义的类加载规则：通过⾃定义类加载器，可以绕过/破坏双亲委派（例如优先⾃\n⼰加载类），实现类隔离或多版本共存。\n上级为 Application \n双亲委派 指明了 加载类时 类加载器的⾏为 \n双亲委派模型的⼯作过程：如果⼀个类加载器收到了类加载的请求它⾸先不会⾃⼰去尝试加载这个\n类，⽽是把这个请求委派给⽗类加载器去完成，每⼀个层次的类加载器都是如此，因此所有的加载\n请求最终都应该传送到顶层的启动类加载器中，只有当⽗加载器反馈⾃⼰⽆法完成这个加载请求\n(它的搜索范围中没有找到所需的类)时，⼦加载器才会尝试⾃⼰去加载。 \n什么是类加载器，类加载器有哪些\n●\n●\n●\n●\n●\n●\n●\n●\n什么是双亲委派",
+    "relevant_chunk_id": "doc_75_chunk_117",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "观察者模式的主要优点是什么？",
+    "ground_truth": "创建具体观察者类(Concrete Observer)，实现观察者⾃身的逻辑⽅法。 \n5. 客户端代码中创建主题对象和观察者对象，注册观察者到主题中，然后通过主题改变状态，观\n察者得到通知并进⾏⾃身逻辑。\n优点：使⽤该机制可以将相互耦合的代码解耦，从⽽⽅便功能的拓展和调整。\n定义\n主要构成\n●\n●\n●\n●\n实现步骤\n优缺点",
+    "relevant_chunk_id": "doc_75_chunk_428",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "该文本片段要求生成的JSON数组中每个对象必须包含哪两个字段？",
+    "ground_truth": "187",
+    "relevant_chunk_id": "doc_75_chunk_244",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "反射在哪些实际应用场景中会被使用？",
+    "ground_truth": "动态加载类（如插件化架构）\n3. 序列化/反序列化（如 JSON 库将对象转为字符串） \n4. 测试⼯具（如 JUnit 动态调⽤测试⽅法） \n反射虽然强⼤，但需谨慎使⽤：\n1. 性能开销：反射操作⽐直接调⽤慢\n2. 安全⻛险：可能破坏封装性，暴露私有逻辑\n3.维护困难：反射代码可读性差，调试复杂",
+    "relevant_chunk_id": "doc_75_chunk_24",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "根据给出的示例，判断两个句子是否构成连续上下文的依据是什么？",
+    "ground_truth": "输出：\n    1（是连续上下⽂）\n输⼊：\n    Sentence A：I love you. Sentence B: Because today's dinner is so nice. 输出：\n    0（不是连续上下⽂）",
+    "relevant_chunk_id": "doc_74_chunk_46",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "T5模型提出的NLP大一统思想具体是指什么？",
+    "ground_truth": "通过上述三点优化，ALBERT 成功地以更⼩的参数实现了更强的性能，虽然由于其架构带来的训练、推理效率降低\n限制了模型的进⼀步发展，但打造更宽的模型这⼀思路仍然为众多更强⼤的模型提供了参考价值。\n作为预训练时代的 NLP 王者，BERT 及 BERT 系模型在多个 NLP 任务上扮演了极其重要的⻆⾊。除去上⽂介绍过\n的 RoBERTa、ALBERT 外，还有许多从其他更⾼⻆度对 BERT 进⾏优化的后起之秀，包括进⼀步改进了预训练任务\n的 ERNIE、对 BERT 进⾏蒸馏的⼩模型 DistilBERT、主打多语⾔任务的 XLM 等，本⽂就不再⼀⼀赘述。以 BERT 为\n代表的 Encoder-Only 架构并⾮ Transformer 的唯⼀变种，接下来，我们将介绍 Transformer 的另⼀种主流架\n构，与原始 Transformer 更相似、以 T5 为代表的 Encoder-Decoder 架构。\n3.2 Encoder-Decoder PLM  \n在上⼀节，我们学习了 Encoder-Only 结构的模型，主要介绍了 BERT 的模型架构、预训练任务和下游任务微调。\nBERT 是⼀个基于 Transformer 的 Encoder-Only 模型，通过预训练任务 MLM 和 NSP 来学习⽂本的双向语义关\n系，从⽽在下游任务中取得了优异的性能。但是，BERT 也存在⼀些问题，例如 MLM 任务和下游任务微调的不⼀\n致性，以及⽆法处理超过模型训练⻓度的输⼊等问题。为了解决这些问题，研究者们提出了 Encoder-Decoder 模\n型，通过引⼊ Decoder 部分来解决这些问题，同时也为 NLP 领域带来了新的思路和⽅法。\n在本节中，我们将学习 Encoder-Decoder 结构的模型，主要介绍 T5 的模型架构和预训练任务，以及 T5 模型⾸次\n提出的 NLP ⼤⼀统思想。\n3.2.1 T5  \nT5（Text-To-Text Transfer Transformer）是由 Google 提出的⼀种预训练语⾔模型，通过将所有 NLP 任务统⼀\n表示为⽂本到⽂本的转换问题，⼤⼤简化了模型设计和任务处理。T5 基于 Transformer 架构，包含编码器和解码\n器两个部分，使⽤⾃注意⼒机制和多头注意⼒捕捉全局依赖关系，利⽤相对位置编码处理⻓序列中的位置信息，并\n在每层中包含前馈神经⽹络进⼀步处理特征。\nT5 的⼤⼀统思想将不同的 NLP 任务如⽂本分类、问答、翻译等统⼀表示为输⼊⽂本到输出⽂本的转换，这种⽅法\n简化了模型设计、参数共享和训练过程，提⾼了模型的泛化能⼒和效率。通过这种统⼀处理⽅式，T5不仅减少了任\n务特定的模型调试⼯作，还能够使⽤相同的数据处理和训练框架，极⼤地提升了多任务学习的性能和应⽤的便捷\n性。接下来我们将会从模型结构、预训练任务和⼤⼀统思想三个⽅⾯来介绍 T5 模型。\n（1）模型结构：Encoder-Decoder  \nBERT 采⽤了 Encoder-Only 结构，只包含编码器部分；⽽ GPT 采⽤了 Decoder-Only 结构，只包含解码器部分。\nT5 则采⽤了 Encoder-Decoder 结构，其中编码器和解码器都是基于 Transformer 架构设计。编码器⽤于处理输\n⼊⽂本，解码器⽤于⽣成输出⽂本。编码器和解码器之间通过注意⼒机制进⾏信息交互，从⽽实现输⼊⽂本到输出\n⽂本的转换。其主要结构如图3.7所示：",
+    "relevant_chunk_id": "doc_74_chunk_52",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "RAG技术主要用来解决大语言模型存在的哪三个问题？",
+    "ground_truth": "407\nRAG\nRAG = Retrieval-Augmented Generation 、中⽂：检索增强⽣成 \n⼀句话理解：\n让⼤模型在回答前，先去查⼀份 “外部知识库”，查到的内容 会整合到 Prompt 提示词中再输⼊给⼤模型 \n详细解释：\nRAG 是先将知识作为向量存储到向量数据库 \n再将⽤户输⼊的提示词 去和 向量数据库中的 知识向量进⾏相似度匹配，检索出相关的⽚段 \n最后将检索出来的内容 + ⽤户提示词 ⼀起发送给⼤模型，⽣成最终回答 \nRAG的⽬的是通过从外部知识库检索相关信息来辅助⼤语⾔模型⽣成更准确、更丰富的内容 \n⼤模型本身有 3 个问题： \n知识过时（只学到训练截⽌⽇期之前的内容）\n存在幻觉（会胡编乱造）\n不知道内部私有数据（你的⽂档、业务规则等）\nRAG 就是⽤来解决这三件事的： \n答案更准，通过检索外部知识库，融⼊最新、最准确信息，提⾼回答的可靠性。\n减少模型幻觉，基于真实检索结果⽣成内容，避免输出⽆根据或错误信息。\n能使⽤内部的数据\n1.RAG 是什么 \n2.为什么会有 RAG？ \n●\n●\n●\n●\n●\n●",
+    "relevant_chunk_id": "doc_75_chunk_537",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "文本分类、实体识别和关系抽取这三项NLP任务各自的核心目标分别是什么？",
+    "ground_truth": "⽂本分类（Text Classification）是 NLP 领域的⼀项核⼼任务，涉及到将给定的⽂本⾃动分配到⼀个或多个预定义\n的类别中。这项技术⼴泛应⽤于各种场景，包括但不限于情感分析、垃圾邮件检测、新闻分类、主题识别等。⽂本\n分类的关键在于理解⽂本的含义和上下⽂，并基于此将⽂本映射到特定的类别。\n假设有⼀个⽂本分类任务，⽬的是将新闻⽂章分类为“体育”、“政治”或“科技”三个类别之⼀。\n⽂本分类任务的成功关键在于选择合适的特征表示和分类算法，以及拥有⾼质量的训练数据。随着深度学习技术的\n发展，使⽤神经⽹络进⾏⽂本分类已经成为⼀种趋势，它们能够捕捉到⽂本数据中的复杂模式和语义信息，从⽽在\n许多任务中取得了显著的性能提升。\n1.3.5 实体识别  \n实体识别（Named Entity Recognition, NER），也称为命名实体识别，是 NLP 领域的⼀个关键任务，旨在⾃动识\n别⽂本中具有特定意义的实体，并将它们分类为预定义的类别，如⼈名、地点、组织、⽇期、时间等。实体识别任\n务对于信息提取、知识图谱构建、问答系统、内容推荐等应⽤很重要，它能够帮助系统理解⽂本中的关键元素及其\n属性。\n假设有⼀个实体识别任务，⽬的是从⽂本中识别出⼈名、地名和组织名等实体。\n通过实体识别任务，我们不仅能识别出⽂本中的实体，还能了解它们的类别，为深⼊理解⽂本内容和上下⽂提供了\n重要信息。随着NLP技术的发展，实体识别的精度和效率不断提⾼，可以为各种NLP应⽤提供强⼤的⽀持。\n1.3.6 关系抽取  \n关系抽取（Relation Extraction）是 NLP 领域中的⼀项关键任务，它的⽬标是从⽂本中识别实体之间的语义关系。\n这些关系可以是因果关系、拥有关系、亲属关系、地理位置关系等，关系抽取对于理解⽂本内容、构建知识图谱、\n提升机器理解语⾔的能⼒等⽅⾯具有重要意义。\n假设我们有以下句⼦：\n⽂本：“NBA季后赛将于下周开始，湖⼈和勇⼠将在⾸轮对决。”\n类别：“体育”\n⽂本：“美国总统宣布将提⾼关税，引发国际贸易争端。”\n类别：“政治”\n⽂本：“苹果公司发布了新款 Macbook，配备了最新的m3芯⽚。”\n类别：“科技”\n输⼊：李雷和韩梅梅是北京市海淀区的居⺠，他们计划在2024年4⽉7⽇去上海旅⾏。\n输出：[(\"李雷\", \"⼈名\"), (\"韩梅梅\", \"⼈名\"), (\"北京市海淀区\", \"地名\"), (\"2024年4⽉7⽇\", \"⽇期\"), \n(\"上海\", \"地名\")]\n输⼊：⽐尔· 盖茨是微软公司的创始⼈。\n输出：[(\"⽐尔· 盖茨\", \"创始⼈\", \"微软公司\")]",
+    "relevant_chunk_id": "doc_74_chunk_11",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "T5模型的Transformer部分由哪两个主要组件构成？",
+    "ground_truth": "图3.7 T5 模型详细结构\n如图3.8所示，从整体来看 T5 的模型结构包括 Tokenizer 部分和 Transformer 部分。Tokenizer 部分主要负责将输\n⼊⽂本转换为模型可接受的输⼊格式，包括分词、编码等操作。Transformer 部分⼜分为 EncoderLayers 和 \nDecoderLayers 两部分，他们分别由⼀个个⼩的 Block组成，每个 Block 包含了多头注意⼒机制、前馈神经⽹络和 \nNorm 层。Block 的设计可以使模型更加灵活，像乐⾼⼀样可以根据任务的复杂程度和数据集的⼤⼩来调整 Block \n的数量和层数。",
+    "relevant_chunk_id": "doc_74_chunk_53",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "多线程交替打印问题的核心要求是什么？",
+    "ground_truth": "67\n多线程交替打印 \u0000-\u0000\u0000\u0000",
+    "relevant_chunk_id": "doc_75_chunk_83",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "LLaMA模型在处理输入文本时，如何编码词序信息以确保模型理解上下文？",
+    "ground_truth": "与GPT系列模型⼀样，LLaMA模型也是基于Decoder-Only架构的预训练语⾔模型。LLaMA模型的整体结构与GPT\n系列模型类似，只是在模型规模和预训练数据集上有所不同。如图3.13是LLaMA模型的架构示意图：\n图3.13 LLaMA-3 模型结构\n与GPT类似，LLaMA模型的处理流程也始于将输⼊⽂本通过tokenizer进⾏编码，转化为⼀系列的input_ids。这些\ninput_ids是模型能够理解和处理的数据格式。接下来，这些input_ids会经过embedding层的转换，这⾥每个\ninput_id会被映射到⼀个⾼维空间中的向量，即词向量。同时，输⼊⽂本的位置信息也会通过positional \nembedding层被编码，以确保模型能够理解词序上下⽂信息。\n这样，input_ids经过embedding层和positional embedding层的结合，形成了hidden_states。hidden_states包\n含了输⼊⽂本的语义和位置信息，是模型进⾏后续处理的基础，hidden_states随后被输⼊到模型的decoder层。\n在decoder层中，hidden_states会经历⼀系列的处理，这些处理由多个decoder block组成。每个decoder block\n都是模型的核⼼组成部分，它们负责对hidden_states进⾏深⼊的分析和转换。在每个decoder block内部，⾸先是\n⼀个masked self-attention层。在这个层中，模型会分别计算query、key和value这三个向量。这些向量是通过\nhidden_states线性变换得到的，它们是计算注意⼒权重的基础。然后使⽤softmax函数计算attention score，这\n个分数反映了不同位置之间的关联强度。通过attention score，模型能够确定在⽣成当前词时，应该给予不同位置\n的hidden_states多⼤的关注。然后，模型将value向量与attention score相乘，得到加权后的value，这就是\nattention的结果。\n在完成masked self-attention层之后，hidden_states会进⼊MLP层。在这个多层感知机层中，模型通过两个全连\n接层对hidden_states进⾏进⼀步的特征提取。第⼀个全连接层将hidden_states映射到⼀个中间维度，然后通过激\n活函数进⾏⾮线性变换，增加模型的⾮线性能⼒。第⼆个全连接层则将特征再次映射回原始的hidden_states维\n度。",
+    "relevant_chunk_id": "doc_74_chunk_62",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "当某一行的token长度超过max_token_len时，代码如何处理这一行？",
+    "ground_truth": "for line in lines:\n        # 保留空格，只移除⾏⾸⾏尾空格\n        line = line.strip()\n        line_len = len(enc.encode(line))\n        \n        if line_len > max_token_len:\n            # 如果单⾏⻓度就超过限制，则将其分割成多个块\n            # 先保存当前块（如果有内容）\n            if curr_chunk:\n                chunk_text.append(curr_chunk)\n                curr_chunk = ''\n                curr_len = 0\n            \n            # 将⻓⾏按token⻓度分割\n            line_tokens = enc.encode(line)\n            num_chunks = (len(line_tokens) + token_len - 1) // token_len\n            \n            for i in range(num_chunks):\n                start_token = i * token_len\n                end_token = min(start_token + token_len, len(line_tokens))\n                \n                # 解码token⽚段回⽂本\n                chunk_tokens = line_tokens[start_token:end_token]\n                chunk_part = enc.decode(chunk_tokens)\n                \n                # 添加覆盖内容（除了第⼀个块）\n                if i > 0 and chunk_text:\n                    prev_chunk = chunk_text[-1]\n                    cover_part = prev_chunk[-cover_content:] if len(prev_chunk) > \ncover_content else prev_chunk\n                    chunk_part = cover_part + chunk_part\n                \n                chunk_text.append(chunk_part)\n            \n            # 重置当前块状态\n            curr_chunk = ''\n            curr_len = 0\n            \n        elif curr_len + line_len + 1 <= token_len:  # +1 for newline\n            # 当前⾏可以加⼊当前块\n            if curr_chunk:\n                curr_chunk += '\\n'\n                curr_len += 1\n            curr_chunk += line\n            curr_len += line_len\n        else:\n            # 当前⾏⽆法加⼊当前块，开始新块\n            if curr_chunk:\n                chunk_text.append(curr_chunk)\n            \n            # 开始新块，添加覆盖内容\n            if chunk_text:",
+    "relevant_chunk_id": "doc_74_chunk_184",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "N-gram模型的核心思想基于什么假设？",
+    "ground_truth": "词汇表是⼀个包含所有可能出现的词语的集合。在向量空间模型中，每个词对应词汇表中的⼀个位置，通过\n这种⽅式可以将词语转换为向量表示。例如，如果词汇表⼤⼩为 16384 ，那么每个词都会被表示为⼀个 \n16384 维的向量，其中只有该词对应的位置为 1，其他位置都为 0。\n为了解决这些问题，研究者们对向量空间模型的研究主要集中在两个⽅⾯：⼀是改进特征表示⽅法，如借助图⽅\n法、主题⽅法等进⾏关键词抽取；⼆是改进和优化特征项权重的计算⽅法，可以在现有⽅法的基础上进⾏融合计算\n或提出新的计算⽅法. 1.4.2 语⾔模型  \nN-gram 模型是 NLP 领域中⼀种基于统计的语⾔模型，⼴泛应⽤于语⾳识别、⼿写识别、拼写纠错、机器翻译和搜\n索引擎等众多任务。N-gram模型的核⼼思想是基于⻢尔可夫假设，即⼀个词的出现概率仅依赖于它前⾯的N-1个\n词。这⾥的N代表连续出现单词的数量，可以是任意正整数。例如，当N=1时，模型称为unigram，仅考虑单个词\n的概率；当N=2时，称为bigram，考虑前⼀个词来估计当前词的概率；当N=3时，称为trigram，考虑前两个词来\n估计第三个词的概率，以此类推N-gram。\nN-gram模型通过条件概率链式规则来估计整个句⼦的概率。具体⽽⾔，对于给定的⼀个句⼦，模型会计算每个N-\ngram出现的条件概率，并将这些概率相乘以得到整个句⼦的概率。例如，对于句⼦“The quick brown fox”，作为\ntrigram模型，我们会计算 、 等概率，并将它们\n相乘。\nN-gram的优点是实现简单、容易理解，在许多任务中效果不错。但当N较⼤时，会出现数据稀疏性问题。模型的参\n数空间会急剧增⼤，相同的N-gram序列出现的概率变得⾮常低，导致模型⽆法有效学习，模型泛化能⼒下降。此\n外，N-gram模型忽略了词之间的范围依赖关系，⽆法捕捉到句⼦中的复杂结构和语义信息。\n尽管存在局限性，N-gram模型由于其简单性和实⽤性，在许多 NLP 任务中仍然被⼴泛使⽤。在某些应⽤中，结合\nN-gram模型和其他技术（如深度学习模型）可以获得更好的性能。\n1.4.3 Word2Vec  \nWord2Vec是⼀种流⾏的词嵌⼊（Word Embedding）技术，由Tomas Mikolov等⼈在2013年提出。它是⼀种基于\n神经⽹络NNLM的语⾔模型，旨在通过学习词与词之间的上下⽂关系来⽣成词的密集向量表示。Word2Vec的核⼼\n思想是利⽤词在⽂本中的上下⽂信息来捕捉词之间的语义关系，从⽽使得语义相似或相关的词在向量空间中距离较\n近。\nWord2Vec模型主要有两种架构：连续词袋模型CBOW(Continuous Bag of Words)是根据⽬标词上下⽂中的词对应\n的词向量, 计算并输出⽬标词的向量表示；Skip-Gram模型与CBOW模型相反, 是利⽤⽬标词的向量表示计算上下⽂\n中的词向量.",
+    "relevant_chunk_id": "doc_74_chunk_14",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "为什么在分库分表场景中，使用普通Hash取模算法进行扩容时会导致大量数据迁移？",
+    "ground_truth": "333\n分⽚算法\n分⽚键选择完毕，那么如何根据分⽚键把数据分到某张表上——分⽚算法\n思路：先对分⽚键求Hash值，再对分⽚数量取模 \n例如对⽤户ID求出Hash值，若分⽚数量为8个库，每个库128张表 \n则该Hash值对分库数量8取模，得到该数据要存到哪个库上 \n再该Hash值对分表数量128取模，得到该数据要存到哪个表上， \n以及要查询时也通过此定位到对应的表\n问题引⼊：Hash取模分⽚的问题：当分库分表的 库/表 的数量不⾜时，需要⼆次扩容，即增加\n库/表的数量\n此时Hash值要取模的数变动了，所以数据应该存⼊到哪个库/表都会变动，就涉及到数据迁移 \n数据库全部数据⼤量迁移，成本很⾼，我们想要避免这种问题，就需要在⼀开始使⽤⼀致性Hash\n分⽚算法\n⼀致性哈希：是⼀种⽤于分布式系统中数据分⽚和负载均衡的算法。它的⽬标是在节点的动态增加\n或删除时，尽可能地减少数据迁移和重新分布的成本。\n具体实现\n1. 实现⼀致性哈希算法⾸先需要构造⼀个哈希环，\n2.",
+    "relevant_chunk_id": "doc_75_chunk_435",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "该文本片段中描述的工作原理的第三步是什么？",
+    "ground_truth": "⼯作原理 \n3. 执⾏过程 \n○\n○\n○",
+    "relevant_chunk_id": "doc_75_chunk_131",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "注意力机制最初是在哪个领域被提出的？",
+    "ground_truth": "RNN 难以捕捉⻓序列的相关关系。在 RNN 架构中，距离越远的输⼊之间的关系就越难被捕捉，同时 RNN 需要将整个序列读⼊内存依次计算，也\n限制了序列的⻓度。虽然 LSTM 中通过⻔机制对此进⾏了⼀定优化，但对于较远距离相关关系的捕捉，RNN 依旧是不如⼈意的。\n针对这样的问题，Vaswani 等学者参考了在 CV 领域被提出、被经常融⼊到 RNN 中使⽤的注意⼒机制（Attention）（注意，虽然注意⼒机制在 NLP \n被发扬光⼤，但其确实是在 CV 领域被提出的），创新性地搭建了完全由注意⼒机制构成的神经⽹络——Transformer ，也就是⼤语⾔模型（Large \nLanguage Model，LLM）的⿐祖及核⼼架构，从⽽让注意⼒机制⼀跃成为深度学习最核⼼的架构之⼀。\n那么，究竟什么是注意⼒机制？\n注意⼒机制最先源于计算机视觉领域，其核⼼思想为当我们关注⼀张图⽚，我们往往⽆需看清楚全部内容⽽仅将注意⼒集中在重点部分即可。⽽在⾃然\n语⾔处理领域，我们往往也可以通过将重点注意⼒集中在⼀个或⼏个 token，从⽽取得更⾼效⾼质的计算效果。\n注意⼒机制有三个核⼼变量：Query（查询值）、Key（键值）和 Value（真值）。我们可以通过⼀个案例来理解每⼀个变量所代表的含义。例如，当\n我们有⼀篇新闻报道，我们想要找到这个报道的时间，那么，我们的 Query 可以是类似于“时间”、“⽇期”⼀类的向量（为了便于理解，此处使⽤⽂本来\n表示，但其实际是稠密的向量），Key 和 Value 会是整个⽂本。通过对 Query 和 Key 进⾏运算我们可以得到⼀个权重，这个权重其实反映了从 Query \n出发，对⽂本每⼀个 token 应该分布的注意⼒相对⼤⼩。通过把权重和 Value 进⾏运算，得到的最后结果就是从 Query 出发计算整个⽂本注意⼒得到\n的结果。\n具体⽽⾔，注意⼒机制的特点是通过计算 Query 与Key的相关性为真值加权求和，从⽽拟合序列中每个词同其他词的相关关系。\n2.1.2 深⼊理解注意⼒机制  \n刚刚我们说到，注意⼒机制有三个核⼼变量：查询值 Query，键值 Key 和 真值 Value。接下来我们以字典为例，逐步分析注意⼒机制的计算公式是如\n何得到的，从⽽帮助读者深⼊理解注意⼒机制。⾸先，我们有这样⼀个字典：\n此时，字典的键就是注意⼒机制中的键值 Key，⽽字典的值就是真值 Value。字典⽀持我们进⾏精确的字符串匹配，例如，如果我们想要查找的值也就\n是查询值 Query 为“apple”，那么我们可以直接通过将 Query 与 Key 做匹配来得到对应的 Value。\n{\n    \"apple\":10,\n    \"banana\":5,\n    \"chair\":2\n}",
+    "relevant_chunk_id": "doc_74_chunk_21",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在Transformer的自注意力机制中，为什么对注意力分数加上上三角掩码矩阵后，再经过Softmax操作就能实现未来信息遮蔽？",
+    "ground_truth": "⽣成的 Mask 矩阵会是⼀个上三⻆矩阵，上三⻆位置的元素均为 -inf，其他位置的元素置为0。\n在注意⼒计算时，我们会将计算得到的注意⼒分数与这个掩码做和，再进⾏ Softmax 操作：\n通过做求和，上三⻆区域（也就是应该被遮蔽的 token 对应的位置）的注意⼒分数结果都变成了 -inf ，⽽下三⻆区域的分数不变。再做 Softmax 操\n作，-inf  的值在经过 Softmax 之后会被置为 0，从⽽忽略了上三⻆区域计算的注意⼒分数，从⽽实现了注意⼒遮蔽。\n2.1.6 多头注意⼒  \n注意⼒机制可以实现并⾏化与⻓期依赖关系拟合，但⼀次注意⼒计算只能拟合⼀种相关关系，单⼀的注意⼒机制很难全⾯拟合语句序列⾥的相关关系。\n因此 Transformer 使⽤了多头注意⼒机制（Multi-Head Attention），即同时对⼀个语料进⾏多次注意⼒计算，每次注意⼒计算都能拟合不同的关系，\n将最后的多次结果拼接起来作为最后的输出，即可更全⾯深⼊地拟合语⾔信息。\n在原论⽂中，作者也通过实验证实，多头注意⼒计算中，每个不同的注意⼒头能够拟合语句中的不同信息，如图2.4所示：\n图2.4 多头注意⼒机制\n# 创建⼀个上三⻆矩阵，⽤于遮蔽未来信息。\n# 先通过 full 函数创建⼀个 1 * seq_len * seq_len 的矩阵\nmask = torch.full((1, args.max_seq_len, args.max_seq_len), float(\"-inf\"))\n# triu 函数的功能是创建⼀个上三⻆矩阵\nmask = torch.triu(mask, diagonal=1)\n# 此处的 scores 为计算得到的注意⼒分数，mask 为上⽂⽣成的掩码矩阵\nscores = scores + mask[:, :seqlen, :seqlen]\nscores = F.softmax(scores.float(), dim=-1).type_as(xq)",
+    "relevant_chunk_id": "doc_74_chunk_24",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "LLM相较于传统预训练语言模型（PLM）在哪些关键能力上实现了突破？",
+    "ground_truth": "前⾔  \n2022年底，ChatGPT 的横空出世改变了⼈们对⼈⼯智能的认知，也给⾃然语⾔处理（Natural Language \nProcess，NLP）领域带来了阶段性的变⾰，以 GPT 系列模型为代表的⼤语⾔模型（Large Language Model，\nLLM）成为 NLP 乃⾄⼈⼯智能领域的研究主流。⾃ 2023年⾄今，LLM 始终是⼈⼯智能领域的核⼼话题，引发了⼀\n轮⼜⼀轮的科技浪潮。\nLLM 其实是 NLP 领域经典研究⽅法预训练语⾔模型（Pretrain Language Model，PLM）的⼀种衍⽣成果。NLP \n领域聚焦于⼈类书写的⾃然语⾔⽂本的处理、理解和⽣成，从诞⽣⾄今经历了符号主义阶段、统计学习阶段、深度\n学习阶段、预训练模型阶段到⽽今⼤模型阶段的多次变⾰。以 GPT、BERT 为代表的 PLM 是上⼀阶段 NLP 领域的\n核⼼研究成果，以注意⼒机制为模型架构，通过预训练-微调的阶段思想通过在海量⽆监督⽂本上进⾏⾃监督预训\n练，实现了强⼤的⾃然语⾔理解能⼒。但是，传统的 PLM 仍然依赖于⼀定量有监督数据进⾏下游任务微调，且在\n⾃然语⾔⽣成任务上性能还不尽如⼈意，NLP 系统的性能距离⼈们所期待的通⽤⼈⼯智能还有不⼩的差距。\nLLM 是在 PLM 的基础上，通过⼤量扩⼤模型参数、预训练数据规模，并引⼊指令微调、⼈类反馈强化学习等⼿段\n实现的突破性成果。相较于传统 PLM，LLM 具备涌现能⼒，具有强⼤的上下⽂学习能⼒、指令理解能⼒和⽂本⽣\n成能⼒。在⼤模型阶段，NLP 研究者可以⼀定程度抛弃⼤量的监督数据标注⼯作，通过提供少量监督示例，LLM \n即能在指定下游任务上达到媲美⼤规模微调 PLM 的性能。同时，强⼤的指令理解能⼒与⽂本⽣成能⼒使 LLM 能够\n直接、⾼效、准确地响应⽤户指令，从⽽真正向通⽤⼈⼯智能的⽬标逼近。\nLLM 的突破性进展激发了 NLP 领域乃⾄整个⼈⼯智能领域的研究热度，海内外⾼校、研究院、⼤⼚乃⾄众多传统\n领域企业都投⼊到 LLM 研究的浪潮中。⾃ 2023年⾄今，LLM 阶段性成果层出不穷，模型性能不断刷新上限，从⼀\n开始的 ChatGPT，到 GPT-4，再到以 DeepSeek-R1 为代表的推理⼤模型、以 Qwen-VL 为代表的多模态⼤模型等\n更强⼤、更定制化的模型，LLM 应⽤也不断涌现出能够提升实际⽣产⼒、赋能⽤户实际⽣活的创新应⽤，从”百模\n⼤战“到”Agent 元年“，LLM 基座研究或许已趋向稳定的格局，LLM 的研究始终⽅兴未艾。可以肯定的是，在并不\n遥远的未来，LLM 及以 LLM 为基础的应⽤⼀定会成为⼈们⽣活中的基础设施，与每个⼈的⽣活、学习、⼯作密不\n可分。\n在这样的背景下，深⼊理解、掌握 LLM 原理，能够动⼿应⽤、训练任意⼀个 LLM 的能⼒，对每⼀位 NLP 研究者\n乃⾄其他领域的 AI 研究者⾄关重要。我们在 2023年底分别创建了 self-llm（开源⼤模型⻝⽤指南：https://github. com/datawhalechina/self-llm ）、llm-universe（动⼿学⼤模型应⽤开发：https://github.com/datawhalechina/\nllm-universe ）两个原创开源⼤模型教程，前者旨在为开发者提供⼀站式开源 LLM 部署、推理、微调的使⽤教\n程，后者旨在指导开发者从零开始搭建⾃⼰的 LLM 应⽤。两个教程都帮助到了⼴泛的国内外开发者，也获得了众\n多开发者的⽀持和认可，在学习者的反馈中，我们发现⽬前还缺乏⼀个从零开始讲解 LLM 原理、并引导学习者亲\n⼿搭建、训练 LLM 的完整教程。\n鉴于此，我们编写了这本结合 LLM 原理及实战的教程。本书将从 NLP 的基本研究⽅法出发，根据 LLM 的思路及\n原理逐层深⼊，依次为读者剖析 LLM 的架构基础和训练过程。同时，我们会结合⽬前 LLM 领域最主流的代码框\n架，演练如何亲⼿搭建、训练⼀个 LLM，期以实现授之以⻥，更授之以渔。希望读者能从这本书开始⾛⼊ LLM 的\n浩瀚世界，探索 LLM 的⽆尽可能。\n写给读者的建议  \n本书包含 LLM 的理论基础、原理介绍和项⽬实战，全书包括 LLM 及 NLP 的核⼼思路剖析、公式解析与代码实\n战，旨在帮助开发者深⼊理解并掌握 LLM 的基本原理与应⽤。因此，本书适合⼤学⽣、研究⼈员、LLM 爱好者阅\n读。在阅读本书之前，你需要具备⼀定的编程经验，尤其是要对 Python 编程语⾔有⼀定的了解。同时，你最好具\n备深度学习的相关知识，并了解 NLP 领域的相关概念和术语，以便更轻松地阅读本书。",
+    "relevant_chunk_id": "doc_74_chunk_4",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "为什么在高并发场景下使用短连接（如HTTP1.0）会导致服务器端出现大量TIME_WAIT状态？",
+    "ground_truth": "232\n主动关闭连接的⼀⽅，才有 TIME_WAIT 状态 \n如果服务器上有⼤量的 TIME_WAIT 状态连接，可能会导致以下问题： \n占⽤⼤量的端⼝资源，导致⽆法建⽴新的连接\n增加内存和 CPU 的开销 \nTIME_WAIT 状态过多的原因： \n1. 短连接(HTTP1.0) && ⾼并发场景： \n在⾼并发场景下，如果客户端频繁地与服务器建⽴短连接（如 HTTP 请求），每次连接\n关闭时服务端的连接都会进⼊ TIME_WAIT 状态，导致 TIME_WAIT 状态堆积。（因为短\n连接是由服务端发起关闭请求的）\n2. 服务器主动关闭连接：\n如果服务器主动关闭连接，会导致服务器端出现⼤量 TIME_WAIT 状态。 \n解决⽅案：\n1. 改⽤⻓连接（如HTTP1.1或2.0） \n2.",
+    "relevant_chunk_id": "doc_75_chunk_304",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在注意力机制出现之前，RNN及其衍生架构LSTM在NLP领域处于什么地位？",
+    "ground_truth": "图2.3 循环神经⽹络\n由于 NLP 任务所需要处理的⽂本往往是序列，因此专⽤于处理序列、时序数据的 RNN 往往能够在 NLP 任务上取得最优的效果。事实上，在注意⼒机\n制横空出世之前，RNN 以及 RNN 的衍⽣架构 LSTM 是 NLP 领域当之⽆愧的霸主。例如，我们在第⼀章讲到过的开创了预训练思想的⽂本表示模型 \nELMo，就是使⽤的双向 LSTM 作为⽹络架构。\n但 RNN 及 LSTM 虽然具有捕捉时序信息、适合序列⽣成的优点，却有两个难以弥补的缺陷：\n1. 序列依序计算的模式能够很好地模拟时序信息，但限制了计算机并⾏计算的能⼒。由于序列需要依次输⼊、依序计算，图形处理器（Graphics \nProcessing Unit，GPU）并⾏计算的能⼒受到了极⼤限制，导致 RNN 为基础架构的模型虽然参数量不算特别⼤，但计算时间成本却很⾼；\n2.",
+    "relevant_chunk_id": "doc_74_chunk_20",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "generate_loss_mask方法中，为什么在匹配到<|im_start|>assistant\\n子序列后，要从该子序列结束位置开始查找第一个ID为4的token，并将该位置之前（不包括ID为4的位置）的token标记为计算损失？",
+    "ground_truth": "self.max_length = max_length\n        self.padding = 0\n        with open(data_path, 'r', encoding='utf-8') as f:\n            self.data = f.readlines()\n    def __len__(self):\n        return len(self.data)\n    def generate_loss_mask(self, input_ids):\n        # ⽣成 loss mask, 0 表示不计算损失, 1 表示计算损失\n        mask = [0] * len(input_ids)\n        a_sequence = [3, 1074, 537, 500, 203]  # <|im_start|>assistant\\n\n        a_length = len(a_sequence)\n        n = len(input_ids)\n        i = 0\n        \n        while i <= n - a_length:\n            # 检查当前位置是否匹配⽬标⼦序列\n            match = True\n            for k in range(a_length):\n                if input_ids[i + k] != a_sequence[k]:\n                    match = False\n                    break\n            if match:\n                # 从⼦序列结束的位置开始查找第⼀个4, 4 为 <|im_end|> EOS id\n                j = None\n                for idx in range(i + a_length, n):\n                    if input_ids[idx] == 4:\n                        j = idx\n                        break\n                if j is not None:\n                    start = i + a_length\n                    end = j  # 结束位置设为j（包含4）\n                    # 标记区间为1（包括start到end）\n                    if start <= end:\n                        for pos in range(start, end + 1):\n                            if pos < len(mask):\n                                mask[pos] = 1\n                # 跳过当前⼦序列，避免重叠匹配\n                i += a_length\n            else:\n                i += 1\n        return mask\n    def __getitem__(self, index: int):\n        sample = json.loads(self.data[index])\n        text = self.tokenizer.apply_chat_template(sample, tokenize=False, \nadd_generation_prompt=False)\n        input_id = self.tokenizer(text).data['input_ids'][:self.max_length]\n        text_len = len(input_id)\n        # 没满最⼤⻓度的剩余部分\n        padding_len = self.max_length - text_len",
+    "relevant_chunk_id": "doc_74_chunk_123",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在面试过程中，除了运行测试用例和解释代码外，还应进行哪两项关键分析或讨论？",
+    "ground_truth": "和⾯试官过⼀遍代码：解释代码，并运⾏测试⽤例\n7. 复杂度分析：常规题⽬的时间空间复杂度都应该学⼀下怎么分析，可以看官⽅\n题解\n8. 优化⽅案讨论：有些题⽬可能写完才发现还有优化的机会",
+    "relevant_chunk_id": "doc_75_chunk_450",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在JVM调优实践中，针对ParNew + CMS + JDK8的服务环境，文中建议对哪些GC相关指标配置监控告警以保障线上服务稳定性？",
+    "ground_truth": "其次可能还是存在少量场景需要调优，我们可以对⼀些JVM核⼼指标配置监控告警，当出现波\n动时⼈为介⼊分析评估，例如 GC的耗时过⻓ 设置告警、GC的次数过多 设置告警。（注意线\n上服务稳定性建设，配置监控告警，这是⼀个很规范的⼤⼚的执⾏标准）\n3. 最后我想举⼀个实际调优的例⼦进⾏说明，\n案例⼀：\n服务环境：ParNew + CMS + JDK8 \n●\n●\n●\n●\n●\n⾯试时如何回答",
+    "relevant_chunk_id": "doc_75_chunk_122",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "大语言模型在推理链条过长时可能出现什么问题？",
+    "ground_truth": "可能犯逻辑错误，推理链条过⻓时，可能得出错误结论\n3. 容易“编造”信息，即使信息看起来可信，但可能并不存在 \n擅⻓⽅向\n不擅⻓⽅向\n4.⾃动驾驶&机器⼈ ⽆⼈⻋、机器⼈导航 Tesla FSD、Gato、\nPerceiver \n5.科学计算&医疗 药物研发、医学影像 AlphaFold、Med-PaLM 2 \n6.推荐系统&⼴告 电商推荐、精准营销 DeepFM、DINO、YouTube \nAl",
+    "relevant_chunk_id": "doc_75_chunk_497",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "该文本片段要求生成的JSON数组中每个对象必须包含哪两个字段？",
+    "ground_truth": "319",
+    "relevant_chunk_id": "doc_75_chunk_418",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "当Java程序因内存溢出（OOM）而异常终止时，应配置哪两个JVM参数来实现在发生OOM时自动生成堆转储（heap dump）文件，并指定其保存路径？",
+    "ground_truth": "279\n如果程序在运⾏中，可以使⽤命令的⽅式，⽣成dump⽂件 \njmap -dump:format=b,file=heap.hprof PID \n如果内存溢出导致程序闪退中断，即不在运⾏中，则可以使⽤vm参数，当程序出现OOM异\n常，则会⾃动⽣成dump⽂件 \n-XX:+HeapDumpOnOutOfMemoryError \n-XX:HeapDumpPath=/home/app/dumps \n●\n○\n●\n○\n○",
+    "relevant_chunk_id": "doc_75_chunk_360",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "LLaMA2 模型中词嵌入层（tok_embeddings）与输出层（output）的权重是如何关联的？",
+    "ground_truth": "OUT:\n5.1.6 构建 LLaMA2 模型  \n好了，我们已经完了上述所有的模块的实现，接下来就是激动⼈⼼的时刻，我们可以构建LLaMA2 模型了。，\nLLaMA2 模型就是将DecoderLayer 模块堆叠起来，构成⼀个完整的Transformer 模型。\nfreqs_cos, freqs_sin = precompute_freqs_cis(dim//args.n_heads, seq_len)\nout = decoderlayer(x, freqs_cos, freqs_sin)\nprint(out.shape) # 形状和输⼊的x⼀样 [batch_size, seq_len, dim]\ntorch.Size([1, 50, 768])\nclass Transformer(PreTrainedModel):\n    config_class = ModelConfig  # 配置类\n    last_loss: Optional[torch.Tensor] # 记录最后⼀次计算的损失\n    def __init__(self, args: ModelConfig = None):\n        super().__init__(args)\n        # 初始化模型参数\n        self.args = args\n        # 词汇表⼤⼩\n        self.vocab_size = args.vocab_size\n        # 层数\n        self.n_layers = args.n_layers\n        # 词嵌⼊层\n        self.tok_embeddings = nn.Embedding(args.vocab_size, args.dim)\n        # Dropout层\n        self.dropout = nn.Dropout(args.dropout)\n        # Decoder层\n        self.layers = torch.nn.ModuleList()\n        for layer_id in range(args.n_layers):\n            self.layers.append(DecoderLayer(layer_id, args))\n        # 归⼀化层\n        self.norm = RMSNorm(args.dim, eps=args.norm_eps)\n        # 输出层\n        self.output = nn.Linear(args.dim, args.vocab_size, bias=False)\n        # 将词嵌⼊层的权重与输出层的权重共享\n        self.tok_embeddings.weight = self.output.weight \n        # 预计算相对位置嵌⼊的频率\n        freqs_cos, freqs_sin = precompute_freqs_cis(self.args.dim // self.args.n_heads, \nself.args.max_seq_len)\n        self.register_buffer(\"freqs_cos\", freqs_cos, persistent=False)\n        self.register_buffer(\"freqs_sin\", freqs_sin, persistent=False)",
+    "relevant_chunk_id": "doc_74_chunk_104",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "这段Spring Boot配置代码中，KafkaProducer Bean的注册条件是什么？",
+    "ground_truth": "208\n@Configuration\npublic class FeatureConfig {\n    @Bean\n    @ConditionalOnClass(name = \"org.apache.kafka.clients.producer.Producer\"\n)\n    public KafkaProducer kafkaProducer() {\n        // 仅当  Kafka Producer 类存在时注册该  Bean\n    }\n}\n1\n2\n3\n4\n5\n6\n7\n8\nJava",
+    "relevant_chunk_id": "doc_75_chunk_270",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "Redis 6.0 为什么引入多线程？",
+    "ground_truth": "418\nZSet为什么使⽤ SkipList 跳表 实现？SkipList跳表是什么？ \nRedis如何实现分布锁？ \nSetNx实现的分布锁有什么问题？ \nRedisson分布式锁底层使⽤什么数据结构？ \nRedisson分布式锁的好处有哪些？ \n解释⼀下如何实现可重⼊？\n超市续约的看⻔狗机制了解吗？\nRedisson分布式锁的问题是什么？如何解决？ \n介绍Redis的持久化⽅式（RDB、AOF、混合持久化）？优缺点？ \nRedis的内存淘汰策略有哪些？ \n什么是缓存击穿/穿透/雪崩？分别怎么解决？\n什么是热Key问题？影响？解决⽅案？ \n什么是⼤ey问题？影响？解决⽅案？ \nRedis的⾼可⽤了解吗？主从？哨兵？Redis cluster？ \n除了官⽅的还了解过其他的Redis⾼可⽤⽅案吗？ \n主从数据同步的原理了解吗？\nRedis 为什么这么快 \nRedis 是单线程还是多线程 \nRedis 为什么使⽤单线程执⾏命令 \nRedis 6.0 为什么引⼊多线程 \nRedis是AP还是CP的？ \nRedis  (扩展)",
+    "relevant_chunk_id": "doc_75_chunk_551",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "为什么在使用@Transactional注解时，将rollbackFor设置为RuntimeException.class会导致非RuntimeException类型的异常发生时事务不回滚？",
+    "ground_truth": "221\n明式事务会失效，即新线程中的操作不会被包含在原有的事务中。\n5.@Transactional 注解属性 rollbackFor 设置错误 \n以上，如果发⽣ ⾮RuntimeException的异常，则事务不会回滚，即导致事务失效。 \n所以需要指定为(rollbackFor =Exception.class) \npublic class MyService{\n    @Transactional(rollbackFor = RuntimeException.class)\n    private void doInternal(){\n        System.out.println(\"Doing internal work...\");\n    }\n}\n \n1\n2\n3\n4\n5\n6\n7\nJava",
+    "relevant_chunk_id": "doc_75_chunk_289",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在面试准备中，1.2.1.1小节‘工具如何定义’这一内容的主要目的是什么？",
+    "ground_truth": "帮助个⼈理解（也应对⾯试官的追问） \n1.2.1.Tools \n1.2.1.1. ⼯具如何定义",
+    "relevant_chunk_id": "doc_75_chunk_506",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "使用消息队列主要能实现哪三个关键作用？",
+    "ground_truth": "195\n消息队列的作⽤\n使⽤消息队列的主要⽬的主要记住这三个关键词：解耦、异步、削峰填⾕\n1. 解耦：在⼀个复杂的系统中，不同的模块或服务之间可能需要相互依赖，如果直接使⽤函数调\n⽤或者 API调⽤的⽅式，会造成模块之间的耦合，当其中⼀个模块发⽣改变时，需要同时修改\n调⽤⽅和被调⽤⽅的代码。⽽使⽤消息队列作为中间件，不同的模块可以将消息发送到消息队\n列中，不需要知道具体的接收⽅是谁，接收⽅可以独⽴地消费消息，实现了模块之间的解耦。\n2.",
+    "relevant_chunk_id": "doc_75_chunk_254",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "为什么在从2.94亿个数据中取出最大的前100个时，应该使用小顶堆而不是大顶堆？",
+    "ground_truth": "294\n\u0000 亿个数据取出最⼤前  \u0000\u0000\u0000 个\n背景知识：\n堆的逻辑结构和完全⼆叉树⼀致，但底层实现是数组（完全⼆叉树的层序遍历结果存储在数组\n中）\n堆每次弹出元素，是从堆顶弹出\n堆⼜名优先队列，例如 Java 中的 Priority Queue \n⼩顶堆：堆顶元素是整个堆中的最⼩值\n⼤顶堆：堆顶元素是整个堆中的最⼤值\n问题解决：\n使⽤堆(Heap) 数据结构来实现，那么要⽤⼩顶堆还是⼤顶堆 \n问题要求取出最⼤的前100个，则堆⾥应该保留下最⼤的100个，所以应该⽤⼩顶堆 \n1. 创建⼀个最⼩堆\n2.",
+    "relevant_chunk_id": "doc_75_chunk_380",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "为什么语料去重是预训练数据处理中必不可少的步骤？",
+    "ground_truth": "语料过滤。语料过滤的核⼼⽬的是去除低质量、⽆意义、有毒有害的内容，例如乱码、⼴告等。语料过滤⼀般\n有两种⽅法：基于模型的⽅法，即通过⾼质量语料库训练⼀个⽂本分类器进⾏过滤；基于启发式的⽅法，⼀般\n通过⼈⼯定义 web 内容的质量指标，计算语料的指标值来进⾏过滤。\n3. 语料去重。实验表示，⼤量重复⽂本会显著影响模型的泛化能⼒，因此，语料去重即删除训练语料中相似度⾮\n常⾼的⽂档，也是必不可少的⼀个步骤。去重⼀般基于 hash 算法计算数据集内部或跨数据集的⽂档相似性，\n将相似性⼤于指定阈值的⽂档去除；也可以基于⼦串在序列级进⾏精确匹配去重。\n⽬前，已有很多经过处理的⾼质量预训练语料和专⽤于预训练数据处理的框架。例如，有基于 LLaMA 思路收集、\n清洗的预训练数据集RedPajama-1T，以及在 RedPajama 基础上进⾏筛选去重的SlimPajama-627B数据集，实验\n证明⾼质量的 627B Slimpajama 数据集能够获得⽐ 1T 的 RedPajama 数据集更好的效果。",
+    "relevant_chunk_id": "doc_74_chunk_81",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "为什么B+树比B树更适合支持高效的范围查找？",
+    "ground_truth": "116\n层数低\n在叶⼦节点之间形成了双向链表 => 便于范围查询 \n2. 优点：\n分⽀因⼦⼤（即⼀个节点有很多个⼦节点），树的⾼度低，查询时IO次数少 \n⽀持⾼效的范围查找\n聚集索引：主键索引  （如果表中没有设置主键，则聚集索引是  第⼀个不为null的唯⼀索引 ） \n⼆级索引：⾮主键索引\n聚集索引树（主键索引树）的叶⼦节点存储的是：索引数据+整⾏记录 \n⼆级索引树的叶⼦节点存储的是：索引数据+主键值 \n●\n●\n●\nB树和B+树的区别 \n聚集索引和⼆级索引\n回表和索引覆盖\n特性 B树 B+树 \n数据存储 所有节点中存储 索引+记录 ⾮叶⼦节点仅存储  索引 \n叶⼦节点存储 索引+记录 \n分⽀因⼦ 由于⾮叶⼦节点中存储了记录，因此\n较低\n由于⾮叶⼦节点中只存储了索引，因此更\n⾼\n⾼效的范围查\n找\n不⽀持 所有叶⼦节点形成双向链表，⽀持\n查找稳定性 数据可能在中间节点获得，不稳定数据⼀定在叶⼦节点获得，稳定",
+    "relevant_chunk_id": "doc_75_chunk_156",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在文本描述的生成过程中，模型如何利用logits生成新的token？",
+    "ground_truth": "在 generate  ⽅法中，我们⾸先获取序列中最后⼀个位置的 logits ，然后基于这些 logits  ⽣成新的 token 。\n接着，⽣成的新 token  会被添加到序列中，模型随后会继续⽣成下⼀个 token 。通过这种迭代过程，我们能够⽣\n成完整的⽂本。\n接下来就是最重要的部分，训练模型! 注：在使⽤下⾯代码进⾏模型训练时，需要指定 --data_path  参数为预处理好的数据集路径，例如 --\ndata_path seq_monkey_datawhale.jsonl ，也需要指定要⽤哪⼏张GPU进⾏训练，例如 --gpus 0,1 。\n        在 model.eval() 模式下运⾏。效率较低的采样版本，没有使⽤键k/v cache。\n        \"\"\"\n        index = idx.shape[1]\n        for _ in range(max_new_tokens):\n            # 如果序列上下⽂过⻓，截断它到最⼤⻓度\n            idx_cond = idx if idx.size(1) <= self.args.max_seq_len else idx[:, -\nself.args.max_seq_len:]\n            \n            # 前向传播获取序列中最后⼀个位置的 logits\n            logits = self(idx_cond).logits\n            logits = logits[:, -1, :] # 只保留最后⼀个时间步的输出\n            \n            if temperature == 0.0:\n                # 选择最有可能的索引\n                _, idx_next = torch.topk(logits, k=1, dim=-1)\n            else:\n                # 缩放 logits 并应⽤ softmax\n                logits = logits / temperature\n                if top_k is not None:\n                    v, _ = torch.topk(logits, min(top_k, logits.size(-1)))\n                    logits[logits < v[:, [-1]]] = -float('Inf')\n                probs = F.softmax(logits, dim=-1)\n                idx_next = torch.multinomial(probs, num_samples=1)\n            \n            if idx_next == stop_id:\n                break\n            # 将采样的索引添加到序列中并继续\n            idx = torch.cat((idx, idx_next), dim=1)\n        return idx[:, index:] # 只返回⽣成的token\ndef get_lr(it, all):\n    \"\"\"\n    计算当前迭代的学习率，使⽤余弦退⽕调度策略\n    \n    学习率调度策略：\n    1. Warmup阶段：学习率从0线性增⻓到⽬标学习率\n    2.",
+    "relevant_chunk_id": "doc_74_chunk_125",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "为什么指令遵循能力使得ChatGPT能够广泛服务于各行各业用户，而不仅限于学界和业界研究？",
+    "ground_truth": "上下⽂学习能⼒也正在引发 NLP 研究范式的变⾰。在传统 PLM 时代，解决 NLP 下游任务的⼀般范式是预训练-微\n调，即选⽤⼀个合适的预训练模型，针对⾃⼰的下游任务准备有监督数据来进⾏微调。⽽通过使⽤具备上下⽂学习\n能⼒的 LLM，⼀般范式开始向 Prompt Engineering 也就是调整 Prompt 来激发 LLM 的能⼒转变。例如，⽬前绝\n⼤部分 NLP 任务，通过调整 Prompt 或提供 1~5 个⾃然语⾔示例，就可以令 GPT-4 达到超过传统 PLM 微调的效\n果。\n（3）指令遵循（Instruction Following）  \n通过使⽤⾃然语⾔描述的多任务数据进⾏微调，也就是所谓的 指令微调  ，LLM 被证明在同样使⽤指令形式化描述\n的未⻅过的任务上表现良好。也就是说，经过指令微调的 LLM 能够理解并遵循未⻅过的指令，并根据任务指令执\n⾏任务，⽽⽆需事先⻅过具体示例，这展示了其强⼤的泛化能⼒。\n指令遵循能⼒意味我们不再需要每⼀件事都先教模型，然后它才能去做。我们只需要在指令微调阶段混合多种指令\n来训练其泛化能⼒，LLM 就可以处理⼈类绝⼤部分指令，即可以灵活地解决⽤户遇到的问题。这⼀点在 ChatGPT \n上体现地尤为明显。ChatGPT 之所以能够具备极⾼的热度，其核⼼原因即在于其不再是仅能⽤于学界、业界研究的\n理论模型，⽽同样可以⼴泛地服务于各⾏各业⽤户。通过给 ChatGPT 输⼊指令，其可以写作⽂、编程序、批改试\n卷、阅读报纸等等。\n指令遵循能⼒使 LLM 可以真正和多个⾏业结合起来，通过⼈⼯智能技术为⼈类⽣活的⽅⽅⾯⾯赋能，从⽽为⼈类\n带来质的改变。不管是⽬前⼤⽕的 Agent、WorkFlow，还是并不遥远的未来可能就会出现的全能助理、超级智\n能，其本质依赖的都是 LLM 的指令遵循能⼒。\n（4）逐步推理（Step by Step Reasoning）  \n逻辑推理，尤其是涉及多个推理步骤的复杂推理任务，⼀直是 NLP 的攻关难点，也是⼈⼯智能难以得到普遍认可\n的重要原因。毕竟，如果⼀个模型不能解答基础的“鸡兔同笼”问题，或者不能识别语⾔中的逻辑陷阱，你很难认为\n它是“智能的”⽽⾮“智障的”。\n但是，传统的 NLP 模型通常难以解决涉及多个推理步骤的复杂任务，例如数学问题。然⽽，LLM 通过采⽤思维链\n（Chain-of-Thought，CoT）推理策略，可以利⽤包含中间推理步骤的提示机制来解决这些任务，从⽽得出最终答\n案。据推测，这种能⼒可能是通过对代码的训练获得的。\n逐步推理能⼒意味着 LLM 可以处理复杂逻辑任务，也就是说可以解决⽇常⽣活中需要逻辑判断的绝⼤部分问题，\n从⽽向“可靠的”智能助理迈出了坚实的⼀步。\n这些独特能⼒是 LLM 区别于传统 PLM 的重要优势，也让 LLM 在处理各种任务时表现出⾊，使它们成为了解决复\n杂问题和应⽤于多领域的强⼤⼯具。正是因为涌现能⼒、上下⽂学习能⼒、指令遵循能⼒与逐步推理能⼒的存在，\nNLP 研究⼈员相信 LLM 是迈向通⽤⼈⼯智能，帮助⼈类社会实现⽣产⼒质变的重要途径。⽽事实上，⽬前已有众\n多基于 LLM 的应⽤，旨在利⽤ LLM 的独特能⼒显著提⾼⽣产⼒。例如，微软基于 GPT-4 推出的 Copilot，就基于 \nLLM 强⼤的指令遵循能⼒与逐步推理能⼒，通过提供代码补全、代码提示、代码编写等多种功能，辅助程序员更⾼\n效、便捷、精准地编写程序，极⼤提⾼了程序员的⽣产效率。\n4.1.3 LLM 的特点  \n除上⽂讨论的 LLM 的核⼼能⼒外，LLM 还具备⼀些额外的、有趣或是危险的特点，这些特点也是 LLM ⽬前重要的\n研究⽅向，在此讨论其中⼀⼆：\n（1）多语⾔⽀持",
+    "relevant_chunk_id": "doc_74_chunk_74",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "为什么统计出有意义的召回率需要大量测试用例数据？",
+    "ground_truth": "每条问题⾛检索流程，得到召回 chunk 列表 \n3. 逐题统计召回率\n4. 计算平均召回率\n但想要统计出有意义的召回率\n测试数据集⼀般项⽬⾄少需要200-500条测试⽤例 \n专业项⽬⾄少需要上千条测试⽤例\n因此统计召回率并没有那么容易，需要⼤量的测试⽤例数据",
+    "relevant_chunk_id": "doc_75_chunk_544",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "InnoDB在执行UPDATE语句修改数据页后，生成redo log的目的是什么？",
+    "ground_truth": "122\n记录的内容：数据⻚的物理修改\n写⼊时机：事务提交时\n⽤途：保证事务的持久性\n假设执⾏⼀条  SQL ：  \nUPDATE accounts SET balance = balance - 100 WHERE id = 1;  \n1. InnoDB 找到  id=1 的数据所在的数据⻚（假设是⻚  5 ）。  \n2. 修改⻚  5 中的  balance 字段值（从  500 改为  400 ）。  \n3. ⽣成⼀条  redo log ，记录： “ ⻚  5 的偏移位置  X ，值从  500 变为  400” 。  \n4.",
+    "relevant_chunk_id": "doc_75_chunk_162",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "T5模型中的Self-Attention机制与BERT的Attention机制是否相同？",
+    "ground_truth": "图3.9 Encoder 和 Decoder\nT5 的 Self-Attention 机制和 BERT 的 Attention 机制是⼀样的，都是基于 Self-Attention 机制设计的。Self-\nAttention 机制是⼀种全局依赖关系建模⽅法，通过计算 Query、Key 和 Value 之间的相似度来捕捉输⼊序列中的\n全局依赖关系。Encoder-Decoder Attention 仅仅在位置编码和 Mask 机制上有所不同，主要是为了区分输⼊和输\n出序列。如图3.10所示，Self-Attention 结构如下：",
+    "relevant_chunk_id": "doc_74_chunk_55",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "Kafka的自动提交offset功能默认每隔多少秒执行一次？",
+    "ground_truth": "193\n⾃动提交 offset\nOffset：消息位移，它表示分区中每条消息的位置信息，是⼀个单调递增且不变的值。 \n换句话说，offset可以⽤来唯⼀的标识分区中每⼀条记录。 \nKafka为了使我们能够专注于⾃⼰的业务逻辑，提供了⾃动提交offset的功能，这也是默认配置\n项。\n当消费者配置  enable.auto.commit=true  时，消费者会在后台启动⼀个定时任务， \n每隔  auto.commit.interval.ms （默认 5 秒）⾃动提交⼀次 offset \n⾃动提交的 offset 存储在 Kafka 的内部系统主题 consumer_offsets 中",
+    "relevant_chunk_id": "doc_75_chunk_252",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "该项目采用的开源许可证是什么？",
+    "ground_truth": "如果这个项⽬对你有帮助，请给我们⼀个 Star！\n关于 Datawhale  \n扫描⼆维码关注 Datawhale 公众号，获取更多优质开源内容\n 开源协议  \n本作品采⽤知识共享署名-⾮商业性使⽤-相同⽅式共享 4.0 国际许可协议进⾏许可。",
+    "relevant_chunk_id": "doc_74_chunk_3",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "为什么模型的多轮对话能力完全来自于SFT阶段，而不是预训练阶段？",
+    "ground_truth": "其中的 content 即为具体的⽤户指令，也就是说，对于每⼀个⽤户指令，将会嵌⼊到上⽂的 content 部分，这⾥的\n⽤户指令不仅指上例中的 “instruction”，⽽是指令和输⼊的拼接，即模型可以执⾏的⼀条完整指令。例如，针对上\n例，LLaMA 获得的输⼊应该是：\n其需要拟合的输出则是：\n注意，因为指令微调本质上仍然是对模型进⾏ CLM 训练，只不过要求模型对指令进⾏理解和回复⽽不是简单地预\n测下⼀个 token，所以模型预测的结果不仅是 output，⽽应该是 input + output，只不过 input 部分不参与 loss \n的计算，但回复指令本身还是以预测下⼀个 token 的形式来实现的。\n但是，随着 LLM 能⼒的不断增强，模型的多轮对话能⼒逐渐受到重视。所谓多轮对话，是指模型在每⼀次对话时\n能够参考之前对话的历史记录来做出回复。例如，⼀个没有多轮对话能⼒的 LLM 可能有如下对话记录：\n也就是说，模型不能记录⽤户曾经提到或是⾃⼰曾经回答的历史信息。如果是⼀个具有多轮对话能⼒的 LLM，其对\n话记录应该是这样的：\n模型是否⽀持多轮对话，与预训练是没有关系的。事实上，模型的多轮对话能⼒完全来⾃于 SFT 阶段。如果要使模\n型⽀持多轮对话，我们需要在 SFT 时将训练数据构造成多轮对话格式，让模型能够利⽤之前的知识来⽣成回答。假\n设我们⽬前需要构造的多轮对话是：\n构造多轮对话样本⼀般有三种⽅式：\n1. 直接将最后⼀次模型回复作为输出，前⾯所有历史对话作为输⼊，直接拟合最后⼀次回复：\n     \n2.",
+    "relevant_chunk_id": "doc_74_chunk_84",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "这段Java代码实现了什么功能？",
+    "ground_truth": "70\npublic class Main {\n \n    private static final Object LOCK = new Object();\n    private static volatile int count = 0;\n    private static final int MAX = 100;\n \n    public static void main(String[] args) {\n        Thread thread = new Thread(new Seq(0));\n        Thread thread1 = new Thread(new Seq(1));\n        Thread thread2 = new Thread(new Seq(2));\n        thread.start();\n        thread1.start();\n        thread2.start();\n    }\n \n    static class Seq implements Runnable {\n        private final int index;\n \n        public Seq(int index) {\n            this.index = index;\n        }\n \n        @Override\n        public void run() {\n            // Run ⽅法只要执⾏结束了 , 线程就结束了\n            while (count < MAX) {\n                // 同步代码块 , ⼀个时刻只能有⼀个线程获取到锁\n                synchronized (LOCK) {\n                    // 获取到锁就进来判断，当前是否轮到该线程打印\n                    while (count % 3 != index) {\n                        // 不是当前线程打印 , 那么就让当前线程去 wait, 它会⾃动释放锁 ,\n所以其他线程可以进来\n                        try {\n                            LOCK.wait();\n                            // 当线程被唤醒时，会尝试重新进⼊ synchronized 代码块\n                        } catch (Exception e) {\n                            e.printStackTrace();\n                        }\n                    }\n                    // 是当前线程打印 , 但 count>MAX\n                    if (count > MAX) {\n                        LOCK.notifyAll();\n                        return;\n                    }\n                    System.out.println(\"Thread-\" + index + \":\" + count);\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n3个线程交替打印0-100 Java",
+    "relevant_chunk_id": "doc_75_chunk_86",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "一致性哈希算法中，数据是如何被定位到对应存储节点的？",
+    "ground_truth": "335\n总结：⼀致性哈希算法将整个哈希空间视为⼀个环状结构，将节点和数据都映射到这个环上。每个\n节点通过计算⼀个哈希值，将节点映射到环上的⼀个位置。⽽数据也通过计算⼀个哈希值，将数据\n映射到环上的⼀个位置。\n当有新的数据需要存储时，⾸先计算数据的哈希值，然后顺时针或逆时针在环上找到最近的节点，\n将数据存储在这个节点上。当需要查找数据时，同样计算数据的哈希值，然后顺时针或逆时针在环\n上找到最近的节点，从该节点获取数据。",
+    "relevant_chunk_id": "doc_75_chunk_439",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在回溯算法的切割问题中，有哪些具体的力扣题目被列举出来？",
+    "ground_truth": "347\n    ⼆叉搜索树中的众\n数\n⼒扣\n    把⼆叉搜索树转换\n为累加树\n⼒扣\n  ⼆叉搜索树的修改\n与构造\n⼆叉搜索树中的插\n⼊操作\n⼒扣\n    删除⼆叉搜索树中\n的节点\n⼒扣\n    修剪⼆叉搜索树⼒扣\n    将有序数组转换为\n⼆叉搜索树\n⼒扣\n  ⼆叉树的公共祖先\n问题\n⼆叉树的最近公共\n祖先\n⼒扣\n    ⼆叉搜索树的最近\n公共祖先\n⼒扣\n7、回溯算法 组合问题 组合 ⼒扣\n    组合总和 Ⅲ ⼒扣\n    电话号码的字⺟组\n合\n⼒扣\n    组合总和 ⼒扣\n    组合总和 Ⅱ ⼒扣\n  切割问题 分割回⽂串 ⼒扣\n    复原 IP 地址 ⼒扣",
+    "relevant_chunk_id": "doc_75_chunk_455",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "训练好的Tokenizer在保存前，如何验证特殊token与ID的映射关系是否符合预期？",
+    "ground_truth": "Step 5: 使⽤训练好的 Tokenizer  \n我们可以使⽤训练好的 Tokenizer 来处理⽂本数据，如编码、解码、⽣成对话等。下⾯是⼀个简单的示例，展示了\n如何使⽤训练好的 Tokenizer 来处理⽂本数据。\n    # 配置训练器\n    trainer = trainers.BpeTrainer(\n        vocab_size=vocab_size,\n        special_tokens=special_tokens,\n        min_frequency=2,  # 提⾼低频词过滤\n        show_progress=True,\n        initial_alphabet=pre_tokenizers.ByteLevel.alphabet()\n    )\n    # 训练tokenizer\n    print(f\"Training tokenizer with data from {data_path}\")\n    texts = read_texts_from_jsonl(data_path)\n    tokenizer.train_from_iterator(texts, trainer=trainer, \nlength=os.path.getsize(data_path))\n    # 验证特殊token映射\n    try:\n        assert tokenizer.token_to_id(\"<unk>\") == 0\n        assert tokenizer.token_to_id(\"<s>\") == 1\n        assert tokenizer.token_to_id(\"</s>\") == 2\n        assert tokenizer.token_to_id(\"<|im_start|>\") == 3\n        assert tokenizer.token_to_id(\"<|im_end|>\") == 4\n    except AssertionError as e:\n        print(\"Special tokens mapping error:\", e)\n        raise\n    # 保存tokenizer⽂件\n    tokenizer.save(os.path.join(save_dir, \"tokenizer.json\"))\n    \n    # 创建配置⽂件\n    create_tokenizer_config(save_dir)\n    print(f\"Tokenizer saved to {save_dir}\")\ndef eval_tokenizer(tokenizer_path: str) -> None:\n    \"\"\"评估tokenizer功能\"\"\"\n    try:\n        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)\n    except Exception as e:\n        print(f\"Error loading tokenizer: {e}\")\n        return\n    # 测试基本属性\n    print(\"\\n=== Tokenizer基本信息 ===\")\n    print(f\"Vocab size: {len(tokenizer)}\")\n    print(f\"Special tokens: {tokenizer.all_special_tokens}\")\n    print(f\"Special token IDs: {tokenizer.all_special_ids}\")",
+    "relevant_chunk_id": "doc_74_chunk_112",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "GPT-2 相比 GPT-1 在模型结构上做了哪些关键改进，其核心动因是什么？",
+    "ground_truth": "GPT-2 则是 OpenAI 在 GPT-1 的基础上进⼀步探究预训练语⾔模型多任务学习能⼒的产物。GPT-2 的模型结构和 \nGPT-1 ⼤致相当，只是扩⼤了模型参数规模、将 Post-Norm 改为了 Pre-Norm（也就是先进⾏ LayerNorm 计算，\n再进⼊注意⼒层计算）。这些改动的核⼼原因在于，由于模型层数增加、体量增⼤，梯度消失和爆炸的⻛险也不断\n增加，为了使模型梯度更稳定对上述结构进⾏了优化。\nGPT-2 的核⼼改进是⼤幅增加了预训练数据集和模型体量。GPT-2 的 Decoder Block 层数达到了48（注意，GPT-2 \n共发布了四种规格的模型，此处我们仅指规格最⼤的 GPT-2 模型），隐藏层维度达到了 1600，模型整体参数量达 \n15亿（1.5B），使⽤了⾃⼰抓取的 40GB ⼤⼩的 WebText 数据集进⾏预训练，不管是模型结构还是预训练⼤⼩都\n超过了 1代⼀个数量级。\nGPT-2 的另⼀个重⼤突破是以 zero-shot（零样本学习）为主要⽬标，也就是不对模型进⾏微调，直接要求模型解\n决任务。例如，在传统的预训练-微调范式中，我们要解决⼀个问题，⼀般需要收集⼏百上千的训练样本，在这些\n训练样本上微调预训练语⾔模型来实现该问题的解决。⽽ zero-shot 则强调不使⽤任何训练样本，直接通过向预训\n练语⾔模型描述问题来去解决该问题。zero-shot 的思路⾃然是⽐预训练-微调范式更进⼀步、更⾼效的⾃然语⾔范\n式，但是在 GPT-2 的时代，模型能⼒还不⾜够⽀撑较好的 zero-shot 效果，在⼤模型时代，zero-shot 及其延伸出\n的 few-shot（少样本学习）才开始逐渐成为主流。\nGPT-3 则是更进⼀步展示了 OpenAI“⼒⼤砖⻜”的核⼼思路，也是 LLM 的开创之作。在 GPT-2 的基础上，OpenAI \n进⼀步增⼤了模型体量和预训练数据量，整体参数量达 175B，是当之⽆愧的“⼤型语⾔模型”。在模型结构上，基\n本没有⼤的改进，只是由于巨⼤的模型体量使⽤了稀疏注意⼒机制来取代传统的注意⼒机制。在预训练数据上，则\n是分别从 CC、WebText、维基百科等⼤型语料集中采样，共采样了 45T、清洗后 570GB 的数据。根据推算，\nGPT-3 需要在 1024张 A100（80GB 显存）的分布式训练集群上训练 1个⽉。\n之所以说 GPT-3 是 LLM 的开创之作，除去其巨⼤的体量带来了涌现能⼒的凸显外，还在于其提出了 few-shot 的\n重要思想。few-shot 是在 zero-shot 上的改进，研究者发现即使是 175B ⼤⼩的 GPT-3，想要在 zero-shot 上取得\n较好的表现仍然是⼀件较为困难的事情。⽽ few-shot 是对 zero-shot 的⼀个折中，旨在提供给模型少样的示例来\n教会它完成任务。few-shot ⼀般会在 prompt（也就是模型的输⼊）中增加 3~5个示例，来帮助模型理解。例如，\n对于情感分类任务：\n通过给模型提供少量示例，模型可以取得远好于 zero-shot 的良好表现。few-shot 也被称为上下⽂学习（In-\ncontext Learning），即让模型从提供的上下⽂中的示例⾥学习问题的解决⽅法。GPT-3 在 few-shot 上展现的强\n⼤能⼒，为 NLP 的突破带来了重要进展。如果对于绝⼤部分任务都可以通过⼈为构造 3~5个示例就能让模型解\n决，其效率将远⾼于传统的预训练-微调范式，意味着 NLP 的进⼀步落地应⽤成为可能—— ⽽这，也正是 LLM 的核\n⼼优势。\n在 GPT 系列模型的基础上，通过引⼊预训练-指令微调-⼈类反馈强化学习的三阶段训练，OpenAI 发布了跨时代的 \nChatGPT，引发了⼤模型的热潮。也正是在 GPT-3 及 ChatGPT 的基础上，LLaMA、ChatGLM 等模型的发布进⼀\n步揭示了 LLM 的⽆尽潜⼒。在下⼀节，我们将深⼊剖析⽬前 LLM 的普适架构——LLaMA 。\n3.3.2 LLaMA  \nLLaMA模型是由Meta（前Facebook）开发的⼀系列⼤型预训练语⾔模型。从LLaMA-1到LLaMA-3，LLaMA系列模\n型展示了⼤规模预训练语⾔模型的演进及其在实际应⽤中的显著潜⼒。\n（1） 模型架构——Decoder Only  \nzero-shot：请你判断‘这真是⼀个绝佳的机会’的情感是正向还是负向，如果是正向，输出1；否则输出0\nfew-shot：请你判断‘这真是⼀个绝佳的机会’的情感是正向还是负向，如果是正向，输出1；否则输出0。你可以参考以\n下示例来判断：‘你的表现⾮常好’——1；‘太糟糕了’——0；‘真是⼀个好主意’——1。",
+    "relevant_chunk_id": "doc_74_chunk_61",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在训练过程中，脚本如何实现从检查点（checkpoint）恢复训练？",
+    "ground_truth": "再类似的进⾏ tokenizer 的加载和预训练数据的处理。该部分和上⽂完全⼀致，此处不再赘述，读者可以在代码中\n详细查看细节。类似的，使⽤ Trainer 进⾏训练：\n注意，由于上⽂检测了是否存在 checkpoint，此处使⽤ resume_from_checkpoint 来实现从 checkpoint 恢复训练\n的功能。\n由于在⼤规模训练中监测训练进度、loss 下降趋势尤为重要，在脚本中，我们使⽤了 swanlab 作为训练检测的⼯\n具。在脚本开始进⾏了 swanlab 的初始化：\n在启动训练后，终端会输出 swanlab 监测的 url，点击即可观察训练进度。此处不再赘述 swanlab 的使⽤细节，欢\n迎读者查阅相关的资料说明。\n    model = AutoModelForCausalLM.from_config(config,trust_remote_code=True)\n    n_params = sum({p.data_ptr(): p.numel() for p in model.parameters()}.values())\n    logger.info(f\"预训练⼀个新模型 - Total size={n_params/2**20:.2f}M params\")\nelif model_args.model_name_or_path is not None:\n    logger.warning(\"你正在初始化⼀个预训练模型\")\n    logger.info(f\"模型参数地址：{model_args.model_name_or_path}\")\n    model = \nAutoModelForCausalLM.from_pretrained(model_args.model_name_or_path,trust_remote_code=True)\n    n_params = sum({p.data_ptr(): p.numel() for p in model.parameters()}.values())\n    logger.info(f\"继承⼀个预训练模型 - Total size={n_params/2**20:.2f}M params\")\nelse:\n    logger.error(\"config_name 和 model_name_or_path 不能均为空\")\n    raise ValueError(\"config_name 和 model_name_or_path 不能均为空\")\nlogger.info(\"初始化 Trainer\")\ntrainer = Trainer(\n    model=model,\n    args=training_args,\n    train_dataset= IterableWrapper(train_dataset),\n    tokenizer=tokenizer,\n    data_collator=default_data_collator\n)\n# 从 checkpoint 加载\ncheckpoint = None\nif training_args.resume_from_checkpoint is not None:\n    checkpoint = training_args.resume_from_checkpoint\nelif last_checkpoint is not None:\n        checkpoint = last_checkpoint\nlogger.info(\"开始训练\")\ntrain_result = trainer.train(resume_from_checkpoint=checkpoint)\ntrainer.save_model() \n# 初始化 SwanLab\nswanlab.init(project=\"pretrain\", experiment_name=\"from_scrach\")",
+    "relevant_chunk_id": "doc_74_chunk_158",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "Agent规划执行的两种主流模式分别是什么？它们各自的特点是什么？",
+    "ground_truth": "388\n可以把CoT理解成「⼀条路⾛到底」，ToT理解成「⾛到岔路⼝先看看⼏条路，选最好的那条再往前」 \n在有了这些推理技术的基础之上，Agent 的规划 在实际运作中有两种主流模式 \nAgent 规划执⾏主要分两种模式： \n1. 先规划后执⾏ Plan-and-Execute 模式：提前⽣成完整任务步骤，结构清晰、便于⼈⼯审核；但应\n变性差，中间结果异常时原有计划易失效。\n2.",
+    "relevant_chunk_id": "doc_75_chunk_509",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在Spring框架中，当使用@Resource注解注入Bean时，其默认的查找顺序是什么？",
+    "ground_truth": "218\nResource 在获取 Bean 的时候，和 Autowired 恰好相反，先是 byName 即 Bean 名称查找的⽅式，然\n后再是 byType  即类型查找的⽅式。当然我们也可以通过注解中的参数显示指定通过哪种⽅式。 \n@Component(\"beanOne\")\nclass Beanone implements Bean {}\n@Component(\"beanTwo\")\nclass BeanTwo implements Bean {}\n \n@Service\nclass Test {\n    // 此时会报错，先 byType 找到两个 bean: beanone 和 beanTwo\n    // 然后通过 byName(bean) 仍然没办法匹配\n    @Autowired\n    private Bean bean;\n    \n    // 先 byType 找到两个 bean ，然后通过 byName 确认最后要注⼊的 bean\n    @Autowired\n    private Bean beanOne;\n \n    // 先 byType 找到两个 bean ，然后通过 byName 确认最后要注⼊的 bean\n    @Autowired\n    @Qualifier(\"beanOne\")\n    private Bean bean;\n}\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\nJava",
+    "relevant_chunk_id": "doc_75_chunk_285",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "这段代码中，tokenizer.apply_chat_template方法生成的prompt使用了哪些特殊token来标记对话角色的开始和结束？",
+    "ground_truth": "OUT:\n    # 测试聊天模板\n    messages = [\n        {\"role\": \"system\", \"content\": \"你是⼀个AI助⼿。\"},\n        {\"role\": \"user\", \"content\": \"How are you?\"},\n        {\"role\": \"assistant\", \"content\": \"I'm fine, thank you. and you?\"},\n        {\"role\": \"user\", \"content\": \"I'm good too.\"},\n        {\"role\": \"assistant\", \"content\": \"That's great to hear!\"},\n    ]\n    \n    print(\"\\n=== 聊天模板测试 ===\")\n    prompt = tokenizer.apply_chat_template(\n        messages, \n        tokenize=False, \n        # add_generation_prompt=True\n    )\n    print(\"Generated prompt:\\n\", prompt, sep=\"\")\n    # 测试编码解码\n    print(\"\\n=== 编码解码测试 ===\")\n    encoded = tokenizer(prompt, truncation=True, max_length=256)\n    decoded = tokenizer.decode(encoded[\"input_ids\"], skip_special_tokens=False)\n    print(\"Decoded text matches original:\", decoded == prompt)\n    # 测试特殊token处理\n    print(\"\\n=== 特殊token处理 ===\")\n    test_text = \"<|im_start|>user\\nHello<|im_end|>\"\n    encoded = tokenizer(test_text).input_ids\n    decoded = tokenizer.decode(encoded)\n    print(f\"Original: {test_text}\")\n    print(f\"Decoded:  {decoded}\")\n    print(\"Special tokens preserved:\", decoded == test_text)\neval_tokenizer('your tokenizer path')\n=== Tokenizer基本信息 ===\nVocab size: 6144\nSpecial tokens: ['<|im_start|>', '<|im_end|>', '<unk>', '<s>', '</s>']\nSpecial token IDs: [3, 4, 0, 1, 2]\n=== 聊天模板测试 ===\nGenerated prompt:\n<|im_start|>system\n你是⼀个AI助⼿。<|im_end|>\n<|im_start|>user\nHow are you?<|im_end|>\n<|im_start|>assistant\nI'm fine, thank you.",
+    "relevant_chunk_id": "doc_74_chunk_113",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在对数据集进行tokenize处理后，最终得到的两列数据分别是什么，它们各自的作用是什么？",
+    "ground_truth": "注意，由于数据集较⼤，加载可能会出现时间较⻓或内存不够的情况，建议前期测试时将预训练数据集拆分⼀部分\n出来进⾏测试。加载出来的 ds 是⼀个 DatasetDict 对象，加载的数据会默认保存在 train  键对应的值中，可以通\n过以下代码查看：\n图6.7 数据集展示\n可以通过 feature 属性查看数据集的特征（也就是列），这⾥需要保存⼀下数据集的列名，因为后续数据处理时，\n再将⽂本 tokenize 之后，需要移除原先的⽂本：\n接着使⽤加载好的 tokenizer 对数据集进⾏处理，此处使⽤ map 函数来进⾏批量处理：\n处理完成后的数据集会包括'input_ids', 'attention_mask'两列，分别是⽂本 tokenize 之后的数值序列和注意⼒掩码\n（标识是否 padding）。map ⽅法会通过 remove_columns 参数将原先的‘text’移除，训练中不再使⽤。\n# 加载预训练数据\nfrom datasets import load_dataset\nds = load_dataset('json', data_files='/mobvoi_seq_monkey_general_open_corpus.jsonl')\nds[\"train\"][0]\n# 查看特征\ncolumn_names = list(ds[\"train\"].features)\n# columnes_name:[\"text\"]\n# 对数据集进⾏ tokenize\ndef tokenize_function(examples):\n    # 使⽤预先加载的 tokenizer 进⾏分词\n    output = tokenizer([item for item in examples[\"text\"]])\n    return output\n# 批量处理\ntokenized_datasets = ds.map(\n    tokenize_function,\n    batched=True,\n    num_proc=10,\n    remove_columns=column_names,\n    load_from_cache_file=True,\n    desc=\"Running tokenizer on dataset\",\n)",
+    "relevant_chunk_id": "doc_74_chunk_152",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在提供的编程题目列表中，哪些题目涉及链表的反转操作？",
+    "ground_truth": "反转链表 II - ⼒扣（LeetCode）\n21. 合并两个有序链表 - ⼒扣（LeetCode）\n25. K 个⼀组翻转链表 - ⼒扣（LeetCode）\n83. 删除排序链表中的重复元素 - ⼒扣（LeetCode）\n82. 删除排序链表中的重复元素 II - ⼒扣（LeetCode）\n19. 删除链表的倒数第 N 个结点 - ⼒扣（LeetCode）\n27. 移除元素 - ⼒扣（LeetCode）\n189. 轮转数组 - ⼒扣（LeetCode）\n3. ⽆重复字符的最⻓⼦串 - ⼒扣（LeetCode）\n⼤数加法_⽜客题霸_⽜客⽹\n144. ⼆叉树的前序遍历 - ⼒扣（LeetCode）\n94. ⼆叉树的中序遍历 - ⼒扣（LeetCode）\n145. ⼆叉树的后序遍历 - ⼒扣（LeetCode）\n102. ⼆叉树的层序遍历 - ⼒扣（LeetCode）",
+    "relevant_chunk_id": "doc_75_chunk_463",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "Redis分片集群中，数据的key是与插槽绑定还是与节点绑定？",
+    "ground_truth": "164\n \n分⽚集群的特征：\n集群中有多个master，每个master保存不同数据 \n每个master都可以有多个slave节点，并且之间存在主从数据同步 \n故障监测和⾃动恢复：集群之间通过⼼跳机制互相监测彼此的健康状态\n主节点之间互相⼼跳监测\n主节点定期向它的从节点发送ping消息，并等待pong响应。主节点确认它所管理的从节\n点是否正常\n客户端如何访问？客户端可以请求任意节点，最终都会被转发到正确节点上\n数据分⽚——散列插槽的原理？\nRedis 会有16384个插槽，分别分配给不同的 master 节点 \n存⼊ Redis 的数据，key 是与插槽绑定的，⽽不是与节点绑定。 \nRedis 会根据 key 的有效部分计算插槽值，以此判断 key 是和哪个插槽绑定的。 \n如果key中包含{},且{}中⾄少包含1个字符，则{}中的部分是有效部分。 \n●\n●\n●\n○\n○\n●\n●",
+    "relevant_chunk_id": "doc_75_chunk_217",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "RoBERTa相比BERT在预训练数据规模和训练步长方面做了哪些关键优化？",
+    "ground_truth": "务基本都使⽤了动态遮蔽。\n（2）优化⼆：更⼤规模的预训练数据和预训练步⻓  \nRoBERTa 使⽤了更⼤量的⽆监督语料进⾏预训练，除去 BERT 所使⽤的 BookCorpus 和英⽂维基百科外，还使⽤\n了 CC-NEWS（CommonCrawl 数据集新闻领域的英⽂部分）、OPENWEBTEXT（英⽂⽹⻚）、STORIES\n（CommonCrawl 数据集故事⻛格⼦集），共计 160GB 的数据，⼗倍于 BERT。\n同时，RoBERTa 认为更⼤的 batch size 既可以提⾼优化速度，也可以提⾼任务结束性能。因此，实验在 8K 的 \nbatch size（对⽐ BERT 的 batch size 为 256）下训练 31K Step，也就是总训练 token 数和 BERT ⼀样是 3.3B \n时，模型性能更好，从⽽证明了⼤ batch size 的意义。在此基础上，RoBERTa ⼀共训练了 500K Step（约合 66个 \nEpoch）。同时，RoBERTa 不再采⽤ BERT 在 256 ⻓度上进⾏⼤部分训练再在 512 ⻓度上完成训练的策略，⽽是\n全部在 512 ⻓度上进⾏训练。\n当然，更⼤的预训练数据、更⻓的序列⻓度和更多的训练 Epoch，需要预训练阶段更多的算⼒资源。训练⼀个 \nRoBERTa，Meta 使⽤了 1024 块 V100（32GB 显存）训练了⼀天。\n（3）优化三：更⼤的 bpe 词表  \n与 BERT 使⽤的 WordPiece 算法不同，RoBERTa 使⽤了 BPE 作为 Tokenizer 的编码策略。BPE，即 Byte Pair \nEncoding，字节对编码，是指以⼦词对作为分词的单位。例如，对“Hello World”这句话，可能会切分为“Hel，lo，\nWor，ld”四个⼦词对。⽽对于以字为基本单位的中⽂，⼀般会按照字节编码进⾏切分。例如，在 UTF-8 编码中，\n“我”会被编码为“E68891”，那么在 BPE 中可能就会切分成“E68”，“891”两个字词对。\n⼀般来说，BPE 编码的词典越⼤，编码效果越好。当然，由于 Embedding 层就是把 token 从词典空间映射到隐藏\n空间（也就是说 Embedding 的形状为 (vocab_size, hidden_size)，越⼤的词表也会带来模型参数的增加。\nBERT 原始的 BPE 词表⼤⼩为 30K，RoBERTa 选择了 50K ⼤⼩的词表来优化模型的编码能⼒。\n通过上述三个部分的优化，RoBERTa 成功地在 BERT 架构的基础上刷新了多个下游任务的 SOTA，也⼀度成为 \nBERT 系模型最热⻔的预训练模型。同时，RoBERTa 的成功也证明了更⼤的预训练数据、更⼤的预训练步⻓的重要\n意义，这也是 LLM 诞⽣的基础之⼀。\n3.1.3 ALBERT  \n在 BERT 的基础上，RoBERTa 进⼀步探究了更⼤规模预训练的作⽤。同样是基于 BERT 架构进⾏优化的 ALBERT 模\n型，则从是否能够减⼩模型参数保持模型能⼒的⻆度展开了探究。通过对模型结构进⾏优化并对 NSP 预训练任务\n进⾏改进，ALBERT 成功地以更⼩规模的参数实现了超越 BERT 的能⼒。虽然 ALBERT 所提出的⼀些改进思想并没\n有在后续研究中被⼴泛采⽤，但其降低模型参数的⽅法及提出的新预训练任务 SOP 仍然对 NLP 领域提供了重要的\n参考意义。\n（1）优化⼀：将 Embedding 参数进⾏分解  \nBERT 等预训练模型具有远超传统神经⽹络的参数量，如前所述，BERT-large 具有 24层 Encoder Layer，1024 的\n隐藏层维度，总共参数量达 340M。⽽这其中，Embedding 层的参数矩阵维度为 ，此处的 V 为词表⼤⼩ \n30K，H 即为隐藏层⼤⼩ 1024，也就是 Embedding 层参数达到了 30M。⽽这样的设置还会带来⼀个更⼤的问\n题，即 Google 探索尝试搭建更宽（也就是隐藏层维度更⼤）的模型时发现，隐藏层维度的增加会带来 \nEmbedding 层参数的巨⼤上升，如果把隐藏层维度增加到 2048，Embedding 层参数就会膨胀到 61M，这⽆疑是\n极⼤增加了模型的计算开销。",
+    "relevant_chunk_id": "doc_74_chunk_49",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "这段Java代码实现了两个线程如何交替打印从0到100的整数？",
+    "ground_truth": "68\npublic class Main {\n \n    private static final Object LOCK = new Object();\n    private static volatile int count = 0;\n    private static final int MAX = 100;\n \n    public static void main(String[] args) {\n        Thread thread = new Thread(new Seq(0));\n        Thread thread1 = new Thread(new Seq(1));\n        thread.start();\n        thread1.start();\n    }\n \n    static class Seq implements Runnable {\n        private final int index;\n \n        public Seq(int index) {\n            this.index = index;\n        }\n \n        @Override\n        public void run() {\n            // Run ⽅法只要执⾏结束了 , 线程就结束了\n            while (count < MAX) {\n                // 同步代码块 , ⼀个时刻只能有⼀个线程获取到锁\n                synchronized (LOCK) {\n                    // 获取到锁就进来判断，当前是否轮到该线程打印\n                    while (count % 2 != index) {\n                        // 不是当前线程打印 , 那么就让当前线程去 wait, 它会⾃动释放锁 ,\n所以其他线程可以进来\n                        try {\n                            LOCK.wait();\n                            // 当线程被唤醒时，会尝试重新进⼊ synchronized 代码块\n                        } catch (Exception e) {\n                            e.printStackTrace();\n                        }\n                    }\n                    // 是当前线程打印 , 但 count>MAX\n                    if (count > MAX) {\n                        LOCK.notifyAll();\n                        return;\n                    }\n                    System.out.println(\"Thread-\" + index + \":\" + count);\n                    count++;\n                    LOCK.notifyAll();\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n2个线程交替打印0-100 Java",
+    "relevant_chunk_id": "doc_75_chunk_84",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "BERT模型中使用的激活函数GELU的核心设计思路是什么？",
+    "ground_truth": "图3.5 Intermediate 结构\n注意，BERT 所使⽤的激活函数是 GELU 函数，全名为⾼斯误差线性单元激活函数，这也是⾃ BERT 才开始被普遍\n关注的激活函数。GELU 的计算⽅式为：\nGELU 的核⼼思路为将随机正则的思想引⼊激活函数，通过输⼊⾃身的概率分布，来决定抛弃还是保留⾃身的神经\n元。关于 GELU 的原理与核⼼思路，此处不再赘述，有兴趣的读者可以⾃⾏学习。\nBERT 的 注意⼒机制和 Transformer 中 Encoder 的 ⾃注意⼒机制⼏乎完全⼀致，但是 BERT 将相对位置编码融合\n在了注意⼒机制中，将相对位置编码同样视为可训练的权重参数，如图3.6所示：\n图3.6 BERT 注意⼒机制结构",
+    "relevant_chunk_id": "doc_74_chunk_43",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在5.3节中，用于训练对话生成模型的两个开源中文数据集分别是什么？",
+    "ground_truth": "5.3 预训练⼀个⼩型LLM  \n在前⾯的章节中，我们熟悉了各种⼤模型的模型结构，以及如如何训练Tokenizer。在本节中，我们将动⼿训练⼀\n个⼋千万参数的LLM。\n5.3.1 数据下载  \n⾸先，我们需要下载预训练数据集。在这⾥，我们使⽤两个开源的数据集，包含了⼤量的中⽂对话数据，可以⽤于\n训练对话⽣成模型。\n出⻔问问序列猴⼦开源数据集：出⻔问问序列猴⼦通⽤⽂本数据集由来⾃⽹⻚、百科、博客、问答、开源代\n码、书籍、报刊、专利、教材、考题等多种公开可获取的数据进⾏汇总清洗之后⽽形成的⼤语⾔模型预训练语\n料。总量⼤概在 10B Token。\nBelleGroup：350万条中⽂对话数据集，包含了⼈机对话、⼈⼈对话、⼈物对话等多种对话数据，可以⽤于训\n练对话⽣成模型。\nI'm good too.<|im_end|>\n<|im_start|>assistant\nThat's great to hear!<|im_end|>\n=== 编码解码测试 ===\nDecoded text matches original: False\n=== 特殊token处理 ===\nOriginal: <|im_start|>user\nHello<|im_end|>\nDecoded:  <|im_start|> user\nHello<|im_end|>\nSpecial tokens preserved: False\n# 下载预训练数据集\nos.system(\"modelscope download --dataset ddzhu123/seq-monkey \nmobvoi_seq_monkey_general_open_corpus.jsonl.tar.bz2 --local_dir your_local_dir\")\n# 解压预训练数据集\nos.system(\"tar -xvf your_local_dir/mobvoi_seq_monkey_general_open_corpus.jsonl.tar.bz2\")\n# 下载SFT数据集\nos.system(f'huggingface-cli download --repo-type dataset --resume-download \nBelleGroup/train_3.5M_CN --local-dir BelleGroup')\n# 1 处理预训练数据\ndef split_text(text, chunk_size=512):\n    \"\"\"将⽂本按指定⻓度切分成块\"\"\"\n    return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]\ninput_file = 'mobvoi_seq_monkey_general_open_corpus.jsonl'",
+    "relevant_chunk_id": "doc_74_chunk_115",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "RAG的中文全称是什么，以及其中‘检索’、‘增强’、‘生成’三个词分别对应流程中的什么环节？",
+    "ground_truth": "408\n初步理解 有RAG前后的区别 \n⽆RAG知识库时 : \n有RAG知识库时 : \nRAG 中⽂名叫 检索增强⽣成、其中包含了三个词，分别是检索、增强、⽣成，下⾯分别解释⼀下 \n3.RAG 的流程",
+    "relevant_chunk_id": "doc_75_chunk_538",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "query方法在向量检索系统中的核心作用是什么？",
+    "ground_truth": "注：此处我们默认使⽤国内⽤户可访问的硅基流动⼤模型API服务平台。\nStep 4: 数据库与向量检索  \n完成⽂档切分和Embedding模型加载后，需要设计⼀个向量数据库来存放⽂档⽚段和对应的向量表示，以及设计⼀\n个检索模块⽤于根据Query检索相关⽂档⽚段。\n向量数据库的功能包括：\npersist ：数据库持久化保存。\nload_vector ：从本地加载数据库。\nget_vector ：获取⽂档的向量表示。\nquery ：根据问题检索相关⽂档⽚段。\n完整代码可以在 /VectorBase.py ⽂件中找到。\nquery  ⽅法⽤于将⽤户提出的问题向量化，然后在数据库中检索相关⽂档⽚段并返回结果。\n    \n    def get_embedding(self, text: str, model: str = \"BAAI/bge-m3\") -> List[float]:\n        \"\"\"\n        此处默认使⽤轨迹流动的免费嵌⼊模型 BAAI/bge-m3\n        \"\"\"\n        if self.is_api:\n            text = text.replace(\"\\n\", \" \")\n            return self.client.embeddings.create(input=[text], \nmodel=model).data[0].embedding\n        else:\n            raise NotImplementedError\nclass VectorStore:\n    def __init__(self, document: List[str] = ['']) -> None:\n        self.document = document\n    def get_vector(self, EmbeddingModel: BaseEmbeddings) -> List[List[float]]:\n        # 获得⽂档的向量表示\n        pass\n    def persist(self, path: str = 'storage'):\n        # 数据库持久化保存\n        pass\n    def load_vector(self, path: str = 'storage'):\n        # 从本地加载数据库\n        pass\n    def query(self, query: str, EmbeddingModel: BaseEmbeddings, k: int = 1) -> List[str]:\n        # 根据问题检索相关⽂档⽚段\n        pass",
+    "relevant_chunk_id": "doc_74_chunk_187",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "工人工作15天可以获得一整块金子，老板必须每天支付恰好当天应得的金子份额，且每天只能用已切割的金条组合支付（可收回之前支付的部分），请问金条最少需要切割几次才能满足要求？",
+    "ground_truth": "359\n⽼板分⾦条\n问题：⼯⼈为⽼板打⼯，⼯作7天可以获得⼀整块⾦⼦，⼯⼈每天可以分得⼀部分⾦⼦，⽼板必须\n每天发⾦⼦，不能多给，也不能少给，请问⾦条最少切割⼏次，才可以每天给⼯⼈发⼯资？\n答案：切两次将⾦⼦分成三份，1/7、2/7、4/7 \n⼯作第⼀天 把1/7分给⼯⼈ \n⼯作第⼆天 把2/7分给⼯⼈，并要回1/7那块⾦⼦，⼯⼈有2/7的⾦⼦ \n⼯作第三天 把1/7给⼯⼈ ⼯⼈有3/7⾦⼦ \n⼯作第四天 把前两块⾦⼦要回，给⼯⼈4/7的⾦⼦ ⼯⼈有4/7的⾦⼦ \n⼯作第五天 把1/7分给⼯⼈ ⼯⼈有5/7的⾦⼦ \n⼯作第六天 把2/7分给⼯⼈，并要回1/7那块⾦⼦，⼯⼈有6/7的⾦⼦ \n⼯作第七天 把1/7给⼯⼈ ⼯⼈有完整的⾦⼦ \n本质上是利⽤⼆进制（1表示给到⼯⼈，0表示没有给到⼯⼈），如果需要 \n问题：⼯⼈为⽼板打⼯，⼯作15天可以获得⼀整块⾦⼦，⼯⼈每天可以分得⼀部分⾦⼦，⽼板必\n须每天发⾦⼦，不能多给，也不能少给，请问⾦条最少切割⼏次，才可以每天给⼯⼈发⼯资？\n●\n●\n●\n●\n●\n●\n●\n2=4 2 2=2 1 2=1 0 ⼗进制数字\n第⼀天 0 0 1 1\n第⼆天 0 1 0 2\n第三天 0 1 1 3\n第四天 1 0 0 4\n第五天 1 0 1 5\n第六天 1 1 0 6\n第七天 1 1 1 7",
+    "relevant_chunk_id": "doc_75_chunk_470",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "为什么TCP三次握手的第三次握手可以携带数据，而前两次不可以？",
+    "ground_truth": "229\n服务端回复 第⼆个报⽂ SYN+ACK 报⽂  给客户端，之后服务端处于 SYN_Received 状态 \n客户端收到服务端的 SYN+ACK 报⽂，将应答号置为服务端的序列号server_isn + 1，将ACK\n标志位置为1 \n客户端回复 第三个报⽂ ACK报⽂，之后客户端处于 Established 状态 \n服务端收到 客户端的 ACK 报⽂，服务端也进⼊ Established 状态 \n第三次握⼿是可以携带数据的，前两次握⼿是不可以携带数据的\n结论：\n防⽌  服务端建⽴历史连接，浪费服务端的资源 \n确保 服务端的初始序列号被可靠的同步给客户端 \n具体分析\n如果是两次握⼿，即意味着是  客户端发送 第⼀个报⽂ SYN报⽂  服务端回复 第⼆个报⽂ \nSYN+ACK 报⽂ \n此时就建⽴起连接了。这样的过程是有问题的\n1. 假设服务端收到了⼀个  滞留在⽹络中的（已经⽆效的）历史  SYN 报⽂，此时服务端就必须\n分配资源建⽴连接。如果有⼤量的⽆效历史SYN报⽂，则服务端就分配了⼤量的资源建⽴⽆效\n连接\n2.",
+    "relevant_chunk_id": "doc_75_chunk_300",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "用户在对话中最后发送的消息是什么？",
+    "ground_truth": "and you?<|im_end|>\n<|im_start|>user",
+    "relevant_chunk_id": "doc_74_chunk_114",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "BERT、RoBERTa和ALBERT这三种预训练语言模型的论文分别发表于哪一年？",
+    "ground_truth": "图3.15 alt text\n参考资料\n[1] Jacob Devlin, Ming-Wei Chang, Kenton Lee, Kristina Toutanova. (2019). BERT: Pre-training of Deep \nBidirectional Transformers for Language Understanding. arXiv preprint arXiv:1810.04805. [2] Yinhan Liu, Myle Ott, Naman Goyal, Jingfei Du, Mandar Joshi, Danqi Chen, Omer Levy, Mike Lewis, Luke \nZettlemoyer, Veselin Stoyanov. (2019). RoBERTa: A Robustly Optimized BERT Pretraining Approach. arXiv \npreprint arXiv:1907.11692. [3] Zhenzhong Lan, Mingda Chen, Sebastian Goodman, Kevin Gimpel, Piyush Sharma, Radu Soricut. (2020). ALBERT: A Lite BERT for Self-supervised Learning of Language Representations. arXiv preprint arXiv:1909.11942. [4] Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael Matena, Yanqi Zhou, \nWei Li, Peter J. Liu.",
+    "relevant_chunk_id": "doc_74_chunk_67",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在选择 Agent Skill 与 MCP 时，文档中强调的核心原则是什么？",
+    "ground_truth": "如何选择 Agent Skill 与 MCP \n●\n○\n○\n○\n●\n○\n○\n○\n●\n○\n○\n○",
+    "relevant_chunk_id": "doc_75_chunk_535",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "根据文中描述，为确保在100层楼中用两个鸡蛋找到临界楼层的最坏情况尝试次数最小，第一次应该从第几层扔下第一个鸡蛋？",
+    "ground_truth": "365\n可以看到在第⼀个鸡蛋⼀直未碎的情况下，第⼀次尝试是在x层，第⼆次尝试是在 x+(x-1)层，第\n三次尝试是在 x+(x-1)+(x-2)层，第四层尝试是在x+(x-1)+(x-2)+(x-3)层 \n第⼀次尝试是在第x层，间隔为 x \n第⼀次尝试和第⼆次尝试的间隔是 x-1 \n第⼆次尝试和第三次尝试的间隔是 x-2 \n第三次尝试和第四次尝试的间隔是 x-3 \n...... 以此类推。若第⼀个鸡蛋未碎，则下次尝试的间隔递减1，使得最坏情况下的总次数始终等于x次， \n直到间隔递减到1，即第n次尝试，此时是第 x+(x-1)+(x-2)+(x-3)+...+1层 \n这时候应该怎么考虑？\n第n次尝试意味着是最后⼀次尝试，因为间隔已经递减到1了，再递减就是0了 \n所以此时第n次尝试的楼层，应该使得它能⾜够覆盖100层。 \n你想如果第100层都不会碎，⽽最后⼀次尝试不是在第100层，那么这个算法就是有问题的 \n所以得出如下公式： x+(x-1)+(x-2)+(x-3)+...+1  >=  100 \n转化为（1+x）* x/2  >= 100     \n解⽅程得：x >=14 \n⽽我们⼀开始就是假设最坏情况下需要x次尝试，因此x要取最⼩值，即14 \n意味着第⼀次尝试扔鸡蛋是在14层，如果第⼀个鸡蛋⼀直未碎，会经过怎么样的序列？ \n14，27，39，50，60，69，77，84，90，95，99，100 \n举例⼦验证\n假如鸡蛋不会碎的临界点是65层，那么第⼀个鸡蛋扔出的楼层是 14，27，39，50，60，\n69。这时候啪的⼀声从69层扔下去的鸡蛋碎了。第⼆个鸡蛋继续，从61层开始，61、62、\n63、64、65、66、啪的⼀声从66层扔下去的鸡蛋碎了，因此得到不会碎的临思点是65层，\n总尝试次数是6+6=12<=14 \n假设鸡蛋不会随的临界点是98层，那么第⼀个鸡蛋扔出的楼层是 14，27，39，50，60，\n69，77，84，90，95，99。这时候啪的⼀声从99层扔下去的鸡蛋碎了。第⼆个鸡蛋继续，\n从96层开始，96、97、98，因为98层依旧未碎，所以得到不会碎的临思点是98层，总尝试\n次数是11+3=14<=14 \n假设鸡蛋不会随的临界点是99层，那么第⼀个鸡蛋扔出的楼层是  14，27，39，50，60，\n●\n●\n●",
+    "relevant_chunk_id": "doc_75_chunk_478",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "该文本片段中提到了哪些方面的内容？",
+    "ground_truth": "优缺点 \n○\n○\n○\n○",
+    "relevant_chunk_id": "doc_75_chunk_133",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "文本分类中，对单词“unhappiness”使用BPE子词切分算法会得到哪几个子词？",
+    "ground_truth": "(标点，Punctuation，.)\n词性标注通常依赖于机器学习模型，如隐⻢尔可夫模型（Hidden Markov Model，HMM）、条件随机场\n（Conditional Random Field，CRF）或者基于深度学习的循环神经⽹络 RNN 和⻓短时记忆⽹络 LSTM 等。这些\n模型通过学习⼤量的标注数据来预测新句⼦中每个单词的词性。\n1.3.4 ⽂本分类  \n输⼊：unhappiness\n不使⽤⼦词切分：整个单词作为⼀个单位，输出：“unhappiness”\n使⽤⼦词切分（假设BPE算法）：单词被分割为：“un”、“happi”、“ness”",
+    "relevant_chunk_id": "doc_74_chunk_10",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "正弦和余弦位置编码为什么能让模型容易地计算出相对位置信息？请结合三角函数的和角公式说明原因。",
+    "ground_truth": "这样的位置编码主要有两个好处：\n1. 使 PE 能够适应⽐训练集⾥⾯所有句⼦更⻓的句⼦，假设训练集⾥⾯最⻓的句⼦是有 20 个单词，突然来了⼀个⻓度为 21 的句⼦，则使⽤公式计\n算的⽅法可以计算出第 21 位的 Embedding。\n2. 可以让模型容易地计算出相对位置，对于固定⻓度的间距 k，PE(pos+k) 可以⽤ PE(pos) 计算得到。因为 Sin(A+B) = Sin(A)Cos(B) + Cos(A)Sin(B), \nCos(A+B) = Cos(A)Cos(B) - Sin(A)Sin(B)。\n我们也可以通过严谨的数学推导证明该编码⽅式的优越性。原始的 Transformer Embedding 可以表示为：\n \n很明显，这样的函数是不具有不对称性的，也就是⽆法表征相对位置信息。我们想要得到这样⼀种编码⽅式：\n \n这⾥加上的 ，  就是位置编码。接下来我们将  在 m,n 两个位置上做泰勒展开：\n \n可以看到第1项与位置⽆关，2～5项仅依赖单⼀位置，第6项（f 分别对 m、n 求偏导）与两个位置有关，所以我们希望第六项（  ）表达相对\n位置信息，即求⼀个函数 g 使得:\n \n我们假设  是⼀个单位矩阵，则：\n \n通过将向量 [x,y] 视为复数 x+yi，基于复数的运算法则构建⽅程:\n \n再假设存在复数  使得：\n \n使⽤复数的指数形式求解这个⽅程，得到⼆维情形下位置编码的解：\n \n由于内积满⾜线性叠加性，所以更⾼维的偶数维位置编码，我们可以表示为多个⼆维位置编码的组合：\n \nimport numpy as np\nimport matplotlib.pyplot as plt\ndef PositionEncoding(seq_len, d_model, n=10000):\n    P = np.zeros((seq_len, d_model))\n    for k in range(seq_len):\n        for i in np.arange(int(d_model/2)):\n            denominator = np.power(n, 2*i/d_model)\n            P[k, 2*i] = np.sin(k/denominator)\n            P[k, 2*i+1] = np.cos(k/denominator)\n    return P\nP = PositionEncoding(seq_len=4, d_model=4, n=100)\nprint(P)\n[[ 0. 1.",
+    "relevant_chunk_id": "doc_74_chunk_32",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "Happy-LLM 教程中，哪一章专门讲解了检索增强生成（RAG）技术？",
+    "ground_truth": "章节 关键内容 状态\n前⾔ 本项⽬的缘起、背景及读者建议\n第⼀章 NLP 基础概念 什么是 NLP、发展历程、任务分类、⽂本表示演进\n第⼆章 Transformer 架构 注意⼒机制、Encoder-Decoder、⼿把⼿搭建 Transformer\n第三章 预训练语⾔模型 Encoder-only、Encoder-Decoder、Decoder-Only 模型对⽐\n第四章 ⼤语⾔模型 LLM 定义、训练策略、涌现能⼒分析\n第五章 动⼿搭建⼤模型 实现 LLaMA2、训练 Tokenizer、预训练⼩型 LLM\n第六章 ⼤模型训练实践 预训练、有监督微调、LoRA/QLoRA ⾼效微调\n第七章 ⼤模型应⽤ 模型评测、RAG 检索增强、Agent 智能体\n模型名称 下载地址\nHappy-LLM-Chapter5-Base-215M\n  ModelScope\nHappy-LLM-Chapter5-SFT-215M\n  ModelScope\n 了解 现有⼤模型的基本结构\n 动⼿实现 ⼀个完整的 LLaMA2 模型\n 掌握训练 从预训练到微调的全流程\n 实战应⽤ RAG、Agent 等前沿技术\n 内容导航  \n模型下载  \nModelScope 创空间体验地址：\n  创空间\nPDF 版本下载  \n  本 Happy-LLM PDF 教程完全开源免费。为防⽌各类营销号加⽔印后贩卖给⼤模型初学者，我们特地在 PDF ⽂\n件中预先添加了不影响阅读的 Datawhale 开源标志⽔印，敬请谅解～\nHappy-LLM PDF : https://github.com/datawhalechina/happy-llm/releases/tag/PDF\nHappy-LLM PDF 国内下载地址 : https://www.datawhale.cn/learn/summary/179 \n 如何学习  \n  本项⽬适合⼤学⽣、研究⼈员、LLM 爱好者。在学习本项⽬之前，建议具备⼀定的编程经验，尤其是要对 \nPython 编程语⾔有⼀定的了解。最好具备深度学习的相关知识，并了解 NLP 领域的相关概念和术语，以便更轻松\n地学习本项⽬。",
+    "relevant_chunk_id": "doc_74_chunk_1",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "Spring如何通过三级缓存机制解决单例模式下的循环依赖问题？",
+    "ground_truth": "215\nSpring 通过三级缓存机制提前暴露未完全初始化的Bean实例，解决单例模式下的循环依赖问题 。 \n三级缓存结构\n1. ⼀级缓存（singletonObjects） ：存储完全初始化后的单例Bean，可直接使⽤。 \n2.",
+    "relevant_chunk_id": "doc_75_chunk_280",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "ZeRO-1优化策略主要针对模型状态中的哪一部分进行分片以降低单卡显存占用？",
+    "ground_truth": "但是，当 LLM 扩⼤到上百亿参数，单张 GPU 内存往往就⽆法存放完整的模型参数。如图4.3所示，在这种情况\n下，可以将模型拆分到多个 GPU 上，每个 GPU 上存放不同的层或不同的部分，从⽽实现模型并⾏。\n图4.3 模型并⾏\n \n在数据并⾏和模型并⾏的思想基础上，还演化出了多种更⾼效的分布式⽅式，例如张量并⾏、3D 并⾏、ZeRO\n（Zero Redundancy Optimizer，零冗余优化器）等。⽬前，主流的分布式训练框架包括 Deepspeed、\nMegatron-LM、ColossalAI 等，其中，Deepspeed 使⽤⾯最⼴。\nDeepspeed 的核⼼策略是 ZeRO 和 CPU-offload。ZeRO 是⼀种显存优化的数据并⾏⽅案，其核⼼思想是优化数据\n并⾏时每张卡的显存占⽤，从⽽实现对更⼤规模模型的⽀持。ZeRO 将模型训练阶段每张卡被占⽤的显存分为两\n类：\n模型状态（Model States），包括模型参数、模型梯度和优化器 Adam 的状态参数。假设模型参数量为 \n1M，⼀般来说，在混合精度训练的情况下，该部分需要 16M 的空间进⾏存储，其中 Adam 状态参数会占据 \n12M 的存储空间。\n剩余状态（Residual States），除了模型状态之外的显存占⽤，包括激活值、各种缓存和显存碎⽚。\n针对上述显存占⽤，ZeRO 提出了三种不断递进的优化策略：\n1. ZeRO-1，对模型状态中的 Adam 状态参数进⾏分⽚，即每张卡只存储  的 Adam 状态参数，其他参数仍然\n保持每张卡⼀份。\n2.",
+    "relevant_chunk_id": "doc_74_chunk_78",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "为什么在懒汉式单例的双重检查锁实现中，需要使用volatile关键字修饰instance变量？",
+    "ground_truth": "322\n懒汉式\n1.懒汉式-双重检查锁+volatile的⽅式 \n2.懒汉式-静态内部类⽅式-优秀 \npublic class Singleton {\n   //1 、私有构造⽅法 : 外界⽆法使⽤构造⽅法来创建本类的实例对象\n    private Singleton(){}\n    \n    //2 、声明⼀个成员变量   注意  volatile 是为了防⽌指令重排序导致对象未初始化就被使⽤\n    private static volatile Singleton instance;\n    \n    //4 、提供⼀个获取单例的⼊⼝，注意是  public 和  static\n    public static Singleton getInstance(){\n        // 第⼀次检查 : 如果 instance 不为 null, 不需要抢占锁 , 可以直接返回对象\n        if(instance == null){\n            // 如果为 null, 说明⾸次访问需要创建实例对象，使⽤ synchronized 同步代码\n块\n            // 锁对象 : 当前类的字节码对象\n            synchronized (Singleton.class){\n                // 某个线程抢到锁之后 , 需要再次判断 instance 是否为 null, 保证单例安全\n                if(instance == null){\n                    instance = new Singleton();\n                }\n            }\n        }\n        return instance;\n    }\n}\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\nJava",
+    "relevant_chunk_id": "doc_75_chunk_421",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "Java原子类为什么能保证操作的原子性？",
+    "ground_truth": "75\n原⼦类\nJava 原⼦类是 java.util.concurrent.atomic 包下的⼀组⼯具类\n（如AtomicInteger 、 AtomicLong 、 AtomicReference 等），通过 ⽆锁编程和 CAS \n机制实现线程安全的⽆锁的变量操作。\n提供了⼗⼏个原⼦类，分为4种类型，分别是： \n原⼦更新基本类型\n原⼦更新数组\n原⼦更新引⽤\n原⼦更新属性\n为什么原⼦类的操作是原⼦性的？\n原⼦类的核⼼是 CAS（Compare-And-Swap） 操作，直接依赖 CPU的原⼦指令（如x86的 CM\nPXCHG 指令）。原⼦类基本都是使⽤ Unsafe 实现的包装类。 从原理上来说就是： \n1.Atomic 包的类的实现⼤多数都是调⽤的 unsafe ⽅法 \n2. ⽽ unsafe 底层实际上是调⽤C代码，C代码调⽤汇编 \n3.",
+    "relevant_chunk_id": "doc_75_chunk_93",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "T5模型为什么使用RMSNorm替代原始Transformer中的LayerNorm？",
+    "ground_truth": "图3.10 Self-Attention 结构\n与原始 Transformer 模型不同，T5 模型的LayerNorm 采⽤了 RMSNorm，通过计算每个神经元的均⽅根（Root \nMean Square）来归⼀化每个隐藏层的激活值。RMSNorm 的参数设置与Layer Normalization 相⽐更简单，只有\n⼀个可学参数，可以更好地适应不同的任务和数据集。RMSNorm函数可以⽤以下数学公式表示：\n \n其中：\n 是输⼊向量的第  个元素\n 是可学习的缩放参数\n 是输⼊向量的维度数量\n 是⼀个⼩常数，⽤于数值稳定性（以避免除以零的情况）\n这种归⼀化有助于通过确保权重的规模不会变得过⼤或过⼩来稳定学习过程，这在具有许多层的深度学习模型中特\n别有⽤。\n（2）预训练任务",
+    "relevant_chunk_id": "doc_74_chunk_56",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "当死锁被检测到后，系统可以采取哪些常用方法来解除死锁？",
+    "ground_truth": "257\n死锁检测算法：\n资源分配图算法 (⽤于单⼀资源) \n等待图算法 (⽤于多资源) \n检测到死锁后，采取相应的措施来解除死锁。\n常⽤⽅法：\n终⽌进程：选择⼀个或多个进程终⽌以打破死锁。\n回滚 (Rollback)：将进程回退到之前的某个安全状态。 \n资源抢占：强⾏从某些进程中回收资源，重新分配。\n●\n●\n解除死锁\n●\n●\n●",
+    "relevant_chunk_id": "doc_75_chunk_333",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "UUID为什么可能导致数据库写入时发生页分裂？",
+    "ground_truth": "信息安全：ID 需避免连续或可预测，防⽌恶意爬取业务数据 \n5. ⻓度适中：通常为64位或更短，便于存储和查询 \nUUID 全局唯⼀标识符，是指在⼀台机器上⽣成的数字，它保证对在同⼀时空中的所有机器都是唯\n⼀的\n标准的UUID格式为：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (8-4-4-4-12) ，共32个字符 \nUUID 是基于当前时间、计数器、机器的mac地址等数据计算⽣成的 \n优点：⽣成性能⽐较⾼，不依赖⽹络，本地就可以⽣成\n缺点：没有任何含义，排查调试困难、⾮递增 写⼊数据库可能导致⻚分裂，造成额外的性能开销 \n定义 & 特性 \n⽣成⽅案和原理\nUUID",
+    "relevant_chunk_id": "doc_75_chunk_353",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在所列文献中，哪篇论文提出了‘Attention Is All You Need’这一核心思想，并指出其发表年份和arXiv编号？",
+    "ground_truth": "Distributed Representations \nof Words and Phrases and their Compositionality. arXiv preprint arXiv:1310.4546. [2] Jacob Devlin, Ming-Wei Chang, Kenton Lee, Kristina Toutanova. (2019). BERT: Pre-training of Deep \nBidirectional Transformers for Language Understanding. arXiv preprint arXiv:1810.04805. [3] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, \nIllia Polosukhin. (2023). Attention Is All You Need. arXiv preprint arXiv:1706.03762. [4] Malek Hajjem, Chiraz Latiri. (2017). Combining IR and LDA Topic Modeling for Filtering Microblogs. Procedia \nComputer Science, 112, 761–770. https://doi.org/10.1016/j.procs.2017.08.166. [5] Matthew E. Peters, Mark Neumann, Mohit Iyyer, Matt Gardner, Christopher Clark, Kenton Lee, Luke \nZettlemoyer. (2018). Deep contextualized word representations. arXiv preprint arXiv:1802.05365. [6] Salton, G., Wong, A., Yang, C. S.",
+    "relevant_chunk_id": "doc_74_chunk_17",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在使用SQL实现乐观锁时，更新操作是如何确保数据一致性的？",
+    "ground_truth": "63\n- 在执⾏更新之前，先查询⽬标记录的版本号\nSELECT value, version FROM table WHERE id = 1;\n \n- 执⾏更新时，检查⽬前的版本号和之前查到的版本号是否⼀致\nUPDATE table SET value = new_value, version = version + 1 \nWHERE id = 1 AND version = current_version;\n1\n2\n3\n4\n5\n6\nSQL",
+    "relevant_chunk_id": "doc_75_chunk_79",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在分布式系统中，为什么服务内部的异步线程需要显式复制traceID，而不是自动继承？",
+    "ground_truth": "获取和保存traceID ：下游服务可通过设置过滤器或者拦截器，接收全局 traceID，记录到类似 \nTheadLocal 线程私有的地⽅，确保同⼀线程内所有⽇志⾃动关联 traceId。（注意：服务内部若有\n异步线程，应该把 traceID 复制给异步线程） \n3. 打印⽇志：在打印⽇志信息时带上traceID 。 \n4. 分布式⽇志聚合：⼀般会有⼀个分布式⽇志系统平台，在上⾯可以根据 traceID 去查询请求链路⽇\n志\n⽇志⽂件都是服务器各⾃⽣成在本地的，如何把多个服务的服务器的⽇志聚合在⼀起？\n因此每个服务都要接⼊分布式⽇志系统平台，所以每个服务要把⽇志⽂件在服务器上的路径告诉⽇志平\n台。\n分布式⽇志系统再到服务器上收集⽇志⽂件内容。\n背景\n实现",
+    "relevant_chunk_id": "doc_75_chunk_348",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "Redis的incr或incrby命令在生成ID时具有什么优点和缺点？",
+    "ground_truth": "275\nRedis 的 incr 或 incrby 命令实现 ID 的原⼦性⾃增 \n优点：\n基于内存性能⾼\nID⾃增 \n缺点：\nRedis 可能存在数据丢失的情况，⽆论是哪种持久化机制，都⽆法完全避免 \n安全性：⾃增⽣成的ID容易被猜测，可以在前缀加⼊⼀些特定字符或时间戳 \n雪花算法是⼀种分布式ID⽣成算法，可以⽣成全局唯⼀且递增的ID \n核⼼思想：将⼀个64位的ID划分成多个部分，由 时间戳、机器标识和序列号等组成。 \n具体组成：\n1. 符号位（1bit）：预留的符号位，始终为0，占⽤1位 \n2.",
+    "relevant_chunk_id": "doc_75_chunk_354",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "主服务器的dump线程与从服务器的I/O线程之间采用哪种数据传输模式？该模式对从库同步进度管理有何好处？",
+    "ground_truth": "134\ndump 线程，专⻔来和从服务器的 I/O 线程做交互的 \n3. 从服务器的 I/O 线程会告诉主服务的 dump 线程⾃⼰要从什么位置开始接收 binlog \n4. 主服务器在更新过程中，将更改记录保存到⾃⼰的binlog中，根据不同的 binlog 格式，记录\n的内容可能不⼀样\n5. 在 dump 线程检测到 binlog 变化时，会从指定位置开始读取内容，然后会被 从服务器的的 \nI/O 线程把数据拉取过去（拉的模式，从库可以⾃⾏管理同步进度和处理延迟） \n6.",
+    "relevant_chunk_id": "doc_75_chunk_179",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "该代码中定义的特殊token映射里，用于表示序列结束（EOS）和填充（PAD）的token分别是什么？",
+    "ground_truth": "\"{{ '<|im_start|>assistant\\n' }}\"\n            \"{% endif %}\"\n        )\n    }\n    # 保存主配置⽂件\n    with open(os.path.join(save_dir, \"tokenizer_config.json\"), \"w\", encoding=\"utf-8\") as \nf:\n        json.dump(config, f, ensure_ascii=False, indent=4)\n    # 创建special_tokens_map.json\n    special_tokens_map = {\n        \"bos_token\": \"<|im_start|>\",\n        \"eos_token\": \"<|im_end|>\",\n        \"unk_token\": \"<unk>\",\n        \"pad_token\": \"<|im_end|>\",\n        \"additional_special_tokens\": [\"<s>\", \"</s>\"]\n    }\n    with open(os.path.join(save_dir, \"special_tokens_map.json\"), \"w\", encoding=\"utf-8\") as \nf:\n        json.dump(special_tokens_map, f, ensure_ascii=False, indent=4)\ndef train_tokenizer(data_path: str, save_dir: str, vocab_size: int = 8192) -> None:\n    \"\"\"训练并保存⾃定义tokenizer\"\"\"\n    os.makedirs(save_dir, exist_ok=True)\n    \n    # 初始化tokenizer\n    tokenizer = Tokenizer(models.BPE(unk_token=\"<unk>\"))\n    tokenizer.normalizer = NFKC()  # 添加⽂本规范化\n    tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)\n    tokenizer.decoder = decoders.ByteLevel()\n    # 配置特殊token\n    special_tokens = [\n        \"<unk>\", \n        \"<s>\", \n        \"</s>\", \n        \"<|im_start|>\", \n        \"<|im_end|>\"\n    ]\n    # 配置训练器\n    trainer = trainers.BpeTrainer(\n        vocab_size=vocab_size,\n        special_tokens=special_tokens,\n        min_frequency=2,  # 提⾼低频词过滤\n        show_progress=True,\n        initial_alphabet=pre_tokenizers.ByteLevel.alphabet()\n    )\n    # 训练tokenizer\n    print(f\"Training tokenizer with data from {data_path}\")",
+    "relevant_chunk_id": "doc_74_chunk_118",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "Spring中@Transactional注解在多线程环境下为何无法跨线程传播事务上下文？",
+    "ground_truth": "事务中⽤了多线程\n@Transactional 的事务管理使⽤的是 ThreadLocal 机制来存储事务上下⽂，⽽ ThreadLocal 变\n量是线程隔离的，即每个线程都有⾃⼰的事务上下⽂副本。因此，在多线程环境下，Spring 的声\npublic class MyService{\n    @Transactional\n    public void dosomething(){\n        try{\n            doInternal();\n        }catch(Exception e){\n            logger.error(e);\n        }\n    }\n}\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\nJava",
+    "relevant_chunk_id": "doc_75_chunk_288",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "文本中提到的‘背包问题系列’包含哪些具体的力扣题目？",
+    "ground_truth": "349\n    ⽤最少数量的箭引\n爆⽓球\n⼒扣\n    ⽆重叠区间 ⼒扣\n    划分字⺟区间 ⼒扣\n    合并区间 ⼒扣\n    最⼤⼦序和 ⼒扣\n    加油站 ⼒扣\n    监控⼆叉树 ⼒扣\n9、动态规划 动态规划基础 斐波那契数列 ⼒扣\n    爬楼梯 ⼒扣\n    使⽤最⼩花费爬楼\n梯\n⼒扣\n    不同路径 ⼒扣\n    不同路径 Ⅱ ⼒扣\n    整数拆分 ⼒扣\n    不同的⼆叉搜索树⼒扣\n  背包问题系列 分割等和⼦集 ⼒扣\n    最后⼀块⽯头的重\n量 Ⅱ \n⼒扣\n    ⽬标和 ⼒扣\n    ⼀和零 ⼒扣\n    零钱兑换 Ⅱ ⼒扣",
+    "relevant_chunk_id": "doc_75_chunk_457",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "大模型的Function Calling与普通编程中的函数调用最核心的区别是什么？",
+    "ground_truth": "396\nFunction Calling\nFunction Calling（函数调⽤）是⼤模型的 “⼯具调⽤能⼒” \n可以理解为“让⼤模型像程序员⼀样调⽤预设函数 / ⼯具来解决问题” \n但它和普通编程⾥的函数调⽤⼜有核⼼区别：\n普通编程中的函数调⽤是开发者硬编码指定（⽐如写calculate(1,2) ，程序就⼀定会执⾏这\n个函数）；\n⽽⼤模型的 Function Calling 是 ⼤模型通过识别意图⾃主决策调⽤哪个函数，⽐如 \n我们先告诉模型 “有哪些可⽤函数、每个函数的功能和参数”即 ⼯具列表 \n（例如有⼀个函数功能是：向 MySQL 中写⼊数据）  \n⼤模型会根据⽤户的问题，识别判断出 “是否需要调⽤函数、调⽤哪个函数、传什么参数” \n但⼤模型不会直接调⽤这些函数，⽽是⽣成⼀个函数调⽤指令\n由后端程序解析函数指令，再去执⾏调⽤这个函数，拿到结果  框架封装好了会帮我们解析和\n调⽤\n将函数调⽤结果传给⼤模型，⼤模型⽣成最终回答\n咱们通过⼀个天⽓查询的例⼦来详细说明。假设⽤户询问“重庆天⽓如何”，具体流程是这样的： \n了解 Function Calling 吗\n1. ⾯试时简洁地回答 \n●\n○\n●\n●\n●\n●\n2.",
+    "relevant_chunk_id": "doc_75_chunk_520",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "JVM引入TLAB的主要目的是什么？",
+    "ground_truth": "82\n问题引⼊：多线程同时new对象时，JVM为其分配内存，为了防⽌内存重复分配，需要加⼊互斥\n锁，降低了内存分配的速度。\n解决⽅案：所以引⼊了TLAB的概念，Threal Local Allocate Buffer，是每个线程在Eden区专属的\n⼀块区域，当线程的TLAB区域未满时，可以直接在其中分配内存，不需要加锁，提⾼内存分配速\n度。\n当⼀个线程创建的时候， JVM 会为这个线程分配⼀个固定⼤⼩的 TLAB 空间  \nTLAB 仅优化内存分配：TLAB 的线程安全仅体现在内存分配过程中，与对象本身的线程安全性⽆\n关",
+    "relevant_chunk_id": "doc_75_chunk_103",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "该训练脚本使用的是DeepSpeed的哪个ZeRO优化阶段？",
+    "ground_truth": "完成上述代码后，我们使⽤⼀个 sh 脚本（./code/pretrain.sh ）定义超参数的值，并通过 Deepspeed 启动训\n练，从⽽实现⾼效的多卡分布式训练：\n在安装了 Deepspeed 第三⽅库后，可以直接通过 Deepspeed 命令来启动多卡训练。上述脚本命令主要是定义了\n各种超参数的值，可参考使⽤。在第四章中，我们介绍了 DeepSpeed 分布式训练的原理和 ZeRO 阶段设置，在这\n⾥，我们使⽤ ZeRO-2 进⾏训练。此处加载了 ds_config_zero.json  作为 DeepSpeed 的配置参数：\n# 设置可⻅显卡\nCUDA_VISIBLE_DEVICES=0,1\ndeepspeed pretrain.py \\\n    --config_name autodl-tmp/qwen-1.5b \\\n    --tokenizer_name autodl-tmp/qwen-1.5b \\\n    --train_files autodl-\ntmp/dataset/pretrain_data/mobvoi_seq_monkey_general_open_corpus_small.jsonl \\\n    --per_device_train_batch_size 16 \\\n    --gradient_accumulation_steps 4 \\\n    --do_train \\\n    --output_dir autodl-tmp/output/pretrain \\\n    --evaluation_strategy  no \\\n    --learning_rate 1e-4 \\\n    --num_train_epochs 1 \\\n    --warmup_steps 200 \\\n    --logging_dir autodl-tmp/output/pretrain/logs \\\n    --logging_strategy steps \\\n    --logging_steps 5 \\\n    --save_strategy steps \\\n    --save_steps 100 \\\n    --preprocessing_num_workers 10 \\\n    --save_total_limit 1 \\\n    --seed 12 \\\n    --block_size 2048 \\\n    --bf16 \\\n    --gradient_checkpointing \\\n    --deepspeed ./ds_config_zero2.json \\\n    --report_to swanlab\n    # --resume_from_checkpoint ${output_model}/checkpoint-20400 \\\n{\n    \"fp16\": {\n        \"enabled\": \"auto\",\n        \"loss_scale\": 0,\n        \"loss_scale_window\": 1000,\n        \"initial_scale_power\": 16,\n        \"hysteresis\": 2,\n        \"min_loss_scale\": 1\n    },\n    \"bf16\": {\n        \"enabled\": \"auto\"\n    },\n    \"optimizer\": {",
+    "relevant_chunk_id": "doc_74_chunk_159",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "代码中设置梯度裁剪的阈值是多少？",
+    "ground_truth": "parser.add_argument(\"--use_swanlab\", action=\"store_true\", help=\"是否使⽤SwanLab进⾏实验跟\n踪\")\n    parser.add_argument(\"--num_workers\", type=int, default=8, help=\"数据加载的⼯作进程数\")\n    parser.add_argument(\"--data_path\", type=str, default=\"./BelleGroup_sft.jsonl\", \nhelp=\"训练数据路径\")\n    parser.add_argument(\"--accumulation_steps\", type=int, default=8, help=\"梯度累积步数\")\n    parser.add_argument(\"--grad_clip\", type=float, default=1.0, help=\"梯度裁剪阈值\")\n    parser.add_argument(\"--warmup_iters\", type=int, default=0, help=\"预热迭代次数\")\n    parser.add_argument(\"--log_interval\", type=int, default=100, help=\"⽇志记录间隔\")\n    parser.add_argument(\"--save_interval\", type=int, default=1000, help=\"模型保存间隔\")\n    # 添加多卡参数\n    parser.add_argument(\"--gpus\", type=str, default='0,1,2,3,4,5,6,7', help=\"逗号分隔的GPU \nID (例如 '0,1,2')\")\n    args = parser.parse_args()\n    # 设置可⻅GPU\n    if args.gpus is not None:\n        os.environ[\"CUDA_VISIBLE_DEVICES\"] = args.gpus\n        # ⾃动设置主设备为第⼀个GPU\n        if torch.cuda.is_available():\n            args.device = \"cuda:0\"\n        else:\n            args.device = \"cpu\"\n    # 初始化swanlab\n    if args.use_swanlab:\n        run = swanlab.init(\n            project=\"Happy-LLM\",\n            experiment_name=\"SFT-215M\",\n            config=args,\n        )\n    # 模型配置\n    lm_config = ModelConfig(\n        dim=1024,\n        n_layers=18,\n    )\n    max_seq_len = lm_config.max_seq_len\n    args.save_dir = os.path.join(args.out_dir)\n    os.makedirs(args.out_dir, exist_ok=True)\n    torch.manual_seed(42)\n    device_type = \"cuda\" if \"cuda\" in args.device else \"cpu\"\n    # 上下⽂管理器\n    ctx = nullcontext() if device_type == \"cpu\" else torch.cuda.amp.autocast()\n    # 初始化模型和分词器\n    model, tokenizer = init_model()\n    \n    # 创建数据集和数据加载器\n    train_ds = SFTDataset(args.data_path, tokenizer, max_length=max_seq_len)",
+    "relevant_chunk_id": "doc_74_chunk_138",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "旋转嵌入中，函数precompute_freqs_cis生成的freqs变量是通过什么数学运算得到的？请说明其计算过程的核心步骤。",
+    "ground_truth": "在上述代码中：\n⾸先，获取输⼊张量的形状：⾸先，代码通过 x.shape 获取输⼊张量的形状，包括批量⼤⼩（bs）、序列⻓\n度（slen）、键/值对头的数量（n_kv_heads）以及每个头的维度⼤⼩（head_dim）。\n然后，检查重复次数：接着，代码检查重复次数 n_rep 是否为1。如果是1，则说明不需要对键和值进⾏重\n复，直接返回原始张量 x。\n最后，扩展和重塑张量：\n在第三个维度（即键/值对头的维度）之后添加⼀个新的维度，形成 x[:, :, :, None, :] 。\n使⽤ expand  ⽅法将新添加的维度扩展到 n_rep  ⼤⼩，实现键/值对的重复效果。\n最后，通过 reshape ⽅法重新塑形，将扩展后的维度合并回键/值对头的数量中，即 x.reshape(bs, \nslen, n_kv_heads * n_rep, head_dim) ，这样最终的张量形状就达到了与查询维度⼀致的效果。\n5.1.3.2 旋转嵌⼊  \n接着我们来实现旋转嵌⼊，旋转嵌⼊是 LLaMA2 模型中的⼀个重要组件，它可以为注意⼒机制提供更强的上下⽂信\n息，从⽽提⾼模型的性能。\n⾸先，我们要构造获得旋转嵌⼊的实部和虚部的函数：\n计算频率序列：\ntorch.arange(0, dim, 2)[: (dim // 2)].float()  ⽣成了⼀个从0开始，步⻓为2的序列，其⻓度\n为dim 的⼀半。\n每个元素除以dim 后取theta 的倒数，得到⼀个频率序列 freqs 。这⼀步是为了⽣成适合旋转嵌⼊的频\n率。\n    return (\n        x[:, :, :, None, :]  # 在第四个维度（头的维度前）添加⼀个新的维度\n        .expand(bs, slen, n_kv_heads, n_rep, head_dim)  # 将新添加的维度扩展到n_rep⼤⼩，实现重\n复的效果\n        .reshape(bs, slen, n_kv_heads * n_rep, head_dim)  # 重新塑形，合并键/值对头的数量和重复\n次数的维度\n    )\n# 注意：此处的dim应为 dim//n_head，因为我们是对每个head进⾏旋转嵌⼊\ndef precompute_freqs_cis(dim: int, end: int, theta: float = 10000.0):\n    # torch.arange(0, dim, 2)[: (dim // 2)].float()⽣成了⼀个从0开始，步⻓为2的序列，⻓度为dim的\n⼀半\n    # 然后每个元素除以dim，再取theta的倒数，得到频率\n    freqs = 1.0 / (theta ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))\n    # ⽣成⼀个从0到end的序列，⻓度为end\n    t = torch.arange(end, device=freqs.device)\n    # 计算外积，得到⼀个⼆维矩阵，每⼀⾏是t的元素乘以freqs的元素\n    freqs = torch.outer(t, freqs).float()\n    # 计算频率的余弦值，得到实部\n    freqs_cos = torch.cos(freqs)\n    # 计算频率的正弦值，得到虚部\n    freqs_sin = torch.sin(freqs)\n    return freqs_cos, freqs_sin",
+    "relevant_chunk_id": "doc_74_chunk_97",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "BaseEmbeddings基类的cosine_similarity方法在遇到向量中包含无穷大或NaN值时会返回什么结果？",
+    "ground_truth": "BaseEmbeddings 基类有两个主要⽅法：get_embedding 和cosine_similarity 。get_embedding ⽤于获取⽂\n本的向量表示，cosine_similarity ⽤于计算两个向量之间的余弦相似度。在初始化类时设置了模型的路径和是\n否是API模型，例如使⽤OpenAI的Embedding API需要设置self.is_api=True 。\n继承BaseEmbeddings 类只需要实现get_embedding ⽅法，cosine_similarity ⽅法会被继承下来。这就是编写\n基类的好处。\n    def cosine_similarity(cls, vector1: List[float], vector2: List[float]) -> float:\n        \"\"\"\n        计算两个向量之间的余弦相似度\n        Args:\n            vector1 (List[float]): 第⼀个向量\n            vector2 (List[float]): 第⼆个向量\n        Returns:\n            float: 两个向量的余弦相似度，范围在[-1,1]之间\n        \"\"\"\n        # 将输⼊列表转换为numpy数组，并指定数据类型为float32\n        v1 = np.array(vector1, dtype=np.float32)\n        v2 = np.array(vector2, dtype=np.float32)\n        # 检查向量中是否包含⽆穷⼤或NaN值\n        if not np.all(np.isfinite(v1)) or not np.all(np.isfinite(v2)):\n            return 0.0\n        # 计算向量的点积\n        dot_product = np.dot(v1, v2)\n        # 计算向量的范数（⻓度）\n        norm_v1 = np.linalg.norm(v1)\n        norm_v2 = np.linalg.norm(v2)\n        \n        # 计算分⺟（两个向量范数的乘积）\n        magnitude = norm_v1 * norm_v2\n        # 处理分⺟为0的特殊情况\n        if magnitude == 0:\n            return 0.0\n            \n        # 返回余弦相似度\n        return dot_product / magnitude\nclass OpenAIEmbedding(BaseEmbeddings):\n    \"\"\"\n    class for OpenAI embeddings\n    \"\"\"\n    def __init__(self, path: str = '', is_api: bool = True) -> None:\n        super().__init__(path, is_api)\n        if self.is_api:\n            self.client = OpenAI()\n            # 从环境变量中获取 硅基流动 密钥\n            self.client.api_key = os.getenv(\"OPENAI_API_KEY\")\n            # 从环境变量中获取 硅基流动 的基础URL\n            self.client.base_url = os.getenv(\"OPENAI_BASE_URL\")",
+    "relevant_chunk_id": "doc_74_chunk_186",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在面试中写完代码后，应该采取哪两个具体步骤来确保代码的正确性？",
+    "ground_truth": "342\n跟⾯试官确认解法可⾏，如果有多种思路可以分析⼀下优劣（⽐如时空复杂度\n的考虑）\n4. 开始写代码：注意代码规范，⽐如变量和函数命名，多写注释，写得清楚易读\n⽐炫技重要。练习的时候写完⼀道题可以看看别⼈的写法有没有值得抄的\n5. 写完代码后：先⾃⼰⾁眼过⼀遍，尽量使得没有bug，然后写⼏个测试⽤例，\n先⾃⼰测试代码结果是否正确\n6.",
+    "relevant_chunk_id": "doc_75_chunk_449",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "minimind项目是一个什么样的实现？",
+    "ground_truth": "minimind: Minimalist LLM implementation. GitHub repository. https://github.com/jing\nyaogong/minimind  \n[7] Mobvoi. (2023). seq-monkey-data: Llama2 training/inference data. GitHub repository. https://github.com/m\nobvoi/seq-monkey-data",
+    "relevant_chunk_id": "doc_74_chunk_146",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "LLaMA2模型是由哪家公司于2023年7月发布的？",
+    "ground_truth": "第五章 动⼿搭建⼤模型  \n5.1 动⼿实现⼀个 LLaMA2 ⼤模型  \nMeta（原Facebook）于2023年2⽉发布第⼀款基于Transformer结构的⼤型语⾔模型LLaMA，并于同年7⽉发布同\n系列模型LLaMA2。我们在第四章已经学习和了解了LLM，以及如何训练LLM等内容。本⼩节我们就来学习如何动\n⼿实现⼀个LLaMA2模型。\nLLaMA2 模型结构如下图5.1所示：\n图 5.1 LLaMA2结构\n5.1.1 定义超参数  \n⾸先我们需要定义⼀些超参数，这些超参数包括模型的⼤⼩、层数、头数、词嵌⼊维度、隐藏层维度等等。这些超\n参数可以根据实际情况进⾏调整。\n这⾥我们⾃定义⼀个ModelConfig 类，来存储和记录我们的超参数，这⾥我们继承了PretrainedConfig 类，这\n是transformers 库中的参数类，我们可以通过继承这个类来⽅便的使⽤transformers 库中的⼀些功能，也⽅便\n在后续导出Hugging Face模型。\nfrom transformers import PretrainedConfig\nclass ModelConfig(PretrainedConfig):",
+    "relevant_chunk_id": "doc_74_chunk_93",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "RMSNorm模块的forward方法中，为什么需要先将输入x转换为float类型再进行归一化运算，最后又转回原始数据类型？",
+    "ground_truth": "我们可以通过如下代码实现RMSNorm ：\n并且，我们可以⽤下⾯的代码来对RMSNorm 模块进⾏测试，可以看到代码最终输出的形状为torch.Size([1, 50, \n288]) ，与我们输⼊的形状⼀致，说明模块的实现是正确的，归⼀化并不会改变输⼊的形状。\n5.1.3 构建 LLaMA2 Attention  \n在 LLaMA2 模型中，虽然只有 LLaMA2-70B模型使⽤了分组查询注意⼒机制（Grouped-Query Attention，\nGQA），但我们依然选择使⽤ GQA 来构建我们的 LLaMA Attention 模块，它可以提⾼模型的效率，并节省⼀些显\n存占⽤。\nclass RMSNorm(nn.Module):\n    def __init__(self, dim: int, eps: float):\n        super().__init__()\n        # eps是为了防⽌除以0的情况\n        self.eps = eps\n        # weight是⼀个可学习的参数，全部初始化为1\n        self.weight = nn.Parameter(torch.ones(dim))\n    def _norm(self, x):\n        # 计算RMSNorm的核⼼部分\n        # x.pow(2).mean(-1, keepdim=True)计算了输⼊x的平⽅的均值\n        # torch.rsqrt是平⽅根的倒数，这样就得到了RMSNorm的分⺟部分，再加上eps防⽌分⺟为0\n        # 最后乘以x，得到RMSNorm的结果\n        return x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)\n    def forward(self, x):\n        # forward函数是模型的前向传播\n        # ⾸先将输⼊x转为float类型，然后进⾏RMSNorm，最后再转回原来的数据类型\n        # 最后乘以weight，这是RMSNorm的⼀个可学习的缩放因⼦\n        output = self._norm(x.float()).type_as(x)\n        return output * self.weight\nnorm = RMSNorm(args.dim, args.norm_eps)\nx = torch.randn(1, 50, args.dim)\noutput = norm(x)\nprint(output.shape)\nout:\ntorch.Size([1, 50, 768])",
+    "relevant_chunk_id": "doc_74_chunk_95",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "PretrainDataset类为什么继承torch.utils.data.Dataset而不是IterableDataset？",
+    "ground_truth": "5.3.3 Dataset  \nPretrainDataset  \n在将数据送⼊到模型之前，我们还需要进⾏⼀些处理⽤于将⽂本数据转化为模型能够理解的Token。在这⾥我们使\n⽤的是Pytorch的Dataset类，⽤于加载数据集。我们定义了⼀个PretrainDataset 类，⽤于加载已预处理好的数\n据集。我们继承了torch.utils.data.IterableDataset 来定义该数据集，这使得我们可以更灵活、⾼效地处理\n数据。\n<|im_start|>assistant\nI'm fine, thank you. and you?<|im_end|>\n<|im_start|>user\nI'm good too.<|im_end|>\n<|im_start|>assistant\nThat's great to hear!<|im_end|>\n=== 编码解码测试 ===\nDecoded text matches original: False\n=== 特殊token处理 ===\nOriginal: <|im_start|>user\nHello<|im_end|>\nDecoded:  <|im_start|> user\nHello<|im_end|>\nSpecial tokens preserved: False\nfrom torch.utils.data import Dataset\nclass PretrainDataset(Dataset):\n    def __init__(self, data_path, tokenizer, max_length=512):\n        super().__init__()\n        self.data_path = data_path\n        self.tokenizer = tokenizer\n        self.max_length = max_length\n        self.padding = 0\n        with open(data_path, 'r', encoding='utf-8') as f:\n            self.data = f.readlines()\n    def __len__(self):\n        return len(self.data)\n    def __getitem__(self, index: int):\n        sample = json.loads(self.data[index])\n        text = f\"{self.tokenizer.bos_token}{sample['text']}\"\n        input_id = self.tokenizer(text).data['input_ids'][:self.max_length]\n        text_len = len(input_id)\n        # 没满最⼤⻓度的剩余部分\n        padding_len = self.max_length - text_len\n        input_id = input_id + [self.padding] * padding_len\n        # 0表示不计算损失",
+    "relevant_chunk_id": "doc_74_chunk_121",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在模型有监督微调（SFT）阶段，配置中使用的优化器类型是什么？",
+    "ground_truth": "最后，在终端 bash 运⾏该 pretrain.sh  脚本即可开始训练。\n6.2 模型有监督微调  \n在上⼀节，我们介绍了如何使⽤ Transformers 框架快速、⾼效地进⾏模型预训练。在本部分，我们将基于上部分\n内容，介绍如何使⽤ Transformers 框架对预训练好的模型进⾏有监督微调。\n6.2.1 Pretrain VS SFT  \n        \"type\": \"AdamW\",\n        \"params\": {\n            \"lr\": \"auto\",\n            \"betas\": \"auto\",\n            \"eps\": \"auto\",\n            \"weight_decay\": \"auto\"\n        }\n    },\n    \"scheduler\": {\n        \"type\": \"WarmupLR\",\n        \"params\": {\n            \"warmup_min_lr\": \"auto\",\n            \"warmup_max_lr\": \"auto\",\n            \"warmup_num_steps\": \"auto\"\n        }\n    },\n    \"zero_optimization\": {\n        \"stage\": 2,\n        \"offload_optimizer\": {\n            \"device\": \"none\",\n            \"pin_memory\": true\n        },\n        \"allgather_partitions\": true,\n        \"allgather_bucket_size\": 2e8,\n        \"overlap_comm\": true,\n        \"reduce_scatter\": true,\n        \"reduce_bucket_size\": 2e8,\n        \"contiguous_gradients\": true\n    },\n    \"gradient_accumulation_steps\": \"auto\",\n    \"gradient_clipping\": \"auto\",\n    \"steps_per_print\": 100,\n    \"train_batch_size\": \"auto\",\n    \"train_micro_batch_size_per_gpu\": \"auto\",\n    \"wall_clock_breakdown\": false\n}",
+    "relevant_chunk_id": "doc_74_chunk_160",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在Tiny-RAG Demo中，加载本地已处理好的向量数据库所调用的方法是什么？",
+    "ground_truth": "这样我们就可以利⽤InternLM2模型来做RAG啦！\nStep 6: Tiny-RAG Demo  \n接下来，我们来看看Tiny-RAG的Demo吧！\n也可以从本地加载已处理好的数据库：\nRAG_PROMPT_TEMPLATE=\"\"\"\n使⽤以上下⽂来回答⽤户的问题。如果你不知道答案，就说你不知道。总是使⽤中⽂回答。\n问题: {question}\n可参考的上下⽂：\n···\n{context}\n···\n如果给定的上下⽂⽆法让你做出回答，请回答数据库中没有这个内容，你不知道。\n有⽤的回答:\n\"\"\"\nfrom VectorBase import VectorStore\nfrom utils import ReadFiles\nfrom LLM import OpenAIChat\nfrom Embeddings import OpenAIEmbedding\n# 没有保存数据库\ndocs = ReadFiles('./data').get_content(max_token_len=600, cover_content=150) # 获得data⽬录\n下的所有⽂件内容并分割\nvector = VectorStore(docs)\nembedding = OpenAIEmbedding() # 创建EmbeddingModel\nvector.get_vector(EmbeddingModel=embedding)\nvector.persist(path='storage') # 将向量和⽂档内容保存到storage⽬录下，下次再⽤就可以直接加载本地的数\n据库\n# vector.load_vector('./storage') # 加载本地的数据库\nquestion = 'RAG的原理是什么？'\ncontent = vector.query(question, EmbeddingModel=embedding, k=1)[0]\nchat = OpenAIChat(model='Qwen/Qwen2.5-32B-Instruct')\nprint(chat.chat(question, [], content))\nfrom VectorBase import VectorStore\nfrom utils import ReadFiles\nfrom LLM import OpenAIChat\nfrom Embeddings import OpenAIEmbedding\n# 保存数据库之后\nvector = VectorStore()\nvector.load_vector('./storage') # 加载本地的数据库",
+    "relevant_chunk_id": "doc_74_chunk_189",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "MCP规范中，MCP Client在大模型与工具之间起到什么核心作用？",
+    "ground_truth": "400\n描述、参数类型与约束、返回值格式、错误码」等固定字段。不管是知识库检索⼯具，还是数据库\n查询⼯具，都要按这套格式定义，⼤模型和⼯具之间的 “沟通语⾔” 被统⼀。 \n2.统⼀交互流程规范：MCP 规定了「请求 - 调⽤ - 响应」的端到端标准化流程，和具体⼤模型⽆\n关：\nMCP Client（嵌⼊⼤模型宿主）接收⽤户请求后，按 MCP 格式打包 “问题 + ⼯具列表” 发给⼤模\n型；\n⼤模型按 MCP 规范⽣成⼯具调⽤指令（格式全⼀致，不再区分 OpenAI/Claude）； \nMCP Client 解析指令，调⽤ MCP Server 上的⼯具； \n⼯具执⾏结果按 MCP 标准格式返回给⼤模型，⽣成最终回答。 \n3. 三层组件解耦，屏蔽模型差异\nMCP Server：负责按 MCP 规范封装⼯具，对外提供标准化接⼝，和底层⼤模型完全解耦； \nMCP Client：作为中间层，⼀头对接 MCP Host（⼤模型应⽤），⼀头对接 MCP Server，核⼼作\n⽤是协议转换—— 把⼤模型的指令转成 MCP 标准格式，也把⼯具结果转成⼤模型能识别的格式； \nMCP Host：运⾏⼤模型的应⽤（如 ChatGPT 客户端、⾃定义 AI 助⼿），只需内置 MCP \nClient，就能⽆缝调⽤所有 MCP Server 上的⼯具，不⽤关⼼⼯具的具体实现和模型差异。 \n●\n●\n●\n●\n●\n●\n●",
+    "relevant_chunk_id": "doc_75_chunk_526",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "为什么G1垃圾回收器能够较好地控制STW（Stop-The-World）暂停时间？",
+    "ground_truth": "垃圾回收算法\n垃圾回收算法有三种，分别是标记清除、标记整理、复制。\n标记清除算法 优点是垃圾回收速度快，缺点是会产⽣内存碎⽚，造成内存浪费和溢出 \n标记整理算法 优点是不会产⽣内存碎⽚，缺点是效率较低，整理涉及到对象的移动较复杂 \n复制算法 优点是不会产⽣内存碎⽚，且较为⾼效，缺点是占⽤双倍的内存空间（内存空间开\n销⼤）\n3. 分代垃圾回收\n但我们⼀般不单独使⽤某⼀种垃圾回收算法，由于对象的⽣命周期是不同的，有的产⽣后很快\n可以回收，有的会存活很久，对象的差异化决定了我们要差异化管理它们，所以我们通常把堆分成\n年轻代和⽼年代，年轻代中存储的是朝⽣夕死的对象，因此它们是会频繁发⽣GC回收的，所以年\n轻代⼀般采⽤的是复制算法，⽽⽼年代中存储的是⽣命周期很⻓的对象，因此它们很久才会发⽣\nGC回收⼀次，所以⽼年代⼀般采⽤标记整理算法。 \n4. 垃圾回收器\n例如 CMS，CMS 是针对⽼年代的、追求响应时间优先的垃圾回收器，主要在两⽅⾯实现，\n第⼀，CMS采⽤的是标记清除算法，优点就是速度快，第⼆，在CMS的垃圾回收过程中，在⼀些\n阶段（并发标记和并发清理）中是允许⽤户线程和垃圾回收线程同时⼯作的，通过这两点来达到响\n应时间优先。\n⼜例如G1，G1是⼀个全年代的、可设置每次垃圾回收STW的暂停时间⽬标的垃圾回收器，例\n如⼀次STW的时间不能超过200ms，它的实现原理要从结构讲起，G1把堆内存划分为若⼲个⼤⼩\n相同的区，每个区都会产⽣垃圾，但在垃圾回收时，可以选择性的回收垃圾较多的区域，垃圾较少\n的区域暂时不回收，这样效益较⾼，短时间内回收了尽可能多的垃圾，尽可能达到STW的暂停时\n间⽬标。\n5.GC 调优",
+    "relevant_chunk_id": "doc_75_chunk_105",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "OpenCompass团队在2024年发布了哪些面向垂直领域的大型语言模型评测基准？",
+    "ground_truth": "[7] OpenCompass 法律榜团队. (2024). LawBench: 法律领域⼤模型评测. https://lawbench.opencompass.org.cn/\nleaderboard  \n[8] OpenCompass 医疗榜团队. (2024). MedBench: 医疗领域⼤模型评测. https://medbench.opencompass.org.c\nn/leaderboard  \n[9] Zhi Jing, Yongye Su, and Yikun Han. (2024). When Large Language Models Meet Vector Databases: A Survey. arXiv preprint arXiv:2402.01763. [10] Yunfan Gao, Yun Xiong, Xinyu Gao, Kangxiang Jia, Jinliu Pan, Yuxi Bi, Yi Dai, Jiawei Sun, Meng Wang, and \nHaofen Wang. (2024). Retrieval-Augmented Generation for Large Language Models: A Survey. arXiv preprint \narXiv:2312.10997. [11] Zhiruo Wang, Jun Araki, Zhengbao Jiang, Md Rizwan Parvez, 和 Graham Neubig. (2023). Learning to Filter \nContext for Retrieval-Augmented Generation. arXiv preprint arXiv:2311.08377. [12] Ori Ram, Yoav Levine, Itay Dalmedigos, Dor Muhlgay, Amnon Shashua, Kevin Leyton-Brown 和 Yoav \nShoham. (2023).",
+    "relevant_chunk_id": "doc_74_chunk_202",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "为什么1000瓶药水中找出1瓶毒药最少需要10只小白鼠？",
+    "ground_truth": "358\n⽩⿏找毒药\n问题：1000瓶药⽔，1瓶有毒药，最少需要⼏只⼩⽩⿏找出毒药？ \n答案是10只，我们先将问题的范围缩⼩，寻找规律 \n同理，16瓶药⽔，会需要log2^16 = 4只⼩⽩⿏ \n故，1000瓶药⽔，会需要log2^1000 = 10只⼩⽩⿏ \n4 瓶药⽔，假设给药⽔编号 0-3\n0 、  1 、  2 、  3\n00 、 01 、 10 、 11\n⾏为：\na ⿏喝  1 、 3 号混合的药⽔， a 喝的是第 1 位为 1 的混合药⽔\nb ⿏喝  2 、 3 号混合的药⽔， b 喝的是第 2 位为 1 的混合药⽔\n结果分析：\n● ab 都没死  -> 0 号有毒\n● a 死， b 没死  -> 1 号有毒\n● b 死， a 没死  -> 2 号有毒\n● ab 死  -> 3 号有毒\n4 瓶药⽔，需要 2 只⼩⽩⿏，即  log2^4 = 2 只⼩⽩⿏\n \n---------\n \n8 瓶药⽔，假设给药⽔编号 0-7\n0 、    1 、   2 、   3 、   4 、   5 、   6 、   7\n000 、 001 、 010 、 011 、 100 、 101 、 110 、 111\n⾏为：\n● a ⼩⽩⿏喝   4 、 5 、 6 、 7 号混合的药⽔   a 喝的是第 3 位为 1 的混合的药⽔\n● b ⼩⽩⿏喝   2 、 3 、 6 、 7 号混合的药⽔   b 喝的是第 2 位为 1 的混合的药⽔\n● c ⼩⽩⿏喝   1 、 3 、 5 、 7 号混合的药⽔    c 喝的是第 1 位为 1 的混合的药⽔\n结果分析：\n● abc 都没死  -> 0 有毒\n● c 死， ab 没死  -> 1 有毒\n● b 死， ac 没死 -> 2 有毒\n● bc 死， a 没死  -> 3 有毒\n● a 死、 bc 不死  -> 4 有毒\n● ac 死， b 不死  -> 5 有毒\n● ab 死， c 不死  -> 6 有毒\n● abc 死  -> 7 有毒\n8 瓶药⽔，需要 3 只⼩⽩⿏，即  log2^8  = 3 只⼩⽩⿏\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\nPlain Text",
+    "relevant_chunk_id": "doc_75_chunk_469",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "根据算法短时间突击攻略，刷Leetcode hot100时推荐通过什么方式辅助理解题目？",
+    "ground_truth": "340\n算法短时间突击攻略\n1. 先跟代码随想录过⼀遍，主要看视频课程，学思路\n2. 专攻Leetcode hot100 ，不断复刷，直到完全靠⾃⼰写出来 \n刷hot100时，可以去看优质题解/视频解答，优质的会更加通俗易懂，更容易理解和记住，例如B站\n的灵⼭茶艾府......等等",
+    "relevant_chunk_id": "doc_75_chunk_446",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "针对大语言模型全量微调资源消耗大的问题，文中提到的两种高效微调方案之一是在模型中插入Adapter模块，其核心训练策略是什么？",
+    "ground_truth": "启动⽅式也同样在 sh 脚本中使⽤ deepspeed 启动即可，此处不再赘述，源码⻅ ./code/finetune.sh。\n6.3 ⾼效微调  \n在前⾯⼏节，我们详细介绍了基于 Transformers 框架对模型进⾏ Pretrain、SFT 以及 RLHF 的原理和实践细节。\n但是，由于 LLM 参数量⼤，训练数据多，通过上述⽅式对模型进⾏训练（主要指 SFT 及 RLHF）需要调整模型全部\n参数，资源压⼒⾮常⼤。对资源有限的企业或课题组来说，如何⾼效、快速对模型进⾏领域或任务的微调，以低成\n本地使⽤ LLM 完成⽬标任务，是⾮常重要的。\n6.3.1 ⾼效微调⽅案  \n针对全量微调的昂贵问题，⽬前主要有两种解决⽅案：\nAdapt Tuning。即在模型中添加 Adapter 层，在微调时冻结原参数，仅更新 Adapter 层。\n具体⽽⾔，其在预训练模型每层中插⼊⽤于下游任务的参数，即 Adapter 模块，在微调时冻结模型主体，仅训练特\n定于任务的参数，如图6.8所示。\nlogger.info(f'训练样本总数:{len(lst)}')\n# logger.info(f\"训练集采样：{ds[\"train\"][0]}\")\ntrain_dataset = SupervisedDataset(lst, tokenizer=tokenizer, max_len=2048)\nlogger.info(\"初始化 Trainer\")\ntrainer = Trainer(\n    model=model,\n    args=training_args,\n    train_dataset= IterableWrapper(train_dataset),\n    tokenizer=tokenizer\n)\n# 从 checkpoint 加载\ncheckpoint = None\nif training_args.resume_from_checkpoint is not None:\n    checkpoint = training_args.resume_from_checkpoint\nelif last_checkpoint is not None:\n        checkpoint = last_checkpoint\nlogger.info(\"开始训练\")\ntrain_result = trainer.train(resume_from_checkpoint=checkpoint)\ntrainer.save_model()",
+    "relevant_chunk_id": "doc_74_chunk_165",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "该文本片段要求生成的JSON数组中每个对象必须包含哪两个字段？",
+    "ground_truth": "428",
+    "relevant_chunk_id": "doc_75_chunk_561",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "作者在训练大模型时使用了什么硬件配置，以及预训练和SFT阶段分别耗时多久？",
+    "ground_truth": "到这⾥，我们的模型就训练完成了，恭喜你训练了⼀个属于你⾃⼰的⼤模型。\n⼤家在训练的时候可以将 batch 调的低⼀些，这样可以减少显存的占⽤，避免显存不⾜的问题。当然这样会\n增加训练时间，可以根据⾃⼰的显卡显存⼤⼩来调整 batch 的⼤⼩。实测 Pretrain batch 为 4 的情况下只需\n要 7G 显存，训练时⻓预计 533 ⼩时。作者是在 8卡4090 上进⾏训练的，预训练⼀共耗时 46 ⼩时，SFT 阶\n段在 BelleGroup 350万条中⽂指令训练 24 ⼩时。\n作者也在魔搭平台上传了本章节训来的模型，如果⼤家的设备不⾜以训练⼤模型，⼤家也可以在魔搭平台下载模型\n进⾏调试和模型体验。模型下载地址如下：\nModelScope 模型下载地址：\n  ModelScope  \nModelScope 创空间体验地址：\n  创空间\n参考资料\n[1] Andrej Karpathy. (2023).",
+    "relevant_chunk_id": "doc_74_chunk_143",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "Lmsys Chatbot Arena Leaderboard主要通过什么方式评测对话质量？",
+    "ground_truth": "图 7.1 Open LLM Leaderboard\nLmsys Chatbot Arena Leaderboard  \n由lmsys提供的聊天机器⼈评测榜单，通过多维度的评估，展示各类⼤模型在对话任务中的能⼒。该榜单采⽤真实\n⽤户与模型交互的⽅式来评测对话质量，重点考察模型的⾃然语⾔⽣成能⼒、上下⽂理解能⼒以及⽤户满意度，是\n当前评估聊天机器⼈性能的重要⼯具，如图7.2所示。",
+    "relevant_chunk_id": "doc_74_chunk_178",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "该文本片段要求生成的测试问题应具备哪些具体特征？",
+    "ground_truth": "250",
+    "relevant_chunk_id": "doc_75_chunk_325",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "Unigram分词方法如何决定一个单词（如“unhappiness”）的最优子词切分？",
+    "ground_truth": "Unigram 分词⽅法基于概率模型，通过选择具有最⾼概率的⼦词来分割⽂本。Unigram 词典是通过训练语⾔模型\n⽣成的，可以处理多种语⾔和不同类型的⽂本。Unigram 模型会为每个⼦词分配⼀个概率，然后根据这些概率进⾏\n最优分割。\n示例：\n在这个例⼦中，单词“unhappiness”被分割成⼦词“un”和“happiness”，⽽“newest”被分割成“new”和“est”。这种⽅\n法通过概率模型有效地处理了⼦词分割，使得分割结果更符合语⾔使⽤习惯。\n每种 Tokenizer ⽅法都有其特定的应⽤场景和优缺点，选择适合的 Tokenizer 对于⾃然语⾔处理任务的成功⾄关重\n要。\n5.2.4 训练⼀个 Tokenizer  \n这⾥我们选择使⽤ BPE 算法来训练⼀个 Subword Tokenizer。BPE 是⼀种简单⽽有效的分词⽅法，能够处理未登\n录词和罕⻅词，同时保持较⼩的词典⼤⼩。我们将使⽤ Hugging Face 的 tokenizers  库来训练⼀个 BPE \nTokenizer。\nStep 1: 安装和导⼊依赖库  \n⾸先，我们需要安装 tokenizers  库，除此之外还需要安装 datasets  和 transformers  库，⽤于加载训练数据\n和加载训练完成后的 Tokenizer。\n然后，导⼊所需的库。\nStep 2: 加载训练数据  \nInput: \"unhappiness\"\nOutput: [\"un\", \"happiness\"]\nInput: \"newest\"\nOutput: [\"new\", \"est\"]\npip install tokenizers datasets transformers\nimport random\nimport json\nimport os\nfrom transformers import AutoTokenizer, PreTrainedTokenizerFast\nfrom tokenizers import (\n    decoders,\n    models,\n    pre_tokenizers,\n    trainers,\n    Tokenizer,\n)\nfrom tokenizers.normalizers import NFKC\nfrom typing import Generator",
+    "relevant_chunk_id": "doc_74_chunk_109",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "设计一个RPC框架时，为什么要选择合适的序列化协议？需要考虑哪些因素？",
+    "ground_truth": "303\n如何设计⼀个 RPC 框架\n1. 定义RPC接⼝： 定义服务接⼝及其⽅法。这是RPC的核⼼，决定了客户端可以调⽤哪些⽅\n法。\n2. 选择通信协议： 选择合适的通信协议，如HTTP/REST、TCP、UDP等。不同的协议有不同的\n优劣势，取决于你的应⽤需求。\n3. 选择序列化协议： 选择序列化协议，将数据转换为字节流以在⽹络上传输。常⻅的有JSON、\nProtobuf、Thrift等。考虑效率、可读性和平台兼容性。 \n4. 实现远程调⽤： 实现将RPC请求发送到远程服务并接收响应的机制。这可能涉及到⽹络通\n信、数据解析和错误处理。\n5. 服务注册与发现： 提供服务注册中⼼，使服务能够动态注册和发现。Zookeeper、Consul、\netcd等⼯具可⽤于服务注册与发现。 \n6.负载均衡： 实现负载均衡机制，确保请求在多个服务节点之间分布均匀。常⻅的负载均衡算\n法有轮询、随机、最⼩连接数等。\n7. 安全性： 考虑数据在传输中的安全性，可以使⽤加密协议（如TLS/SSL）来保护通信。 \n8.",
+    "relevant_chunk_id": "doc_75_chunk_394",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在Spring的循环依赖处理机制中，当Bean B在填充属性时需要注入Bean A，系统如何利用三级缓存获取A的早期对象并完成B的初始化？",
+    "ground_truth": "填充A的属性 ： \n发现需要注⼊B，触发B的创建。 \n3. 创建Bean B ： \n实例化B，并将B的ObjectFactory存⼊三级缓存。 \n4. 填充B的属性 ： \n发现需要注⼊A，此时从三级缓存获取A的ObjectFactory，⽣成早期对象并移⾄⼆级缓\n存。\n5.B完成初始化 ： \nB的早期对象注⼊A后，B继续完成属性填充和初始化，最终存⼊⼀级缓存。 \n6.A完成初始化 ： \nA获取到B实例后完成初始化，存⼊⼀级缓存，移除⼆、三级缓存中的记录。 \n○\n○\n○\n○\n○\n○",
+    "relevant_chunk_id": "doc_75_chunk_283",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "该模型在推理阶段如何处理输入序列以生成下一个词的预测 logits？",
+    "ground_truth": "self.transformer = nn.ModuleDict(dict(\n            wte = nn.Embedding(args.vocab_size, args.n_embd),\n            wpe = PositionalEncoding(args),\n            drop = nn.Dropout(args.dropout),\n            encoder = Encoder(args),\n            decoder = Decoder(args),\n        ))\n        # 最后的线性层，输⼊是 n_embd，输出是词表⼤⼩\n        self.lm_head = nn.Linear(args.n_embd, args.vocab_size, bias=False)\n        # 初始化所有的权重\n        self.apply(self._init_weights)\n        # 查看所有参数的数量\n        print(\"number of parameters: %.2fM\" % (self.get_num_params()/1e6,))\n    '''统计所有参数的数量'''\n    def get_num_params(self, non_embedding=False):\n        # non_embedding: 是否统计 embedding 的参数\n        n_params = sum(p.numel() for p in self.parameters())\n        # 如果不统计 embedding 的参数，就减去\n        if non_embedding:\n            n_params -= self.transformer.wte.weight.numel()\n        return n_params\n    '''初始化权重'''\n    def _init_weights(self, module):\n        # 线性层和 Embedding 层初始化为正则分布\n        if isinstance(module, nn.Linear):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n            if module.bias is not None:\n                torch.nn.init.zeros_(module.bias)\n        elif isinstance(module, nn.Embedding):\n            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)\n    \n    '''前向计算函数'''\n    def forward(self, idx, targets=None):\n        # 输⼊为 idx，维度为 (batch size, sequence length, 1)；targets 为⽬标序列，⽤于计算 loss\n        device = idx.device\n        b, t = idx.size()\n        assert t <= self.args.block_size, f\"不能计算该序列，该序列⻓度为 {t}, 最⼤序列⻓度只有 {self.args.block_size}\"\n        # 通过 self.transformer\n        # ⾸先将输⼊ idx 通过 Embedding 层，得到维度为 (batch size, sequence length, n_embd)\n        print(\"idx\",idx.size())\n        # 通过 Embedding 层\n        tok_emb = self.transformer.wte(idx)\n        print(\"tok_emb\",tok_emb.size())\n        # 然后通过位置编码\n        pos_emb = self.transformer.wpe(tok_emb) \n        # 再进⾏ Dropout\n        x = self.transformer.drop(pos_emb)\n        # 然后通过 Encoder\n        print(\"x after wpe:\",x.size())\n        enc_out = self.transformer.encoder(x)\n        print(\"enc_out:\",enc_out.size())\n        # 再通过 Decoder\n        x = self.transformer.decoder(x, enc_out)\n        print(\"x after decoder:\",x.size())\n        if targets is not None:\n            # 训练阶段，如果我们给了 targets，就计算 loss\n            # 先通过最后的 Linear 层，得到维度为 (batch size, sequence length, vocab size)\n            logits = self.lm_head(x)\n            # 再跟 targets 计算交叉熵\n            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)\n        else:\n            # 推理阶段，我们只需要 logits，loss 为 None\n            # 取 -1 是只取序列中的最后⼀个作为输出\n            logits = self.lm_head(x[:, [-1], :]) # note: using list [-1] to preserve the time dim\n            loss = None\n        return logits, loss",
+    "relevant_chunk_id": "doc_74_chunk_36",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在该代码片段中，ModelArguments类主要用于定义哪一类超参数？",
+    "ground_truth": "⾸先需要定义⼏个超参的类型，⽤于处理 sh 脚本中设定的超参值。由于 transformers 本身有 \nTraingingArguments 类，其中包括了训练的⼀些必备超参数。我们这⾥只需定义 TrainingArguments 中未包含的\n超参即可，主要包括模型相关的超参（定义在 ModelArguments）和数据相关的超参（定义在 \nDataTrainingArguments）：\nimport sys\nfrom dataclasses import dataclass, field\nfrom torchdata.datapipes.iter import IterableWrapper\nfrom itertools import chain\nimport deepspeed\nfrom typing import Optional,List\nimport datasets\nimport pandas as pd\nimport torch\nfrom datasets import load_dataset\nimport transformers\nfrom transformers import (\n    AutoConfig,\n    AutoModelForCausalLM,\n    AutoTokenizer,\n    HfArgumentParser,\n    Trainer,\n    TrainingArguments,\n    default_data_collator,\n    set_seed,\n)\nimport datetime\nfrom transformers.testing_utils import CaptureLogger\nfrom transformers.trainer_utils import get_last_checkpoint\nimport swanlab\n# 超参类\n@dataclass\nclass ModelArguments:\n    \"\"\"\n    关于模型的参数\n    \"\"\"\n    model_name_or_path: Optional[str] = field(\n        default=None,\n        metadata={\n            \"help\": (\n                \"后训练使⽤，为预训练模型参数地址\"\n            )\n        },\n    )\n    config_name: Optional[str] = field(\n        default=None, metadata={\"help\": \"预训练使⽤，Config ⽂件地址\"}\n    )\n    tokenizer_name: Optional[str] = field(",
+    "relevant_chunk_id": "doc_74_chunk_155",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "Spring Boot 从哪个版本开始内置支持优雅停机功能？",
+    "ground_truth": "222\nSpringBoot 如何优雅停机\n在Web应⽤开发中，确保应⽤可以平稳可靠的关闭是⾄关重要的。在我们常⽤的Spring Boot中其\n实提供了内置功能来优雅地处理应⽤程序的关闭的能⼒。\n优雅停机：是以受控⽅式终⽌应⽤程序的过程，允许它完成任何正在进⾏的任务，释放资源，并确\n保数据的完整性。与突然终⽌应⽤程序不同，优雅停机确保所有进程都得到优雅停⽌，以防⽌潜在\n的数据损坏或丢失。\n从Spring Boot 2.3开始，SpringBoot内置了优雅停机的功能。想要启⽤优雅停机很简单，只需在\napplication.properties ⽂件中添加⼀⾏代码 \n通过这个设置，当停⽌服务器时，它将不再接受新的请求。并且服务器也不会⽴即关闭，⽽是等待\n正在进⾏的请求处理完。这个等待的时间我们是可以⾃定义的: \n默认的等待时⻓是30秒，通过以上配置可以将这个等待时⻓延⻓到 2分钟 \nserver.shutdown=gracefu1\nYAML\nspring.lifecycle.timeout-per-shutdown-phase=2m1\nYAML",
+    "relevant_chunk_id": "doc_75_chunk_290",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "在RAG流程中，文档切分时为何建议以句子为单位并保证片段间存在重叠内容？",
+    "ground_truth": "图7.6 RAG 流程图\nStep 2: ⽂档加载和切分  \n接下来我们来实现⼀个⽂档加载和切分的类，这个类主要⽤于加载⽂档并将其切分成⽂档⽚段。\n⽂档可以是⽂章、书籍、对话、代码等⽂本内容，例如pdf⽂件、md⽂件、txt⽂件等。完整代码可以在 \nRAG/utils.py ⽂件中找到。该代码⽀持加载pdf、md、txt等类型的⽂件，只需编写相应的函数即可。\n⽂档读取后需要进⾏切分。我们可以设置⼀个最⼤的Token⻓度，然后根据这个最⼤⻓度来切分⽂档。切分⽂档时\n最好以句⼦为单位（按\\n 粗切分），并保证⽚段之间有⼀些重叠内容，以提⾼检索的准确性。\ndef read_file_content(cls, file_path: str):\n    # 根据⽂件扩展名选择读取⽅法\n    if file_path.endswith('.pdf'):\n        return cls.read_pdf(file_path)\n    elif file_path.endswith('.md'):\n        return cls.read_markdown(file_path)\n    elif file_path.endswith('.txt'):\n        return cls.read_text(file_path)\n    else:\n        raise ValueError(\"Unsupported file type\")\ndef get_chunk(cls, text: str, max_token_len: int = 600, cover_content: int = 150):\n    chunk_text = []\n    curr_len = 0\n    curr_chunk = ''\n    token_len = max_token_len - cover_content\n    lines = text.splitlines()  # 假设以换⾏符分割⽂本为⾏",
+    "relevant_chunk_id": "doc_74_chunk_183",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "为什么说枚举是所有单例实现中唯一一种不会被反射破坏的实现模式？",
+    "ground_truth": "321\n枚举是天然的单例\n枚举的写法⾮常简单\n枚举类型是所有单例实现中唯⼀⼀种不会被破坏的单例实现模式（反射也⽆法破坏）\n如果不考虑内存空间的浪费的话，⾸选枚举⽅式实现单例模式\n枚举为什么是天然的单例？\n枚举类型在编译后会被转换为⼀个继承⾃  java.lang.Enum  的  final  类。 \n每个枚举常量是该类的静态实例，且在类加载时初始化\n2.饿汉式-静态代码块的⽅式 \n3.饿汉式-枚举⽅式-极⼒推荐 \n●\n●\n●\n●\npublic class Singleton {\n    //1 、私有构造⽅法 : 外界⽆法使⽤构造⽅法来创建本类的实例对象\n    private Singleton(){}\n \n    //2 、声明⼀个成员变量\n    private static Singleton instance;\n \n    //3 、在静态代码块中进⾏赋值\n    static {\n        instance = new Singleton();\n    }\n \n    //4 、提供⼀个获取单例的⼊⼝，注意是  public 和  static\n    public static Singleton getInstance(){\n        return instance;\n    }\n}\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\nJava\npublic enum Singleton {\n    INSTANCE;  // 外界调⽤时使⽤  Singleton.INSTANCE 即可\n}\n1\n2\n3\nJava",
+    "relevant_chunk_id": "doc_75_chunk_420",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "为什么Eden区设置过小会导致YoungGC频繁发生？",
+    "ground_truth": "94\nJVM 调优经验\n⾸先我们要知道，我们可以调什么？\n我们可以调整  \n堆内存的初始⼤⼩、堆内存的最⼤⼤⼩\n年轻代的初始⼤⼩、年轻代的最⼤⼤⼩\n年轻代与⽼年代之间的⽐例（默认是1：2） \n年轻代中 Eden 区 与 Survivor 区的⽐例（默认是8：1 : 1） \n元空间的初始⼤⼩、元空间的最⼤⼤⼩\n更换垃圾收集器\n那么为什么要调，因为区域的内存⼤⼩会影响我们程序实际运⾏的效果。\n举个例⼦：Eden 区的⼤⼩是如何影响我们程序的？ \n如果它很⼩，那么 YoungGC ⼀定频繁发⽣。（因为它⼩，存不下东⻄，所以空间不够就要清\n理）\n如果它很⼤，那么 YoungGC ⼀定耗时很久。（因为它⼤，垃圾多，收集耗时久） \nJVM 为什么需要调优 \n●\n●\n●\n●\n●\n●\n●\n●",
+    "relevant_chunk_id": "doc_75_chunk_120",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "ELMo模型通过什么方式实现了从静态词向量到动态词向量的转变，并首次将哪种思想引入词向量生成？",
+    "ground_truth": "相⽐于传统的⾼维稀疏表示（如One-Hot编码），Word2Vec⽣成的是低维（通常⼏百维）的密集向量，有助于减\n少计算复杂度和存储需求。Word2Vec模型能够捕捉到词与词之间的语义关系，⽐如”国王“和“王后”在向量空间中的\n位置会⽐较接近，因为在⼤量⽂本中，它们通常会出现在相似的上下⽂中。Word2Vec模型也可以很好的泛化到未\n⻅过的词，因为它是基于上下⽂信息学习的，⽽不是基于词典。但由于CBOW/Skip-Gram模型是基于局部上下⽂\n的，⽆法捕捉到⻓距离的依赖关系，缺乏整体的词与词之间的关系，因此在⼀些复杂的语义任务上表现不佳。\n1.4.4 ELMo  \nELMo（Embeddings from Language Models）实现了⼀词多义、静态词向量到动态词向量的跨越式转变。⾸先\n在⼤型语料库上训练语⾔模型，得到词向量模型，然后在特定任务上对模型进⾏微调，得到更适合该任务的词向\n量，ELMo⾸次将预训练思想引⼊到词向量的⽣成中，使⽤双向LSTM结构，能够捕捉到词汇的上下⽂信息，⽣成更\n加丰富和准确的词向量表示。\nELMo采⽤典型的两阶段过程: 第1个阶段是利⽤语⾔模型进⾏预训练; 第2个阶段是在做特定任务时, 从预训练⽹络中\n提取对应单词的词向量作为新特征补充到下游任务中。基于RNN的LSTM模型训练时间⻓, 特征提取是ELMo模型优\n化和提升的关键。\nELMo模型的主要优势在于其能够捕捉到词汇的多义性和上下⽂信息，⽣成的词向量更加丰富和准确，适⽤于多种 \nNLP 任务。然⽽，ELMo模型也存在⼀些问题，如模型复杂度⾼、训练时间⻓、计算资源消耗⼤等。\n参考⽂献  \n[1] Tomas Mikolov, Ilya Sutskever, Kai Chen, Greg Corrado, Jeffrey Dean. (2013).",
+    "relevant_chunk_id": "doc_74_chunk_16",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "Transformer模型中的Encoder和Decoder分别对应Seq2Seq任务中的哪个处理过程？",
+    "ground_truth": "2.2 Encoder-Decoder  \n在上⼀节，我们详细介绍了 Transformer 的核⼼—— 注意⼒机制。在《Attention is All You Need》⼀⽂中，作者通过仅使⽤注意⼒机制⽽抛弃传统的 \nRNN、CNN 架构搭建出 Transformer 模型，从⽽带来了 NLP 领域的⼤变⾰。在 Transformer 中，使⽤注意⼒机制的是其两个核⼼组件——Encoder\n（编码器）和 Decoder（解码器）。事实上，后续基于 Transformer 架构⽽来的预训练语⾔模型基本都是对 Encoder-Decoder 部分进⾏改进来构建\n新的模型架构，例如只使⽤ Encoder 的 BERT、只使⽤ Decoder 的 GPT 等。\n在本节中，我们将以上⼀节所介绍的 注意⼒机制为基础，从 Transformer 所针对的 Seq2Seq 任务出发，解析 Transformer 的 Encoder-Decoder 结\n构。\n2.2.1 Seq2Seq 模型  \nSeq2Seq，即序列到序列，是⼀种经典 NLP 任务。具体⽽⾔，是指模型输⼊的是⼀个⾃然语⾔序列  ，输出的是⼀个可能\n不等⻓的⾃然语⾔序列  。事实上，Seq2Seq 是 NLP 最经典的任务，⼏乎所有的 NLP 任务都可以视为 Seq2Seq 任务。\n例如⽂本分类任务，可以视为输出⻓度为 1 的⽬标序列（如在上式中  = 1）；词性标注任务，可以视为输出与输⼊序列等⻓的⽬标序列（如在上式中 \n =  ）。\n机器翻译任务即是⼀个经典的 Seq2Seq 任务，例如，我们的输⼊可能是“今天天⽓真好”，输出是“Today is a good day.”。Transformer 是⼀个经典的 \nSeq2Seq 模型，即模型的输⼊为⽂本序列，输出为另⼀个⽂本序列。事实上，Transformer ⼀开始正是应⽤在机器翻译任务上的。\n对于 Seq2Seq 任务，⼀般的思路是对⾃然语⾔序列进⾏编码再解码。所谓编码，就是将输⼊的⾃然语⾔序列通过隐藏层编码成能够表征语义的向量\n（或矩阵），可以简单理解为更复杂的词向量表示。⽽解码，就是对输⼊的⾃然语⾔序列编码得到的向量或矩阵通过隐藏层输出，再解码成对应的⾃然\n语⾔⽬标序列。通过编码再解码，就可以实现 Seq2Seq 任务。\nTransformer 中的 Encoder，就是⽤于上述的编码过程；Decoder 则⽤于上述的解码过程。Transformer 结构，如图2.5所示：\n        xv = xv.transpose(1, 2)\n        # 注意⼒计算\n        # 计算 QK^T / sqrt(d_k)，维度为 (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)\n        scores = torch.matmul(xq, xk.transpose(2, 3)) / math.sqrt(self.head_dim)\n        # 掩码⾃注意⼒必须有注意⼒掩码\n        if self.is_causal:\n            assert hasattr(self, 'mask')\n            # 这⾥截取到序列⻓度，因为有些序列可能⽐ max_seq_len 短\n            scores = scores + self.mask[:, :, :seqlen, :seqlen]\n        # 计算 softmax，维度为 (B, nh, T, T)\n        scores = F.softmax(scores.float(), dim=-1).type_as(xq)\n        # 做 Dropout\n        scores = self.attn_dropout(scores)\n        # V * Score，维度为(B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)\n        output = torch.matmul(scores, xv)\n        # 恢复时间维度并合并头。\n        # 将多头的结果拼接起来, 先交换维度为 (B, T, n_head, C // n_head)，再拼接成 (B, T, n_head * C // n_head)\n        # contiguous 函数⽤于重新开辟⼀块新内存存储，因为Pytorch设置先transpose再view会报错，\n        # 因为view直接基于底层存储得到，然⽽transpose并不会改变底层存储，因此需要额外存储\n        output = output.transpose(1, 2).contiguous().view(bsz, seqlen, -1)\n        # 最终投影回残差流。\n        output = self.wo(output)\n        output = self.resid_dropout(output)\n        return output",
+    "relevant_chunk_id": "doc_74_chunk_26",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "T5模型的大一统思想是如何通过任务前缀实现不同NLP任务统一处理的？",
+    "ground_truth": "图3.11 T5 的⼤⼀统思想\n对于不同的NLP任务，每次输⼊前都会加上⼀个任务描述前缀，明确指定当前任务的类型。这不仅帮助模型在预训\n练阶段学习到不同任务之间的通⽤特征，也便于在微调阶段迅速适应具体任务。例如，任务前缀可以是\n“summarize: ”⽤于摘要任务，或“translate English to German: ”⽤于翻译任务。\nT5的⼤⼀统思想通过将所有NLP任务统⼀为⽂本到⽂本的形式，简化了任务处理流程，增强了模型的通⽤性和适应\n性。这⼀思想不仅推动了⾃然语⾔处理技术的发展，也为实际应⽤提供了更为便捷和⾼效的解决⽅案。\n3.3 Decoder-Only PLM  \n在前两节中，我们分别讲解了由 Transformer 发展⽽来的两种模型架构—— 以 BERT 为代表的 Encoder-Only 模型\n和以 T5 为代表的 Encoder-Decoder 模型。那么，很⾃然可以想⻅，除了上述两种架构，还可以有⼀种模型架构\n——Decoder-Only ，即只使⽤ Decoder 堆叠⽽成的模型。\n事实上，Decoder-Only 就是⽬前⼤⽕的 LLM 的基础架构，⽬前所有的 LLM 基本都是 Decoder-Only 模型\n（RWKV、Mamba 等⾮ Transformer 架构除外）。⽽引发 LLM 热潮的 ChatGPT，正是 Decoder-Only 系列的代\n表模型 GPT 系列模型的⼤成之作。⽽⽬前作为开源 LLM 基本架构的 LLaMA 模型，也正是在 GPT 的模型架构基础\n上优化发展⽽来。因此，在本节中，我们不但会详细分析 Decoder-Only 代表模型 GPT 的原理、架构和特点，还\n会深⼊到⽬前的主流开源 LLM，分析它们的结构、特点，结合之前对 Transformer 系列其他模型的分析，帮助⼤\n家深⼊理解当下被寄予厚望、被认为是 AGI 必经之路的 LLM 是如何⼀步步从传统 PLM 中发展⽽来的。\n⾸先，让我们学习打开 LLM 世界⼤⻔的代表模型—— 由 OpenAI 发布的 GPT。\n3.3.1 GPT  \nGPT，即 Generative Pre-Training Language Model，是由 OpenAI 团队于 2018年发布的预训练语⾔模型。虽然\n学界普遍认可 BERT 作为预训练语⾔模型时代的代表，但⾸先明确提出预训练-微调思想的模型其实是 GPT。GPT \n提出了通⽤预训练的概念，也就是在海量⽆监督语料上预训练，进⽽在每个特定任务上进⾏微调，从⽽实现这些任\n务的巨⼤收益。虽然在发布之初，由于性能略输于不久后发布的 BERT，没能取得轰动性成果，也没能让 GPT 所使\n⽤的 Decoder-Only 架构成为学界研究的主流，但 OpenAI 团队坚定地选择了不断扩⼤预训练数据、增加模型参\n数，在 GPT 架构上不断优化，最终在 2020年发布的 GPT-3 成就了 LLM 时代的基础，并以 GPT-3 为基座模型的 \nChatGPT 成功打开新时代的⼤⻔，成为 LLM 时代的最强竞争者也是⽬前的最⼤赢家。\n本节将以 GPT 为例，分别从模型架构、预训练任务、GPT 系列模型的发展历程等三个⽅⾯深⼊分析 GPT 及其代表\n的 Decoder-Only 模型，并进⼀步引出当前的主流 LLM 架构——LLaMA 。\n（1） 模型架构——Decoder Only",
+    "relevant_chunk_id": "doc_74_chunk_58",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "在消息队列选型时，如果业务需要同时支持发布-订阅和点对点两种消息传递模型，哪些技术被推荐为不错的选择？",
+    "ground_truth": "197\n技术选型\n在选择消息队列技术时，需要根据实际业务需求和系统特点来选择，以下是⼀些参考因素: \n1. 性能和吞吐量：如果需要处理海量数据，需要⾼性能和⾼吞吐量，那么Kafka是⼀个不错的选\n择。\n2. 可靠性：如果需要保证消息传递的可靠性，包括数据不丢失和消息不重复投递，那么\nRocketMQ和RabbitMQ都提供了较好的可靠性保证。 \n3. 消息传递模型：如果需要⽀持发布-订阅和点对点模型，那么RocketMQ和RabbitMQ是⼀个\n不错的选择。如果只需要发布-订阅模型，Kafka则是⼀个更好的选择。 \n4. 消息持久化：如果需要更快地持久化消息，并且⽀持⾼效的消息査询，那么Kafka是⼀个不错\n的选择。如果需要更加传统的消息持久化⽅式，那么RocketMQ和RabbitMQ可以满⾜需求。 \n5. 开发和部署复杂度：Kafka⽐较简单，易于使⽤和部署，但在实现⼀些⾼级功能时需要进⾏⼀\n些复杂的配置。RocketMQ和RabbitMQ提供了更多的功能和选项，也更加灵活，但相应地会\n增加开发和部署的复杂度。\n6. 社区和⽣态：Kafka、RocketMQ和RabbitMQ都拥有庞⼤的社区和完善的⽣态系统，但Kafka\n和RocketMQ⽬前的发展势头⽐较迅猛，社区活跃度也相对较⾼。 \n7. 实现语⾔：Kafka是基于Scala和Java开发的，RocketMQ是基于Java语⾔的，RabbitMQ是基\n于erlang \n8. ⽀持功能性：上⾯列举过⼀些功能，例如延迟队列、死信队列、事务消息，我们在选型的时候\n需要看哪个可以满⾜我们的需求。\n9.",
+    "relevant_chunk_id": "doc_75_chunk_257",
+    "synthesizer_name": "simple"
+  },
+  {
+    "question": "归并排序的时间复杂度是多少？为什么它与初始序列无关？",
+    "ground_truth": "312\n时间复杂度：O(nlogn)    归并排序和初始序列是没有关系的，因此最好、最坏、平均时间复杂度\n相同\n空间复杂度：O(n)        临时保存归并后的数组 \n稳定性：归并排序是稳定的\n思路：“先分后合”，将⼤问题拆解为⼩问题解决，再将结果合并，整个过程分为 分 和 治 两步 \n实现步骤\n1. 分：将数组递归地分成左右两半，直到⼦数组只剩⼀个元素（天然有序）\n2.",
+    "relevant_chunk_id": "doc_75_chunk_407",
+    "synthesizer_name": "complex"
+  },
+  {
+    "question": "该代码中学习率调度策略在预热阶段、衰减阶段和稳定阶段分别采用什么数学方式计算？",
+    "ground_truth": "from k_model import ModelConfig, Transformer\nfrom dataset import SFTDataset\nimport swanlab\n# 忽略警告\nwarnings.filterwarnings('ignore')\ndef Logger(content):\n    \"\"\"⽇志记录器\"\"\"\n    print(content)\ndef get_lr(it, all):\n    \"\"\"获取学习率\"\"\"\n    # 1) linear warmup for warmup_iters steps\n    # 1) 预热迭代的线性预热\n    warmup_iters = args.warmup_iters\n    lr_decay_iters = all\n    min_lr = args.learning_rate / 10\n    if it < warmup_iters:\n        return args.learning_rate * it / warmup_iters\n    \n    # 2) if it > lr_decay_iters, return min learning rate\n    # 2) 如果迭代次数超过学习率衰减迭代次数，则返回最⼩学习率\n    if it > lr_decay_iters:\n        return min_lr\n    \n    # 3) in between, use cosine decay down to min learning rate\n    # 3) 在两者之间，使⽤余弦衰减⾄最⼩学习率\n    decay_ratio = (it - warmup_iters) / (lr_decay_iters - warmup_iters)\n    assert 0 <= decay_ratio <= 1\n    coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))\n    return min_lr + coeff * (args.learning_rate - min_lr)\ndef train_epoch(epoch):\n    \"\"\"训练⼀个epoch\"\"\"\n    start_time = time.time()\n    for step, (X, Y, loss_mask) in enumerate(train_loader):\n        X = X.to(args.device)\n        Y = Y.to(args.device)\n        loss_mask = loss_mask.to(args.device)\n        # 获取学习率并更新优化器\n        lr = get_lr(epoch * iter_per_epoch + step, args.epochs * iter_per_epoch)\n        for param_group in optimizer.param_groups:\n            param_group['lr'] = lr\n        # 前向传播\n        with ctx:",
+    "relevant_chunk_id": "doc_74_chunk_135",
+    "synthesizer_name": "complex"
+  }
+]
