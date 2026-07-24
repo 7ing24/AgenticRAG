@@ -46,7 +46,7 @@ class EvalDatasetBuilder:
     def __init__(self):
         from core.config import config
         self._api_key = config.DASHSCOPE_API_KEY
-        self._qa_llm_model = "qwen-plus"
+        self._qa_llm_model = "qwen-turbo"
 
     def _get_qa_llm(self) -> Tongyi:
         return Tongyi(model_name=self._qa_llm_model, api_key=self._api_key, streaming=False)
@@ -114,8 +114,11 @@ class EvalDatasetBuilder:
                 continue
 
             doc_id = chunk.metadata.get("doc_id", "")
-            chunk_idx = chunk.metadata.get("chunk_index", 0)
-            relevant_chunk_id = f"doc_{doc_id}_chunk_{chunk_idx}"
+            parent_id = chunk.metadata.get("parent_id", "")
+            if parent_id:
+                relevant_chunk_id = parent_id
+            else:
+                relevant_chunk_id = f"doc_{doc_id}_chunk_{chunk.metadata.get('chunk_index', 0)}"
             # ground_truth 直接使用 chunk 原文，不让 LLM 生成
             ground_truth = context
 
@@ -183,7 +186,7 @@ class EvalDatasetBuilder:
             from core.mysql_client import mysql_client
 
             rows = mysql_client.fetch_all(
-                "SELECT doc_id, chunk_index, chunk_text FROM knowledge_chunk ORDER BY chunk_index"
+                "SELECT doc_id, parent_id, chunk_index, chunk_text FROM knowledge_chunk ORDER BY chunk_index"
             )
             if not rows:
                 return []
@@ -205,6 +208,7 @@ class EvalDatasetBuilder:
                         metadata={
                             "doc_id": doc_id,
                             "chunk_index": row.get("chunk_index", 0),
+                            "parent_id": row.get("parent_id", ""),
                         }
                     ))
 

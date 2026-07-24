@@ -42,7 +42,7 @@ env_path = Path(__file__).parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
 from eval.dataset import build_eval_dataset
-from eval.metrics import run_full_eval
+from eval.metrics import run_full_eval, make_retrieval_func
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -80,6 +80,8 @@ def main():
     parser.add_argument("--n", type=int, default=50, help="合成数据条数 (default: 50)")
     parser.add_argument("--load", type=str, default=None, help="从已有 JSON 文件加载 (跳过数据集生成)")
     parser.add_argument("--skip-ragas", action="store_true", help="跳过 RAGAS 指标 (仅计算 IR)")
+    parser.add_argument("--mode", type=str, default="full", choices=["full", "baseline"],
+                        help="实验模式: full=全优化, baseline=无优化(纯Dense+扁平块)")
     parser.add_argument("--output", type=str, default=None, help="报告输出路径")
     args = parser.parse_args()
 
@@ -102,7 +104,9 @@ def main():
 
     # 2. 跑评测
     start = time.time()
-    report = run_full_eval(dataset, skip_ragas=args.skip_ragas)
+    retrieval_func = make_retrieval_func(args.mode)
+    report = run_full_eval(dataset, skip_ragas=args.skip_ragas, retrieval_func=retrieval_func)
+    report["mode"] = args.mode
 
     elapsed = time.time() - start
     report["elapsed_seconds"] = round(elapsed, 1)

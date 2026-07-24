@@ -146,7 +146,7 @@ class LLMService:
             result, token_cb = self._dashscope_generate(prompt_text)
             self._last_token_callback = token_cb
             config.logger.info(
-                f"[TokenUsage] input:{token_cb.input_tokens} "
+                f"[TokenUsage][answer] input:{token_cb.input_tokens} "
                 f"output:{token_cb.output_tokens} total:{token_cb.total_tokens}"
             )
             llm_time = time.time() - llm_start

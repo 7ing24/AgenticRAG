@@ -93,7 +93,7 @@ def compute_ir_metrics(
 
     max_k = max(k_values)
     api_key = config.DASHSCOPE_API_KEY
-    judge_llm = Tongyi(model_name="qwen-plus", api_key=api_key, streaming=False) if api_key else None
+    judge_llm = Tongyi(model_name="qwen-turbo", api_key=api_key, streaming=False) if api_key else None
 
     if judge_llm is None:
         logger.error("DASHSCOPE_API_KEY not set, cannot run LLM-based IR evaluation")
@@ -109,13 +109,17 @@ def compute_ir_metrics(
 
         try:
             retrieved = retrieval_func(question, top_k=max_k)
-            # 提取检索到的 chunk_id
+            # 提取检索到的 chunk_id（父子块模式优先用 parent_id）
             retrieved_chunk_ids = []
             for doc in retrieved:
                 metadata = doc.get("metadata", {}) if isinstance(doc, dict) else getattr(doc, "metadata", {})
-                retrieved_chunk_ids.append(
-                    f"doc_{metadata.get('doc_id', '')}_chunk_{metadata.get('chunk_index', 0)}"
-                )
+                pid = metadata.get("parent_id", "")
+                if pid:
+                    retrieved_chunk_ids.append(pid)
+                else:
+                    retrieved_chunk_ids.append(
+                        f"doc_{metadata.get('doc_id', '')}_chunk_{metadata.get('chunk_index', 0)}"
+                    )
             # 生成 LLM 回答
 #             contexts = []
 #             for doc in retrieved[:5]:
@@ -188,7 +192,7 @@ def compute_ragas_metrics(
     from core.config import config
 
     ragas_llm = LangchainLLMWrapper(
-        Tongyi(model_name="qwen-plus", api_key=config.DASHSCOPE_API_KEY, streaming=False)
+        Tongyi(model_name="qwen-max", api_key=config.DASHSCOPE_API_KEY, streaming=False)
     ) if config.DASHSCOPE_API_KEY else None
 
     ragas_embeddings = LangchainEmbeddingsWrapper(
@@ -300,24 +304,46 @@ def compute_ragas_metrics(
 # 便捷包装 — 直接对接项目组件
 # ═══════════════════════════════════════════════════════════
 
+def make_retrieval_func(mode: str = "full"):
+    """模式: full(全优化) / baseline(纯Dense+扁平子块)"""
+    hybrid = mode == "full"
+    rerank = mode == "full"
+    rewrite = mode == "full"
+    skip_parent = mode == "baseline"
+
+    def _retrieve(question: str, top_k: int = 10) -> List[Dict]:
+        from service.retrieval import RetrievalAgent
+        from core.vector_store import vector_store
+        agent = RetrievalAgent()
+
+        # full: 走 RetrievalAgent（改写+检索+rerank 一体化）
+        if mode == "full":
+            result = agent.retrieve(
+                query=question, use_rewrite=True, use_rerank=True,
+                use_hybrid=True, top_k=top_k, similarity_threshold=0.5,
+            )
+            docs = result.reranked_documents
+            return [
+                {"content": d.get("content", ""), "metadata": d.get("metadata", {})}
+                if isinstance(d, dict) else {"content": d.page_content, "metadata": d.metadata}
+                for d in docs
+            ]
+
+        # baseline: 直调 vector_store，跳过所有优化
+        docs = vector_store.search(
+            query=question, k=top_k,
+            use_rerank=False, hybrid=False,
+            skip_parent_fetch=True,
+        )
+        return [
+            {"content": d.page_content, "metadata": d.metadata}
+            for d in docs
+        ]
+    return _retrieve
+
+
 def project_retrieval_func(question: str, top_k: int = 10) -> List[Dict]:
-    """直接调用项目的 RetrievalAgent 做检索"""
-    from service.retrieval import RetrievalAgent
-    agent = RetrievalAgent()
-    result = agent.retrieve(
-        query=question,
-        use_rewrite=False,
-        use_rerank=True,
-        use_hybrid=True,
-        top_k=top_k,
-        similarity_threshold=0.5,
-    )
-    docs = result.reranked_documents
-    return [
-        {"content": d.get("content", ""), "metadata": d.get("metadata", {})}
-        if isinstance(d, dict) else {"content": d.page_content, "metadata": d.metadata}
-        for d in docs
-    ]
+    return make_retrieval_func("full")(question, top_k)
 
 
 def project_generation_func(question: str, contexts: List[str]) -> str:
@@ -330,18 +356,20 @@ def project_generation_func(question: str, contexts: List[str]) -> str:
 
 
 def run_full_eval(dataset: List[Dict[str, Any]], k_values: tuple = (1, 3, 5, 10),
-                  skip_ragas: bool = False) -> Dict[str, Any]:
+                  skip_ragas: bool = False,
+                  retrieval_func=None) -> Dict[str, Any]:
     """一站式评测：RAGAS 指标（先跑，报错直接终止）+ IR 指标"""
+    retrieval_func = retrieval_func or project_retrieval_func
     logger.info(f"Running full eval on {len(dataset)} queries...")
 
     if skip_ragas:
         ragas_result = {"error": "", "ragas_metrics": {}, "per_query": []}
     else:
-        ragas_result = compute_ragas_metrics(dataset, project_retrieval_func, project_generation_func)
+        ragas_result = compute_ragas_metrics(dataset, retrieval_func, project_generation_func)
         if ragas_result.get("error"):
             raise RuntimeError(f"RAGAS evaluation failed: {ragas_result['error']}")
 
-    ir_result = compute_ir_metrics(dataset, project_retrieval_func, k_values=k_values)
+    ir_result = compute_ir_metrics(dataset, retrieval_func, k_values=k_values)
 
     return {
         "ir_metrics": ir_result.get("ir_metrics", {}),

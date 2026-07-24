@@ -211,52 +211,60 @@ class Planner:
     def evaluate_retrieval_sufficiency(self, chunks: List[Any], question: str,
                                          scores: List[float] = None,
                                          score_threshold: float = 0.6) -> SufficiencyResult:
-        """评估检索结果充分性
+        """评估检索结果充分性 — 最高得分 + 阶梯阈值
 
-        Args:
-            chunks: 检索到的文档列表
-            question: 原始问题
-            scores: 文档分数列表
-            score_threshold: 低分阈值，向量相似度用 0.6， Jaccard 等稀疏分数用 0.2
+        不看平均分，只看 Top-1 质量 + 有效结果数量：
+        - Top-1 ≥ 0.6               → 充分（有高质量结果）
+        - Top-1 ≥ 0.4 且 ≥2 个 ≥0.1 → 充分（顶部可用 + 有覆盖面）
+        - Top-1 ≥ 0.2 且 ≥2 个 ≥0.1 → 勉强可用（不再重试，但建议优化）
+        - Top-1 < 0.2               → 不充分（需要重试）
         """
         if not chunks:
             return SufficiencyResult(
-                is_sufficient=False,
-                confidence=1.0,
+                is_sufficient=False, confidence=1.0,
                 reasoning="未检索到任何相关文档",
                 missing_aspects=["相关知识文档"],
                 suggestions=["建议补充相关知识文档", "尝试使用不同的关键词检索"]
             )
 
         if scores is None:
-            scores = [0.5] * len(chunks)
+            scores = [0.6] * len(chunks)
 
-        low_score_count = sum(1 for s in scores if s < score_threshold)
-        if low_score_count > len(scores) * 0.5:
+        sorted_scores = sorted(scores, reverse=True)
+        top1 = sorted_scores[0]
+        effective_count = sum(1 for s in scores if s >= 0.1)
+
+        # 阶梯 1: 高质量
+        if top1 >= 0.6:
             return SufficiencyResult(
-                is_sufficient=False,
-                confidence=0.8,
-                reasoning=f"大部分检索结果相似度较低（{low_score_count}/{len(chunks)}低于{score_threshold}）",
-                missing_aspects=["高质量检索结果"],
-                suggestions=["优化检索query", "增加同义词扩展"]
+                is_sufficient=True, confidence=min(top1, 0.95),
+                reasoning=f"Top-1 得分 {top1:.3f}，检索质量良好",
+                missing_aspects=[], suggestions=[]
             )
 
-        coverage = min(1.0, len(chunks) * 0.3)
-        if coverage < 0.5:
+        # 阶梯 2: 可用 + 覆盖面
+        if top1 >= 0.4 and effective_count >= 2:
             return SufficiencyResult(
-                is_sufficient=False,
-                confidence=0.7,
-                reasoning=f"检索结果覆盖度较低（{coverage:.2f}）",
-                missing_aspects=["相关文档数量"],
-                suggestions=["增加知识库内容", "调整相似度阈值"]
+                is_sufficient=True, confidence=top1,
+                reasoning=f"Top-1 得分 {top1:.3f}，{effective_count} 个有效结果，检索充分",
+                missing_aspects=[], suggestions=[]
             )
 
+        # 阶梯 3: 勉强可用
+        if top1 >= 0.2 and effective_count >= 2:
+            return SufficiencyResult(
+                is_sufficient=True, confidence=top1,
+                reasoning=f"Top-1 得分 {top1:.3f}，勉强可用，不再重试",
+                missing_aspects=["更精确的检索结果"],
+                suggestions=["可尝试更具体的关键词"]
+            )
+
+        # 阶梯 4: 不充分
         return SufficiencyResult(
-            is_sufficient=True,
-            confidence=0.85,
-            reasoning=f"检索到{len(chunks)}个相关结果，置信度良好",
-            missing_aspects=[],
-            suggestions=[]
+            is_sufficient=False, confidence=0.8,
+            reasoning=f"Top-1 仅 {top1:.3f}，有效结果 {effective_count} 个，检索质量不足",
+            missing_aspects=["高质量检索结果"],
+            suggestions=["优化检索query", "换个搜索角度", "放宽关键词"]
         )
 
     def plan_steps(self, state: AgentState) -> List[str]:
@@ -265,9 +273,12 @@ class Planner:
 
         # 如果有会话ID，在开始时读取记忆
         has_conversation = bool(state.conversation_id)
+        has_user = bool(state.user_id)
 
         if intent.intent == IntentType.CHITCHAT:
             steps = []
+            if has_user:
+                steps.append("long_term_memory_read")
             if has_conversation:
                 steps.append("memory_read")
             steps.append("answer_generation")
@@ -276,10 +287,14 @@ class Planner:
             return steps
 
         if intent.intent == IntentType.IDENTITY_QUERY:
+            if has_user:
+                return ["long_term_memory_read", "identity_answer"]
             return ["identity_answer"]
 
         if intent.intent == IntentType.KNOWLEDGE_QA:
             steps = []
+            if has_user:
+                steps.append("long_term_memory_read")
             if has_conversation:
                 steps.append("memory_read")
             steps.append("question_rewrite")
@@ -295,12 +310,19 @@ class Planner:
             return steps
 
         if intent.intent == IntentType.ADMIN_OPERATION:
-            steps = ["admin_operation"]
+            steps = []
+            if has_user:
+                steps.append("long_term_memory_read")
+            if has_conversation:
+                steps.append("memory_read")
+            steps.append("admin_operation")
             if has_conversation:
                 steps.append("memory_write")
             return steps
 
         steps = []
+        if has_user:
+            steps.append("long_term_memory_read")
         if has_conversation:
             steps.append("memory_read")
         steps.extend(["question_rewrite", "knowledge_search", "answer_generation"])

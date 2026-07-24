@@ -322,6 +322,7 @@ export default function RequestTraceManagement() {
                             {inputObj && <div style={{ fontSize: 11, color: '#666', background: '#fafafa', padding: '4px 8px', borderRadius: 4, marginBottom: 4, maxHeight: 80, overflow: 'auto', whiteSpace: 'pre-wrap' }}><span style={{ color: '#999', fontWeight: 500 }}>INPUT </span>{truncate(inputObj, 300)}</div>}
                             {outputObj && (() => {
                               const { chunks, chunk_count, avg_score, doc_count, ...rest } = outputObj;
+                              const isParentChild = chunks && chunks.length > 0 && chunks[0].parent_id != null;
                               const hasRest = Object.keys(rest).length > 0;
                               return (
                               <div style={{ fontSize: 11, color: '#333', background: '#f6ffed', padding: '4px 8px', borderRadius: 4, marginBottom: 4, maxHeight: 150, overflow: 'auto' }}>
@@ -329,14 +330,12 @@ export default function RequestTraceManagement() {
                                 {hasRest && <span style={{ whiteSpace: 'pre-wrap' }}>{truncate(rest, 250)}</span>}
                                 {chunks && chunks.length > 0 && (
                                   <>
-                                    {hasRest && <br />}
-                                    <span>chunk_count={chunk_count ?? doc_count ?? '-'}, avg_score={avg_score ?? '-'}</span>
                                     <table style={{ width: '100%', marginTop: 4, fontSize: 10, borderCollapse: 'collapse' }}>
                                       <thead>
                                         <tr style={{ background: '#e6f7e6' }}>
                                           <th style={{ padding: '2px 6px', border: '1px solid #d9d9d9' }}>#</th>
                                           <th style={{ padding: '2px 6px', border: '1px solid #d9d9d9' }}>doc_id</th>
-                                          <th style={{ padding: '2px 6px', border: '1px solid #d9d9d9' }}>chunk_index</th>
+                                          <th style={{ padding: '2px 6px', border: '1px solid #d9d9d9' }}>{isParentChild ? 'parent_id' : 'chunk_index'}</th>
                                           <th style={{ padding: '2px 6px', border: '1px solid #d9d9d9' }}>page</th>
                                           <th style={{ padding: '2px 6px', border: '1px solid #d9d9d9' }}>score</th>
                                         </tr>
@@ -346,7 +345,7 @@ export default function RequestTraceManagement() {
                                           <tr key={ci}>
                                             <td style={{ padding: '2px 6px', border: '1px solid #f0f0f0', textAlign: 'center' }}>{ci + 1}</td>
                                             <td style={{ padding: '2px 6px', border: '1px solid #f0f0f0', textAlign: 'center' }}>{c.doc_id ?? '-'}</td>
-                                            <td style={{ padding: '2px 6px', border: '1px solid #f0f0f0', textAlign: 'center' }}>{c.chunk_index ?? '-'}</td>
+                                            <td style={{ padding: '2px 6px', border: '1px solid #f0f0f0', textAlign: 'center', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.parent_id ?? c.chunk_index ?? '-'}</td>
                                             <td style={{ padding: '2px 6px', border: '1px solid #f0f0f0', textAlign: 'center' }}>{c.page ?? '-'}</td>
                                             <td style={{ padding: '2px 6px', border: '1px solid #f0f0f0', textAlign: 'center' }}>{c.score ?? '-'}</td>
                                           </tr>

@@ -139,13 +139,13 @@ class TestSaveMemory:
 
         # 验证第一次调用是写入用户问题
         first_call = mock_registry.invoke_tool.call_args_list[0]
-        assert first_call[0][0] == "conversation_memory_write"
+        assert first_call[0][0] == "working_memory_write"
         assert first_call[0][1]["role"] == "user"
         assert first_call[0][1]["content"] == "什么是RAG？"
 
         # 验证第二次调用是写入AI回答
         second_call = mock_registry.invoke_tool.call_args_list[1]
-        assert second_call[0][0] == "conversation_memory_write"
+        assert second_call[0][0] == "working_memory_write"
         assert second_call[0][1]["role"] == "assistant"
         assert second_call[0][1]["content"] == "RAG是..."
 

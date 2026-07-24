@@ -193,30 +193,22 @@ async def parse_document(request: ParseRequest):
             raise HTTPException(status_code=404, detail="文件不存在")
 
         logger.info(f"Parsing document: {request.file_path}")
-        # Parse the document
-        chunks = parser.parse(request.file_path)
-        
-        # Add metadata
-        for chunk in chunks:
-            chunk.metadata["doc_id"] = request.doc_id
-            chunk.metadata["source"] = request.file_path
+        # 父子块模式: 先加载原始页（设置 doc_id）→ 再双切分
+        raw_docs = parser.parse(request.file_path, skip_chunk=True)
+        for doc in raw_docs:
+            doc.metadata["doc_id"] = request.doc_id
+            doc.metadata["source"] = request.file_path
+        parent_docs, child_docs = parser.parent_child_chunker.split_documents(raw_docs)
 
-        logger.info(f"Generated {len(chunks)} chunks. Adding to vector store...")
+        logger.info(
+            f"Generated {len(parent_docs)} parents + {len(child_docs)} children. "
+            f"Adding to vector store..."
+        )
         try:
-            vector_store.add_documents(chunks)
+            vector_store.add_documents(child_docs, parent_documents=parent_docs)
         except Exception as ve:
             logger.error(f"Vector store add_documents failed: {type(ve).__name__}: {ve}", exc_info=True)
             raise ve
-        
-        logger.info(f"Saving chunks to MySQL database...")
-        mysql_client.insert_chunks(request.doc_id, [
-            {
-                "page_content": chunk.page_content,
-                "chunk_index": chunk.metadata.get("chunk_index", i),
-                "page_number": chunk.metadata.get("page", 1),
-            }
-            for i, chunk in enumerate(chunks)
-        ])
         
         process_time = time.time() - start_time
         logger.info(
@@ -227,7 +219,7 @@ async def parse_document(request: ParseRequest):
                 "process_time": process_time
             })
         )
-        return {"status": "success", "chunks_count": len(chunks)}
+        return {"status": "success", "chunks_count": len(child_docs)}
     except HTTPException as e:
         process_time = time.time() - start_time
         logger.info(

@@ -108,12 +108,26 @@ class DocumentParser:
             "semantic_buffer_size": config.SEMANTIC_BUFFER_SIZE,
         }, embeddings=embeddings)
 
+        # 父子块切分器（父块用语义切分，需要 embeddings）
+        from service.parent_child_chunker import ParentChildChunker
+        self.parent_child_chunker = ParentChildChunker(
+            embeddings=embeddings,
+            child_chunk_size=config.CHILD_CHUNK_SIZE,
+            child_chunk_overlap=config.CHILD_CHUNK_OVERLAP,
+        )
+
         logger.info(f"DocumentParser initialized with strategy: {chunk_strategy}, chunk_size: {chunk_size}")
 
-    def parse(self, file_path: str) -> List[Document]:
+    def parse_parent_child(self, file_path: str):
+        """父子块模式：返回 (parent_docs, child_docs)"""
+        raw_docs = self.parse(file_path, skip_chunk=True)
+        return self.parent_child_chunker.split_documents(raw_docs)
+
+    def parse(self, file_path: str, skip_chunk: bool = False) -> List[Document]:
         """
         根据文件扩展名选择合适的加载器解析文档，并切分文本。
         支持本地路径和 HTTP/HTTPS URL。
+        skip_chunk=True 时只加载不切分，供父子块模式复用。
         """
         # 检测是否为 URL(支持带或不带协议头)
         is_url = file_path.startswith(('http://', 'https://')) or \
@@ -297,6 +311,8 @@ class DocumentParser:
                 raise ValueError(f"Unsupported file type: {ext}")
 
             # 使用自适应切分器进行文档切分
+            if skip_chunk:
+                return documents
             chunks = self.chunker.split_documents(documents)
             return chunks
 

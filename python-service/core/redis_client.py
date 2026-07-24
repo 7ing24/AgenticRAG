@@ -22,7 +22,8 @@ class RedisClient:
         self.client = redis.Redis(connection_pool=self.pool)
         logger.info(f"Redis client initialized: {config.REDIS_HOST}:{config.REDIS_PORT}")
 
-    def add_message(self, conversation_id: str, role: str, content: str):
+    def add_message(self, conversation_id: str, role: str, content: str,
+                    user_id: str = None):
         """追加消息到会话"""
         key = f"conversation:{conversation_id}:messages"
         message = json.dumps({
@@ -32,6 +33,10 @@ class RedisClient:
         }, ensure_ascii=False)
         self.client.rpush(key, message)
         self.client.expire(key, 86400)  # 24小时过期
+        # 记录用户关联
+        if user_id:
+            user_key = f"conversation:{conversation_id}:user_id"
+            self.client.setex(user_key, 86400, str(user_id))
         logger.debug(f"Added message to conversation {conversation_id}: {role}")
 
     def get_messages(self, conversation_id: str, limit: int = 10) -> list:
@@ -51,12 +56,26 @@ class RedisClient:
         key = f"conversation:{conversation_id}:messages"
         return self.client.llen(key)
 
+    def _trim_conversation(self, conversation_id: str, keep_recent: int = 10):
+        """裁剪会话，只保留最近 N 条消息"""
+        key = f"conversation:{conversation_id}:messages"
+        total = self.client.llen(key)
+        if total > keep_recent:
+            trim_count = total - keep_recent
+            self.client.ltrim(key, trim_count, -1)
+            logger.info(
+                f"Trimmed conversation {conversation_id}: "
+                f"removed {trim_count} messages, kept {keep_recent}"
+            )
+
     def clear_conversation(self, conversation_id: str):
         """清空会话"""
         key = f"conversation:{conversation_id}:messages"
         summary_key = f"conversation:{conversation_id}:summary"
+        user_key = f"conversation:{conversation_id}:user_id"
         self.client.delete(key)
         self.client.delete(summary_key)
+        self.client.delete(user_key)
         logger.info(f"Cleared conversation {conversation_id}")
 
     def get_summary(self, conversation_id: str) -> str:

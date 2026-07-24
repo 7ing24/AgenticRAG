@@ -36,7 +36,8 @@ class ReasoningAgent:
         # 如果调用方没传 context，自己加载
         if not context and conversation_id:
             memory_state = SimpleNamespace(
-                conversation_id=conversation_id, user_id=user_id, run_id="reasoning_memory"
+                conversation_id=conversation_id, user_id=user_id,
+                original_input=question, run_id="reasoning_memory"
             )
             context = self.memory_agent.load_memory(memory_state, max_rounds=10).get("text", "")
             logger.info(f"[ReasoningAgent] Self-loaded context, {len(context)} chars")
@@ -116,7 +117,8 @@ class ReasoningAgent:
             # 加载记忆
             if not context and conversation_id:
                 memory_state = SimpleNamespace(
-                    conversation_id=conversation_id, user_id=user_id, run_id="reasoning_memory"
+                    conversation_id=conversation_id, user_id=user_id,
+                original_input=question, run_id="reasoning_memory"
                 )
                 context = self.memory_agent.load_memory(memory_state, max_rounds=10).get("text", "")
 

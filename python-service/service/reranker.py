@@ -151,7 +151,7 @@ class BGEReranker(BaseReranker):
             results.sort(key=lambda x: x.score, reverse=True)
 
             # 返回top_k
-            logger.info(f"Reranked {len(documents)} documents, top {top_k} scores: {[r.score for r in results[:top_k]]}")
+            logger.info(f"Reranked {len(results[:top_k])} documents, scores: {[r.score for r in results[:top_k]]}")
             return results[:top_k]
 
         except Exception as e:

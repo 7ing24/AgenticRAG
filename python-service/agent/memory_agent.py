@@ -1,157 +1,220 @@
-"""Memory Agent - 独立的记忆管理Agent"""
+"""Memory Agent - 三层记忆管理Agent
 
+整合三层记忆的加载和保存：
+  L0: Working Memory     — 当前会话上下文 (Redis)
+  L1: Long-term Memory   — 语义/情景/程序记忆 (Milvus)
+  L2: User Profile       — 用户画像 (MySQL + Redis)
+"""
+
+import logging
 from typing import Dict, Any, Optional, List
-from concurrent.futures import ThreadPoolExecutor
+
 from tools.registry import tool_registry
 from core.llm import LLMService
-import logging
-import json
+from memory.memory_prompts import MEMORY_USAGE_PROMPT
+from core.config import config
 
 logger = logging.getLogger(__name__)
 
 
 class MemoryAgent:
-    """独立的记忆管理 Agent - 主动管理记忆生命周期"""
+    """三层记忆管理 Agent — 协调 L0/L1/L2 的加载与保存"""
 
-    # 压缩配置
+    # L0 工作记忆压缩配置
     COMPRESS_THRESHOLD = 10  # 超过10轮触发压缩
     KEEP_RECENT = 5          # 保留最近5轮完整对话
 
+    # L1 检索默认参数
+    DEFAULT_SEMANTIC_K = 3
+    DEFAULT_EPISODIC_K = 2
+    DEFAULT_PROCEDURAL_K = 2
+
     def __init__(self):
         self.llm_service = LLMService()
-        self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="memory")
+        self._l1_manager = None
+
+    @property
+    def l1_manager(self):
+        """延迟加载 L1 MemoryManager"""
+        if self._l1_manager is None:
+            from memory.memory_manager import get_memory_manager
+            self._l1_manager = get_memory_manager()
+        return self._l1_manager
+
+    # =========================================================================
+    # 记忆加载（三层合并）
+    # =========================================================================
 
     def load_memory(self, state, max_rounds: int = 10) -> dict:
-        """加载记忆上下文（会话记忆 + 用户画像）
+        """加载完整记忆上下文：L1 长期记忆 + L0 工作记忆 + L2 用户画像
 
         Args:
-            state: AgentState，需有 conversation_id / user_id / run_id
-            max_rounds: 最大加载轮数，默认 10
+            state: AgentState
+            max_rounds: L0 最大加载轮数
 
         Returns:
             {"text": str, "token_count": int}
         """
         context_parts = []
 
-        # 1. 加载会话记忆
-        if state.conversation_id and tool_registry.has_tool("conversation_memory_read"):
-            try:
-                history = tool_registry.invoke_tool(
-                    "conversation_memory_read",
-                    {
-                        "conversation_id": state.conversation_id,
-                        "limit": max_rounds
-                    },
-                    run_id=state.run_id
-                )
-                messages = history.get("messages", [])
-                if messages:
-                    formatted = self._format_history(messages)
-                    context_parts.append(formatted)
-                    logger.info(f"[{state.run_id}] MemoryAgent loaded {len(messages)} messages"
-                                f" (compressed: {history.get('compressed', False)}, "
-                                f"max_rounds: {max_rounds})")
-            except Exception as e:
-                logger.warning(f"[{state.run_id}] MemoryAgent failed to load conversation: {e}")
-
-        # 2. 加载用户画像（如果有 user_id）
+        # 1. L2 用户画像（先加载，作为全局上下文注入最前面）
         if state.user_id:
             user_profile = self._load_user_profile(state.user_id)
             if user_profile:
-                context_parts.append(f"[用户画像] {json.dumps(user_profile, ensure_ascii=False)}")
+                context_parts.append(f"[用户画像] {user_profile}")
+
+        # 2. L1 长期记忆检索
+        l1_memories = None
+        if state.user_id and state.original_input:
+            logger.info(
+                f"[{state.run_id}] L1 长期记忆检索开始 — "
+                f"query: {state.original_input[:50]}..."
+            )
+            l1_memories = self._load_long_term_memory(
+                query=state.original_input,
+                user_id=int(state.user_id),
+            )
+
+        # 3. L0 工作记忆
+        l0_context = ""
+        if state.conversation_id and tool_registry.has_tool(
+            "working_memory_read"
+        ):
+            try:
+                history = tool_registry.invoke_tool(
+                    "working_memory_read",
+                    {
+                        "conversation_id": state.conversation_id,
+                        "limit": max_rounds,
+                    },
+                    run_id=state.run_id,
+                )
+                messages = history.get("messages", [])
+                if messages:
+                    l0_context = self._format_history(messages)
+                    context_parts.append(
+                        f"[当前会话]\n{l0_context}"
+                    )
+                logger.info(
+                    f"[{state.run_id}] L0 工作记忆: {len(messages)} 条消息"
+                    f" (compressed: {history.get('compressed', False)})"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"[{state.run_id}] L0 工作记忆加载失败: {e}"
+                )
+
+        # 4. 将 L1 记忆格式化为 LLM 可用的上下文
+        if l1_memories and self._has_memories(l1_memories):
+            import time
+            now = int(time.time())
+            l1_text = MEMORY_USAGE_PROMPT.format(
+                memories_dict=l1_memories,
+                current_timestamp=now,
+            )
+            # 插入到当前会话前面（作为历史上下文）
+            if context_parts:
+                # 找到 [当前会话] 的位置，插入到它前面
+                for i, part in enumerate(context_parts):
+                    if part.startswith("[当前会话]"):
+                        context_parts.insert(i, l1_text)
+                        break
+                else:
+                    context_parts.append(l1_text)
+            else:
+                context_parts.append(l1_text)
+
+            logger.info(
+                f"[{state.run_id}] L1 长期记忆: "
+                f"semantic={len(l1_memories.get('semantic', []))}, "
+                f"episodic={len(l1_memories.get('episodic', []))}, "
+                f"procedural={len(l1_memories.get('procedural', []))}"
+            )
 
         text = "\n\n".join(context_parts) if context_parts else ""
         return {"text": text, "token_count": self._estimate_tokens(text)}
 
+    def _load_long_term_memory(
+        self, query: str, user_id: int
+    ) -> Optional[Dict[str, List[Dict]]]:
+        """从 L1 Milvus 检索长期记忆"""
+        try:
+            return self.l1_manager.hybrid_retrieval_memories(
+                query=query,
+                user_id=user_id,
+                semantic_k=self.DEFAULT_SEMANTIC_K,
+                episodic_k=self.DEFAULT_EPISODIC_K,
+                procedural_k=self.DEFAULT_PROCEDURAL_K,
+            )
+        except Exception as e:
+            logger.warning(f"L1 长期记忆检索失败: {e}")
+            return None
+
+    def _load_user_profile(self, user_id: str) -> Optional[str]:
+        """从 L2 MySQL/Redis 加载用户画像（纯文本）
+
+        返回画像文本字符串，而不是 JSON dict。
+        画像文本可以直接注入到 System Prompt 中。
+        """
+        try:
+            from core.mysql_client import user_memory_client
+            profile_text = user_memory_client.get_user_profile_text(user_id)
+            if profile_text:
+                logger.info(f"L2 用户画像加载成功 (user_id={user_id})")
+                return profile_text
+            return None
+        except Exception as e:
+            logger.warning(f"L2 用户画像加载失败: {e}")
+            return None
+
+    # =========================================================================
+    # 记忆保存
+    # =========================================================================
+
     def save_memory(self, state, question: str, answer: str):
-        """保存记忆（用户问题 + AI回答 + 提取偏好）"""
+        """保存记忆：L0 会话写入（L1/L2 提取由 memory_write 触发）"""
         if not state.conversation_id:
             return
 
-        # 1. 写入用户问题
-        if tool_registry.has_tool("conversation_memory_write"):
+        if tool_registry.has_tool("working_memory_write"):
             try:
                 tool_registry.invoke_tool(
-                    "conversation_memory_write",
+                    "working_memory_write",
                     {
                         "conversation_id": state.conversation_id,
                         "role": "user",
-                        "content": question
+                        "content": question,
+                        "user_id": str(state.user_id) if state.user_id else None,
                     },
-                    run_id=state.run_id
+                    run_id=state.run_id,
                 )
             except Exception as e:
-                logger.warning(f"[{state.run_id}] MemoryAgent failed to write user message: {e}")
+                logger.warning(
+                    f"[{state.run_id}] L0 写入用户消息失败: {e}"
+                )
 
-        # 2. 写入 AI 回答
-        if tool_registry.has_tool("conversation_memory_write"):
             try:
                 tool_registry.invoke_tool(
-                    "conversation_memory_write",
+                    "working_memory_write",
                     {
                         "conversation_id": state.conversation_id,
                         "role": "assistant",
-                        "content": answer
+                        "content": answer,
+                        "user_id": str(state.user_id) if state.user_id else None,
                     },
-                    run_id=state.run_id
+                    run_id=state.run_id,
                 )
             except Exception as e:
-                logger.warning(f"[{state.run_id}] MemoryAgent failed to write assistant message: {e}")
-
-        # 3. 线程池异步提取用户偏好（不阻塞主流程）
-        if state.user_id:
-            self._executor.submit(
-                self._extract_user_preference, state, question, answer
-            )
-
-    def _load_user_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
-        """加载用户画像"""
-        try:
-            from core.mysql_client import user_memory_client
-            return user_memory_client.get_user_memory(user_id)
-        except Exception as e:
-            logger.warning(f"Failed to load user profile: {e}")
-            return None
-
-    def _extract_user_preference(self, state, question: str, answer: str):
-        """在线程池中异步提取用户偏好"""
-        try:
-            from core.mysql_client import user_memory_client
-
-            prompt = f"""分析以下问答，判断用户是否有明显的偏好特征。
-
-用户问题：{question}
-AI回答：{answer}
-
-从以下维度自由描述用户的偏好（不必全部填写，只写能观察到的）：
-- 回答风格（简洁精炼 / 详细展开 / 先结论后推导 / 喜欢代码示例 / ...）
-- 知识深度（入门科普 / 进阶原理 / 实战操作 / ...）
-- 关注领域（哪些技术主题反复出现）
-- 其他任何值得记录的偏好
-
-如果有明显偏好，返回 JSON：
-{{"preferences": {{"回答风格": "...", "知识深度": "...", "关注领域": [...]}}}}
-如果没有明显偏好，返回：null
-只返回 JSON 或 null，不要解释。"""
-
-            result = self.llm_service.generate(prompt)
-            if result and result.strip() != "null":
-                cleaned = result.strip()
-                if cleaned.startswith("```"):
-                    cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
-                    cleaned = cleaned.rsplit("```", 1)[0]
-
-                preference = json.loads(cleaned.strip())
-                user_memory_client.update_user_memory(
-                    state.user_id, "preferences", preference,
-                    source="agent", confidence=0.8
+                logger.warning(
+                    f"[{state.run_id}] L0 写入 AI 消息失败: {e}"
                 )
-                logger.info(f"[{state.run_id}] Extracted user preference: {preference}")
-        except Exception as e:
-            logger.warning(f"[{state.run_id}] Extract user preference failed: {e}")
+
+    # =========================================================================
+    # 工具方法
+    # =========================================================================
 
     def _format_history(self, messages: list) -> str:
-        """格式化对话历史"""
+        """格式化 L0 对话历史"""
         if not messages:
             return ""
 
@@ -171,18 +234,23 @@ AI回答：{answer}
         return "\n".join(formatted)
 
     @staticmethod
+    def _has_memories(memories: Dict[str, List]) -> bool:
+        """检查是否有非空记忆"""
+        return any(
+            memories.get(k)
+            for k in ["semantic", "episodic", "procedural"]
+        )
+
+    @staticmethod
     def _estimate_tokens(text: str) -> int:
         """估算文本 token 数（中英文混合的简单估算）
 
         中文约 1.5 字符/token，英文约 4 字符/token。
         对混合文本取折中值 ~2.5 字符/token。
-        后续可替换为 qwen tokenizer 精确计数。
         """
         if not text:
             return 0
-        # 粗略区分中英文字符比例
         chinese_chars = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
         other_chars = len(text) - chinese_chars
-        # 中文 ~1.5 chars/token, 英文/其他 ~4 chars/token
         tokens = chinese_chars / 1.5 + other_chars / 4.0
-        return int(tokens) + 1  # +1 向上取整
+        return int(tokens) + 1

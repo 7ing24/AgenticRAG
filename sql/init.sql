@@ -670,6 +670,49 @@ CREATE TABLE `request_trace` (
     INDEX `idx_session_id` (`session_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='全链路请求追踪表（一个trace占一行，事件列表存trace_json）';
 
+
+-- ============================================================================
+-- AgentCraft 三层记忆系统 - 新增表
+-- ============================================================================
+
+-- L0 原始对话持久化表（用于断点续传和提取进度标记）
+CREATE TABLE IF NOT EXISTS `raw_conversations` (
+                                                   `id` varchar(50) NOT NULL COMMENT '消息ID（UUID）',
+                                                   `user_id` int NOT NULL COMMENT '用户ID',
+                                                   `conversation_id` varchar(100) NOT NULL COMMENT '会话ID',
+                                                   `summary_id` varchar(50) DEFAULT NULL COMMENT '提取批次ID（NULL=未提取）',
+                                                   `role` varchar(10) NOT NULL COMMENT '角色: user / assistant',
+                                                   `content` text NOT NULL COMMENT '消息内容',
+                                                   `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                                   PRIMARY KEY (`id`),
+                                                   INDEX `idx_user_conv` (`user_id`, `conversation_id`),
+                                                   INDEX `idx_summary_id` (`summary_id`),
+                                                   INDEX `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='L0原始对话持久化';
+
+
+-- ============================================================================
+-- AgentCraft 父子块混合检索 — knowledge_chunk 表改造
+-- 执行前请备份或直接 DROP 旧表
+-- ============================================================================
+
+DROP TABLE IF EXISTS `knowledge_chunk`;
+
+CREATE TABLE `knowledge_chunk` (
+                                   `id` bigint NOT NULL AUTO_INCREMENT,
+                                   `doc_id` int NOT NULL COMMENT '文档ID',
+                                   `parent_id` varchar(100) NOT NULL COMMENT '父块唯一标识，子块通过此字段关联父块',
+                                   `chunk_text` text NOT NULL COMMENT '父块全文（供LLM回答用）',
+                                   `chunk_index` int DEFAULT 0,
+                                   `page_number` int DEFAULT 1,
+                                   `source` varchar(512) DEFAULT '',
+                                   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+                                   PRIMARY KEY (`id`),
+                                   INDEX `idx_doc_id` (`doc_id`),
+                                   UNIQUE KEY `uk_parent` (`doc_id`, `parent_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识库父块表';
+
+
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

@@ -1,5 +1,6 @@
 import os
 import json
+import uuid
 import mysql.connector
 from mysql.connector import Error, pooling
 from typing import List, Dict, Any
@@ -46,38 +47,49 @@ class MySQLClient:
             self.connection.close()
             logger.info("MySQL connection closed")
     
-    def insert_chunks(self, doc_id: int, chunks: List[Dict[str, Any]]):
-        """批量插入 chunks 到 knowledge_chunk 表"""
+    def insert_chunks(self, doc_id: int, chunks: List[Dict[str, Any]],
+                      parent_mode: bool = False):
+        """批量插入父块到 knowledge_chunk 表（父子块模式）
+
+        父子块模式下，chunks 是父块，含 parent_id 和 chunk_text。
+        """
         if not chunks:
             return 0
-        
+
         if not self.connection or not self.connection.is_connected():
             self.connect()
-        
+
         try:
             cursor = self.connection.cursor()
-            
-            # 先删除该文档已有的 chunks（避免重复）
+
             delete_sql = "DELETE FROM knowledge_chunk WHERE doc_id = %s"
             cursor.execute(delete_sql, (doc_id,))
-            
-            # 批量插入新 chunks
-            insert_sql = """
-                INSERT INTO knowledge_chunk (doc_id, chunk_index, chunk_text, page_number, create_time)
-                VALUES (%s, %s, %s, %s, NOW())
-            """
-            
-            data = [
-                (doc_id, chunk.get('chunk_index', i), chunk.get('page_content', ''),
-                 chunk.get('page_number', 1),)
-                for i, chunk in enumerate(chunks)
-            ]
-            
+
+            if parent_mode:
+                insert_sql = """
+                    INSERT INTO knowledge_chunk (doc_id, parent_id, chunk_text, chunk_index, page_number, source, create_time)
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                """
+                data = [
+                    (doc_id, chunk.get('parent_id', ''), chunk.get('chunk_text', chunk.get('page_content', '')),
+                     chunk.get('chunk_index', i), chunk.get('page_number', 1), chunk.get('source', ''))
+                    for i, chunk in enumerate(chunks)
+                ]
+            else:
+                insert_sql = """
+                    INSERT INTO knowledge_chunk (doc_id, chunk_index, chunk_text, page_number, create_time)
+                    VALUES (%s, %s, %s, %s, NOW())
+                """
+                data = [
+                    (doc_id, chunk.get('chunk_index', i), chunk.get('page_content', ''),
+                     chunk.get('page_number', 1),)
+                    for i, chunk in enumerate(chunks)
+                ]
+
             cursor.executemany(insert_sql, data)
             self.connection.commit()
-            
             inserted_count = cursor.rowcount
-            logger.info(f"Inserted {inserted_count} chunks for doc_id {doc_id}")
+            logger.info(f"Inserted {inserted_count} parent chunks for doc_id {doc_id}")
             
             cursor.close()
             return inserted_count
@@ -88,6 +100,27 @@ class MySQLClient:
                 self.connection.rollback()
             return 0
     
+    def get_parent_chunks_by_ids(self, parent_ids: List[str]) -> List[Dict[str, Any]]:
+        """按 parent_id 批量查父块文本"""
+        if not parent_ids:
+            return []
+        if not self.connection or not self.connection.is_connected():
+            self.connect()
+        try:
+            cursor = self.connection.cursor(dictionary=True)
+            placeholders = ",".join(["%s"] * len(parent_ids))
+            cursor.execute(
+                f"SELECT parent_id, chunk_text, doc_id, chunk_index, page_number, source "
+                f"FROM knowledge_chunk WHERE parent_id IN ({placeholders})",
+                parent_ids,
+            )
+            rows = cursor.fetchall()
+            cursor.close()
+            return [dict(row) for row in rows]
+        except Exception as e:
+            logger.error(f"Error fetching parent chunks: {e}")
+            return []
+
     def get_chunk_count(self, doc_id: int = None) -> int:
         """获取 chunk 数量"""
         if not self.connection or not self.connection.is_connected():
@@ -204,9 +237,127 @@ class UserMemoryClient:
             )
         return cls._pool
 
+    _tables_initialized = False
+
+    @classmethod
+    def _ensure_tables(cls):
+        """自动创建记忆系统所需的表（幂等）"""
+        if cls._tables_initialized:
+            return
+        conn = cls.get_pool().get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS `raw_conversations` (
+                    `id` varchar(50) NOT NULL,
+                    `user_id` int NOT NULL,
+                    `conversation_id` varchar(100) NOT NULL,
+                    `summary_id` varchar(50) DEFAULT NULL,
+                    `role` varchar(10) NOT NULL,
+                    `content` text NOT NULL,
+                    `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (`id`),
+                    INDEX `idx_user_conv` (`user_id`, `conversation_id`),
+                    INDEX `idx_summary_id` (`summary_id`),
+                    INDEX `idx_created_at` (`created_at`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """)
+            conn.commit()
+            cursor.close()
+            cls._tables_initialized = True
+        except Exception as e:
+            logger.error(f"创建记忆系统表失败: {e}")
+        finally:
+            conn.close()
+
     def _get_connection(self):
         """从连接池获取连接"""
+        self._ensure_tables()
         return self.get_pool().get_connection()
+
+    # =========================================================================
+    # L0 原始对话持久化
+    # =========================================================================
+
+    def add_conversation_message(self, user_id: int, conversation_id: str,
+                                  role: str, content: str) -> str:
+        """写入 L0 消息到 MySQL"""
+        msg_id = str(uuid.uuid4())
+        conn = self._get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO raw_conversations (id, user_id, conversation_id, role, content)
+                   VALUES (%s, %s, %s, %s, %s)""",
+                (msg_id, user_id, conversation_id, role, content),
+            )
+            conn.commit()
+            cursor.close()
+            return msg_id
+        finally:
+            conn.close()
+
+    def get_unsummarized_messages(self, user_id: int, conversation_id: str
+                                   ) -> List[Dict[str, Any]]:
+        """获取某个会话中未提取的消息（summary_id IS NULL）"""
+        conn = self._get_connection()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(
+                """SELECT id, role, content, created_at
+                   FROM raw_conversations
+                   WHERE user_id = %s AND conversation_id = %s AND summary_id IS NULL
+                   ORDER BY created_at ASC""",
+                (user_id, conversation_id),
+            )
+            rows = cursor.fetchall()
+            cursor.close()
+            return [dict(row) for row in rows]
+        finally:
+            conn.close()
+
+    def get_unsummarized_conversations(self) -> List[Dict[str, Any]]:
+        """获取所有有未提取消息的会话（user_id, conversation_id 去重）"""
+        conn = self._get_connection()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(
+                """SELECT DISTINCT user_id, conversation_id
+                   FROM raw_conversations
+                   WHERE summary_id IS NULL"""
+            )
+            rows = cursor.fetchall()
+            cursor.close()
+            return [{"user_id": row["user_id"], "conversation_id": row["conversation_id"]}
+                    for row in rows]
+        finally:
+            conn.close()
+
+    def update_summary_id(self, message_ids: List[str], summary_id: str) -> bool:
+        """标记消息为已提取"""
+        if not message_ids:
+            return False
+        conn = self._get_connection()
+        try:
+            cursor = conn.cursor()
+            placeholders = ",".join(["%s"] * len(message_ids))
+            cursor.execute(
+                f"UPDATE raw_conversations SET summary_id = %s WHERE id IN ({placeholders})",
+                [summary_id] + message_ids,
+            )
+            conn.commit()
+            cursor.close()
+            logger.info(f"标记 {len(message_ids)} 条消息 summary_id={summary_id}")
+            return True
+        except Exception as e:
+            logger.error(f"更新 summary_id 失败: {e}")
+            return False
+        finally:
+            conn.close()
+
+    # =========================================================================
+    # L2 用户画像
+    # =========================================================================
 
     def get_user_memory(self, user_id: str) -> Dict[str, Any]:
         """获取用户所有记忆"""
@@ -326,6 +477,80 @@ class UserMemoryClient:
             except:
                 result[row["user_id"]][row["memory_key"]] = row["memory_value"]
         return result
+
+
+    # =========================================================================
+    # L2 用户画像专用方法
+    # =========================================================================
+
+    def get_user_profile_text(self, user_id: str) -> str:
+        """获取用户的自然语言画像（纯文本）
+
+        优先读取 memory_key='profile' 中的 text 字段。
+        如果不存在，尝试从旧的 'preferences' key 构造简单的画像文本。
+
+        Args:
+            user_id: 用户 ID
+
+        Returns:
+            用户画像文本，如果没有画像则返回空字符串
+        """
+        try:
+            all_memory = self.get_user_memory(user_id)
+            profile_data = all_memory.get("profile", {})
+            if isinstance(profile_data, dict):
+                text = profile_data.get("text", "")
+                if text:
+                    return text
+            elif isinstance(profile_data, str):
+                return profile_data
+
+            # Fallback: 从旧的 preferences 构造简单画像
+            preferences = all_memory.get("preferences", {})
+            if isinstance(preferences, dict) and preferences.get("preferences"):
+                prefs = preferences["preferences"]
+                parts = []
+                for key, val in prefs.items():
+                    if isinstance(val, list):
+                        parts.append(f"{key}: {', '.join(val)}")
+                    else:
+                        parts.append(f"{key}: {val}")
+                if parts:
+                    return "用户偏好 — " + "; ".join(parts)
+
+            return ""
+        except Exception as e:
+            logger.warning(f"获取用户画像文本失败 (user_id={user_id}): {e}")
+            return ""
+
+    def set_user_profile_text(self, user_id: str, profile_text: str) -> bool:
+        """设置用户的自然语言画像
+
+        将纯文本画像存储到 memory_key='profile' 的 text 字段中。
+
+        Args:
+            user_id: 用户 ID
+            profile_text: 用户画像文本
+
+        Returns:
+            更新成功返回 True
+        """
+        if not profile_text or not profile_text.strip():
+            return False
+
+        try:
+            self.update_user_memory(
+                user_id,
+                "profile",
+                {"text": profile_text.strip()},
+                source="memory_extraction",
+                confidence=0.85,
+            )
+            logger.info(f"用户画像已更新 (user_id={user_id})")
+            return True
+        except Exception as e:
+            logger.error(f"设置用户画像失败 (user_id={user_id}): {e}")
+            return False
 
 
 # 创建全局实例

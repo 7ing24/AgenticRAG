@@ -46,6 +46,40 @@ class ConfigManager:
         # Milvus 度量类型: L2 / IP / COSINE（默认 L2）
         self.MILVUS_METRIC_TYPE = os.getenv("MILVUS_METRIC_TYPE", "L2").upper()
 
+        # ============================================================
+        # Memory System Configuration (三层记忆系统)
+        # ============================================================
+        # L1 长期记忆集合名称
+        self.MEMORY_COLLECTION = os.getenv("MEMORY_COLLECTION", "long_term_memory")
+        # L1 记忆 Embedding 维度（text-embedding-v1=1536, text-embedding-v4=1024）
+        self.MEMORY_EMBEDDING_DIM = int(os.getenv("MEMORY_EMBEDDING_DIM", "1536"))
+        # L0→L1 提取触发 Token 阈值
+        self.MEMORY_EXTRACTION_TOKEN_THRESHOLD = int(os.getenv(
+            "MEMORY_EXTRACTION_TOKEN_THRESHOLD", "2000"
+        ))
+        # 定时提取间隔（秒），默认 5 分钟
+        self.MEMORY_EXTRACTION_INTERVAL_SEC = int(os.getenv(
+            "MEMORY_EXTRACTION_INTERVAL_SEC", "300"
+        ))
+        # 冲突去重余弦相似度阈值
+        self.MEMORY_CONFLICT_THRESHOLD = float(os.getenv(
+            "MEMORY_CONFLICT_THRESHOLD", "0.9"
+        ))
+        # 时间衰减因子（每小时）
+        self.MEMORY_DECAY_RATE = float(os.getenv("MEMORY_DECAY_RATE", "0.995"))
+        # 三维评分权重
+        self.MEMORY_ALPHA = float(os.getenv("MEMORY_ALPHA", "0.45"))  # 语义相似度
+        self.MEMORY_BETA = float(os.getenv("MEMORY_BETA", "0.25"))    # 时间衰减
+        self.MEMORY_GAMMA = float(os.getenv("MEMORY_GAMMA", "0.30"))  # 重要性
+        # L1 检索时各记忆类型的最大召回数
+        self.MEMORY_MAX_SEMANTIC_K = int(os.getenv("MEMORY_MAX_SEMANTIC_K", "3"))
+        self.MEMORY_MAX_EPISODIC_K = int(os.getenv("MEMORY_MAX_EPISODIC_K", "2"))
+        self.MEMORY_MAX_PROCEDURAL_K = int(os.getenv("MEMORY_MAX_PROCEDURAL_K", "2"))
+        # 记忆提取用的 LLM 模型（成本较低的小模型即可）
+        self.MEMORY_EXTRACTION_MODEL = os.getenv(
+            "MEMORY_EXTRACTION_MODEL", "qwen-turbo"
+        )
+
         # Rerank Configuration
         self.RERANKER_TYPE = os.getenv("RERANKER_TYPE", "simple")
         self.COHERE_API_KEY = os.getenv("COHERE_API_KEY", "")
@@ -55,6 +89,11 @@ class ConfigManager:
         self.CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "500"))
         self.CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
         self.MIN_CHUNK_SIZE = int(os.getenv("MIN_CHUNK_SIZE", "100"))
+
+        # Parent-Child Chunk Retrieval Configuration (父块语义切分，子块机械细切)
+        self.CHILD_CHUNK_SIZE = int(os.getenv("CHILD_CHUNK_SIZE", "300"))
+        self.CHILD_CHUNK_OVERLAP = int(os.getenv("CHILD_CHUNK_OVERLAP", "50"))
+        self.PARENT_CHILD_MAX_PARENTS = int(os.getenv("PARENT_CHILD_MAX_PARENTS", "10"))
 
         # Semantic Chunking Tuning (only used when CHUNK_STRATEGY=semantic)
         self.SEMANTIC_BREAKPOINT_TYPE = os.getenv("SEMANTIC_BREAKPOINT_TYPE", "percentile")

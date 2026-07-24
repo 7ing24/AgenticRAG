@@ -97,7 +97,8 @@ class KnowledgeQAAgent:
         try:
             # 1. 统一通过 MemoryAgent 加载记忆（对话历史 + 用户画像）
             memory_state = SimpleNamespace(
-                conversation_id=conversation_id, user_id=user_id, run_id="memory_load"
+                conversation_id=conversation_id, user_id=user_id,
+                original_input=question, run_id="memory_load"
             )
             memory_result = self.memory_agent.load_memory(memory_state)
             conversation_history = memory_result.get("text", "")
@@ -183,8 +184,7 @@ class KnowledgeQAAgent:
             ret_result = collector.stop_timer(f"retrieval_r{round_num}") if collector else (0, "")
             ret_latency, ret_start = ret_result if isinstance(ret_result, tuple) else (ret_result, "")
             logger.info(f"[KnowledgeQAAgent] Fast round {round_num + 1}: "
-                        f"retrieved {len(docs)} docs"
-                        + (f", avg_score={sum(scores)/len(scores):.2f}" if scores else ""))
+                        f"retrieved {len(docs)} docs")
 
             if collector:
                 collector.record_event(
@@ -192,13 +192,11 @@ class KnowledgeQAAgent:
                     phase="RETRIEVAL",
                     input_data={"query": current_query[:200], "round": round_num + 1},
                     output_data={
-                        "doc_count": len(docs),
-                        "chunk_count": len(docs),
-                        "avg_score": round(sum(scores) / len(scores), 3) if scores else 0,
                         "chunks": [
                             {
                                 "doc_id": self._extract_metadata(doc).get("doc_id"),
-                                "chunk_index": self._extract_metadata(doc).get("chunk_index"),
+                                "parent_id": self._extract_metadata(doc).get("parent_id",
+                                    self._extract_metadata(doc).get("chunk_index", "-")),
                                 "page": self._extract_metadata(doc).get("page"),
                                 "score": round(score, 3),
                             }
@@ -219,13 +217,12 @@ class KnowledgeQAAgent:
                 "step_name": f"knowledge_search_r{round_num + 1}",
                 "step_type": "knowledge_search",
                 "status": "completed",
-                "doc_count": len(docs),
-                "chunk_count": len(docs),
                 "is_sufficient": sufficient,
                 "chunks": [
                     {
                         "doc_id": self._extract_metadata(doc).get("doc_id"),
-                        "chunk_index": self._extract_metadata(doc).get("chunk_index"),
+                        "parent_id": self._extract_metadata(doc).get("parent_id",
+                            self._extract_metadata(doc).get("chunk_index", "-")),
                         "page": self._extract_metadata(doc).get("page"),
                         "score": round(score, 3),
                     }
@@ -245,7 +242,7 @@ class KnowledgeQAAgent:
 
             if round_num < self.max_retrieval_rounds - 1:
                 current_query = self._rewrite_query_for_retry(
-                    current_query, conversation_history, round_num
+                    current_query, conversation_history, round_num + 1
                 )
                 logger.info(f"[KnowledgeQAAgent] Fast retry with: {current_query[:50]}...")
         else:
@@ -388,7 +385,7 @@ class KnowledgeQAAgent:
             )
             scores = [doc.metadata.get('score', 0.5) if hasattr(doc, 'metadata') else 0.5 for doc in docs] if docs else []
             logger.info(f"[KnowledgeQAAgent] L1 round {round_num + 1}: "
-                        f"retrieved {len(docs)} docs, avg_score={sum(scores)/len(scores):.2f}" if scores else "N/A")
+                        f"retrieved {len(docs)} docs")
 
             if docs and self.planner.evaluate_retrieval_sufficiency(
                 docs, question, scores, score_threshold=0.5
@@ -404,7 +401,7 @@ class KnowledgeQAAgent:
 
             if round_num < self.max_retrieval_rounds - 1:
                 current_query = self._rewrite_query_for_retry(
-                    current_query, conversation_history, round_num
+                    current_query, conversation_history, round_num + 1
                 )
                 logger.info(f"[KnowledgeQAAgent] L1 retry with: {current_query[:50]}...")
         else:
@@ -455,8 +452,7 @@ class KnowledgeQAAgent:
             docs = retrieval_result.reranked_documents
             scores = retrieval_result.scores
             logger.info(f"[KnowledgeQAAgent] L2 round {round_num + 1}: "
-                        f"retrieved {len(docs)} docs"
-                        + (f", avg_score={sum(scores)/len(scores):.2f}" if scores else ""))
+                        f"retrieved {len(docs)} docs")
 
             if docs and self.planner.evaluate_retrieval_sufficiency(
                 docs, question, scores, score_threshold=0.3
@@ -474,7 +470,7 @@ class KnowledgeQAAgent:
 
             if round_num < self.max_retrieval_rounds - 1:
                 current_query = self._rewrite_query_for_retry(
-                    current_query, conversation_history, round_num
+                    current_query, conversation_history, round_num + 1
                 )
                 logger.info(f"[KnowledgeQAAgent] L2 retry with: {current_query[:50]}...")
         else:
@@ -530,18 +526,17 @@ class KnowledgeQAAgent:
         return None
 
     def _rewrite_query_for_retry(self, query: str, context: str, retry_round: int) -> str:
-        """改写查询用于重试检索，每轮尝试不同改写角度"""
+        """统一走 QuestionRewriteTool，通过 retry_round 切换策略"""
         try:
             result = self.question_rewrite_tool.execute({
                 "question": query,
-                "conversation_context": context
+                "conversation_context": context,
+                "retry_round": retry_round,
             })
-            rewritten = result.get("rewritten_question", query)
-            if rewritten != query:
-                return rewritten
+            return result.get("rewritten_question", query)
         except Exception as e:
             logger.warning(f"[KnowledgeQAAgent] Query rewrite failed: {e}")
-        return query
+            return query
 
     def _docs_to_llm_format(self, docs: list) -> list:
         """将检索结果转为 LLM 可用的文档格式"""

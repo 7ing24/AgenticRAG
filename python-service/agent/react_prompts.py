@@ -110,7 +110,7 @@ Final Answer: <answer>"""
                 docs = result.get("reranked_documents", result.get("documents", []))
                 return ReActPrompts._format_doc_list(docs, "Reranked", max_chars)
 
-            elif tool_name in ("conversation_memory_read", "memory_read"):
+            elif tool_name in ("working_memory_read", "memory_read"):
                 messages = result.get("messages", [])
                 if messages:
                     lines = ["Conversation history:"]
@@ -121,7 +121,7 @@ Final Answer: <answer>"""
                     return "\n".join(lines)[:max_chars]
                 return "No conversation history found."
 
-            elif tool_name == "conversation_memory_write":
+            elif tool_name == "working_memory_write":
                 return f"Memory saved successfully: {result.get('status', 'ok')}"
 
             elif tool_name == "doc_summary":

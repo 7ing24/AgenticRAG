@@ -116,6 +116,13 @@ services:
       VECTOR_STORE_COLLECTION_NAME: ai_knowledge_collection
       # Rerank
       RERANKER_TYPE: simple
+      # 长期记忆系统（Milvus，需取消下方 milvus 服务注释）
+      MILVUS_URI: ${MILVUS_URI:-http://milvus:19530}
+      MILVUS_TOKEN: ${MILVUS_TOKEN:-}
+      MEMORY_COLLECTION: ${MEMORY_COLLECTION:-long_term_memory}
+      MEMORY_EMBEDDING_DIM: ${MEMORY_EMBEDDING_DIM:-1536}
+      MEMORY_EXTRACTION_TOKEN_THRESHOLD: ${MEMORY_EXTRACTION_TOKEN_THRESHOLD:-2000}
+      MEMORY_EXTRACTION_INTERVAL_SEC: ${MEMORY_EXTRACTION_INTERVAL_SEC:-300}
       # 文本切分
       CHUNK_STRATEGY: semantic
       CHUNK_SIZE: "500"
@@ -171,12 +178,14 @@ services:
       - ai-knowledge-net
 
   # ============================================
-  # Milvus（可选，默认不启动）
+  # Milvus 向量数据库（可选，取消注释以启用）
+  # 记忆系统 L1 长期记忆需要 Milvus（BM25 混合检索）
+  # v2.5+ 内置 BM25 Function，Standalone 模式无需 etcd/MinIO
   # ============================================
-  # 取消注释以启用 Milvus
   # milvus:
-  #   image: milvusdb/milvus:v2.3-latest
+  #   image: milvusdb/milvus:v2.5-latest
   #   container_name: ai-knowledge-milvus
+  #   restart: unless-stopped
   #   ports:
   #     - "19530:19530"
   #     - "9091:9091"
@@ -185,6 +194,11 @@ services:
   #     COMMON_STORAGETYPE: local
   #   volumes:
   #     - milvus_data:/var/lib/milvus
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
   #   networks:
   #     - ai-knowledge-net
 

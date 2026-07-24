@@ -56,6 +56,10 @@ class Executor:
                 return self._execute_memory_write(state, step)
             elif step.step_type == StepType.MEMORY_COMPRESS:
                 return self._execute_memory_compress(state, step)
+            elif step.step_type == StepType.LONG_TERM_MEMORY_READ:
+                return self._execute_long_term_memory_read(state, step)
+            elif step.step_type == StepType.MEMORY_EXTRACTION:
+                return self._execute_memory_extraction(state, step)
             elif step.step_type == StepType.TOOL_CALL:
                 return self._execute_tool_call(state, step)
             else:
@@ -292,11 +296,11 @@ class Executor:
         )
 
         # 2. 写入会话记忆
-        if state.conversation_id and tool_registry.has_tool("conversation_memory_write"):
+        if state.conversation_id and tool_registry.has_tool("working_memory_write"):
             try:
                 # 写入用户问题
                 tool_registry.invoke_tool(
-                    "conversation_memory_write",
+                    "working_memory_write",
                     {
                         "conversation_id": state.conversation_id,
                         "role": "user",
@@ -306,7 +310,7 @@ class Executor:
                 )
                 # 写入AI回答
                 tool_registry.invoke_tool(
-                    "conversation_memory_write",
+                    "working_memory_write",
                     {
                         "conversation_id": state.conversation_id,
                         "role": "assistant",
@@ -380,7 +384,7 @@ class Executor:
 
     def _execute_memory_compress(self, state: AgentState, step: AgentStep) -> Dict[str, Any]:
         """执行记忆压缩"""
-        # 压缩逻辑已在 conversation_memory_read 工具中实现
+        # 压缩逻辑已在 working_memory_read 工具中实现
         # 此步骤主要用于标记和日志记录
         logger.info(f"[{state.run_id}] Memory compress step executed")
 
@@ -388,6 +392,117 @@ class Executor:
             "success": True,
             "message": "记忆压缩检查完成"
         })
+
+        return step.output_data
+
+    def _execute_long_term_memory_read(self, state: AgentState, step: AgentStep) -> Dict[str, Any]:
+        """执行 L1 长期记忆检索"""
+        query = state.original_input or ""
+        user_id = int(state.user_id) if state.user_id else 0
+
+        if user_id == 0:
+            step.complete({"memories": {}, "total_count": 0})
+            return step.output_data
+
+        try:
+            memories = self.memory_agent.l1_manager.hybrid_retrieval_memories(
+                query=query,
+                user_id=user_id,
+                semantic_k=3,
+                episodic_k=2,
+                procedural_k=2,
+            )
+        except Exception as e:
+            logger.warning(f"[{state.run_id}] L1 记忆检索失败: {e}")
+            memories = {"semantic": [], "episodic": [], "procedural": []}
+
+        total = (
+            len(memories.get("semantic", []))
+            + len(memories.get("episodic", []))
+            + len(memories.get("procedural", []))
+        )
+
+        # 将 L1 记忆存入 state context，供后续 answer_generation 使用
+        if total > 0:
+            l1_context = self._format_l1_memories(memories)
+            if state.context:
+                state.context = f"{l1_context}\n\n{state.context}"
+            else:
+                state.context = l1_context
+
+        state.add_intermediate_conclusion(
+            step_id=step.step_id,
+            conclusion_type="long_term_memory",
+            content={
+                "total": total,
+                "semantic": len(memories.get("semantic", [])),
+                "episodic": len(memories.get("episodic", [])),
+                "procedural": len(memories.get("procedural", [])),
+            },
+            confidence=0.8,
+        )
+
+        step.complete({
+            "memories": memories,
+            "total_count": total,
+        })
+
+        logger.info(
+            f"[{state.run_id}] L1 长期记忆检索完成，共 {total} 条"
+        )
+        return step.output_data
+
+    def _format_l1_memories(self, memories: Dict[str, List[Dict]]) -> str:
+        """格式化 L1 记忆为上下文字符串"""
+        import time
+        from memory.memory_prompts import MEMORY_USAGE_PROMPT
+
+        now = int(time.time())
+        return MEMORY_USAGE_PROMPT.format(
+            memories_dict=memories,
+            current_timestamp=now,
+        )
+
+    def _execute_memory_extraction(self, state: AgentState, step: AgentStep) -> Dict[str, Any]:
+        """执行 L0→L1 记忆提取（手动触发）"""
+        if not state.conversation_id or not state.user_id:
+            step.complete({
+                "success": False,
+                "reason": "缺少 conversation_id 或 user_id",
+            })
+            return step.output_data
+
+        try:
+            from core.redis_client import redis_client
+            messages = redis_client.get_all_messages(state.conversation_id)
+            formatted_messages = [
+                {
+                    "id": str(i),
+                    "role": m.get("role", ""),
+                    "content": m.get("content", ""),
+                    "created_at": str(m.get("timestamp", "")),
+                }
+                for i, m in enumerate(messages)
+            ]
+
+            from memory.memory_scheduler import get_memory_scheduler
+            scheduler = get_memory_scheduler()
+            result = scheduler.extract_and_store(
+                messages=formatted_messages,
+                user_id=int(state.user_id),
+                conversation_id=state.conversation_id,
+            )
+
+            step.complete(result)
+            logger.info(
+                f"[{state.run_id}] 手动记忆提取完成: {result.get('success')}"
+            )
+        except Exception as e:
+            logger.error(f"[{state.run_id}] 手动记忆提取失败: {e}")
+            step.complete({
+                "success": False,
+                "reason": str(e),
+            })
 
         return step.output_data
 

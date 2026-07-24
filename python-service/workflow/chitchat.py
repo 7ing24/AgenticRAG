@@ -73,7 +73,8 @@ class ChitChatAgent:
             conversation_history = ""
             if conversation_id:
                 memory_state = SimpleNamespace(
-                    conversation_id=conversation_id, user_id=user_id, run_id="chitchat_memory"
+                    conversation_id=conversation_id, user_id=user_id,
+                original_input=question, run_id="chitchat_memory"
                 )
                 context_result = self.memory_agent.load_memory(memory_state, max_rounds=5)
                 if context_result.get("text"):
@@ -151,7 +152,8 @@ class ChitChatAgent:
             conversation_history = ""
             if conversation_id:
                 memory_state = SimpleNamespace(
-                    conversation_id=conversation_id, user_id=user_id, run_id="chitchat_stream_memory"
+                    conversation_id=conversation_id, user_id=user_id,
+                original_input=question, run_id="chitchat_stream_memory"
                 )
                 context_result = self.memory_agent.load_memory(memory_state, max_rounds=5)
                 conversation_history = context_result.get("text", "")

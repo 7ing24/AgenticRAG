@@ -36,6 +36,8 @@ class StepType(Enum):
     MEMORY_READ = "memory_read"
     MEMORY_WRITE = "memory_write"
     MEMORY_COMPRESS = "memory_compress"
+    LONG_TERM_MEMORY_READ = "long_term_memory_read"
+    MEMORY_EXTRACTION = "memory_extraction"
     TOOL_CALL = "tool_call"
 
 

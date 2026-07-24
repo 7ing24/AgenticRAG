@@ -12,7 +12,21 @@ from api.routes import router
 from api.agent_routes import router as agent_router
 import tools
 
-app = FastAPI(title="AI Knowledge System - Python Service")
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 启动时：拉起记忆提取定时扫描
+    from memory.memory_scheduler import get_memory_scheduler
+    scheduler = get_memory_scheduler()
+    scheduler.start_background()
+    yield  # 服务运行中
+    # 关闭时：停止定时扫描
+    scheduler.stop()
+
+
+app = FastAPI(title="AI Knowledge System - Python Service", lifespan=lifespan)
 
 # 配置 CORS
 app.add_middleware(

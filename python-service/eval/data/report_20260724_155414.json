@@ -1,0 +1,129 @@
+{
+  "ir_metrics": {
+    "recall@1": 1.0,
+    "ndcg@1": 1.0,
+    "recall@3": 1.0,
+    "ndcg@3": 1.0,
+    "recall@5": 1.0,
+    "ndcg@5": 1.0,
+    "recall@10": 1.0,
+    "ndcg@10": 1.0,
+    "mrr": 1.0
+  },
+  "ir_skipped": 0,
+  "ragas_metrics": {},
+  "ragas_error": "",
+  "total_queries": 5,
+  "ir_per_query": [
+    {
+      "question": "MySQL InnoDB引擎的默认事务隔离级别是什么？",
+      "retrieved_chunk_ids": [
+        "doc_85_parent_156",
+        "doc_85_parent_158",
+        "doc_85_parent_155",
+        "doc_85_parent_189",
+        "doc_85_parent_188",
+        "doc_85_parent_167",
+        "doc_85_parent_183"
+      ],
+      "recall@1": 1.0,
+      "ndcg@1": 1.0,
+      "recall@3": 1.0,
+      "ndcg@3": 1.0,
+      "recall@5": 1.0,
+      "ndcg@5": 1.0,
+      "recall@10": 1.0,
+      "ndcg@10": 1.0,
+      "mrr": 1.0
+    },
+    {
+      "question": "Unigram分词方法如何决定文本的最优子词分割？",
+      "retrieved_chunk_ids": [
+        "doc_84_parent_109",
+        "doc_84_parent_108",
+        "doc_84_parent_9",
+        "doc_84_parent_7",
+        "doc_84_parent_107",
+        "doc_84_parent_185"
+      ],
+      "recall@1": 1.0,
+      "ndcg@1": 1.0,
+      "recall@3": 1.0,
+      "ndcg@3": 1.0,
+      "recall@5": 1.0,
+      "ndcg@5": 1.0,
+      "recall@10": 1.0,
+      "ndcg@10": 1.0,
+      "mrr": 1.0
+    },
+    {
+      "question": "T5模型提出的‘大一统思想’具体指什么？它是如何简化NLP任务处理的？",
+      "retrieved_chunk_ids": [
+        "doc_84_parent_58",
+        "doc_84_parent_52",
+        "doc_84_parent_57",
+        "doc_84_parent_39",
+        "doc_84_parent_20",
+        "doc_84_parent_72"
+      ],
+      "recall@1": 1.0,
+      "ndcg@1": 1.0,
+      "recall@3": 1.0,
+      "ndcg@3": 1.0,
+      "recall@5": 1.0,
+      "ndcg@5": 1.0,
+      "recall@10": 1.0,
+      "ndcg@10": 1.0,
+      "mrr": 1.0
+    },
+    {
+      "question": "Redis 4.0 引入的 RDB-AOF 混合持久化在 AOF 文件重写时，如何结合 RDB 格式来优化持久化效率？",
+      "retrieved_chunk_ids": [
+        "doc_85_parent_206",
+        "doc_85_parent_208",
+        "doc_85_parent_205",
+        "doc_85_parent_204",
+        "doc_85_parent_207",
+        "doc_85_parent_416",
+        "doc_85_parent_574",
+        "doc_85_parent_242"
+      ],
+      "recall@1": 1.0,
+      "ndcg@1": 1.0,
+      "recall@3": 1.0,
+      "ndcg@3": 1.0,
+      "recall@5": 1.0,
+      "ndcg@5": 1.0,
+      "recall@10": 1.0,
+      "ndcg@10": 1.0,
+      "mrr": 1.0
+    },
+    {
+      "question": "该代码中定义的特殊token映射里，用于表示序列结束（EOS）的token是什么？",
+      "retrieved_chunk_ids": [
+        "doc_84_parent_119",
+        "doc_84_parent_118",
+        "doc_84_parent_112",
+        "doc_84_parent_113",
+        "doc_84_parent_110",
+        "doc_84_parent_117",
+        "doc_84_parent_162"
+      ],
+      "recall@1": 1.0,
+      "ndcg@1": 1.0,
+      "recall@3": 1.0,
+      "ndcg@3": 1.0,
+      "recall@5": 1.0,
+      "ndcg@5": 1.0,
+      "recall@10": 1.0,
+      "ndcg@10": 1.0,
+      "mrr": 1.0
+    }
+  ],
+  "ragas_per_query": [],
+  "mode": "full",
+  "elapsed_seconds": 61.2,
+  "config": {
+    "n_synthetic": 5
+  }
+}

@@ -3,8 +3,9 @@ from tools.base import Tool, ToolSchema, SchemaProperty, ToolMetadata
 from tools.question_rewrite import QuestionRewriteTool
 from tools.knowledge_search import KnowledgeSearchTool
 from tools.rerank import RerankTool
-from tools.memory_read import ConversationMemoryReadTool as MemoryReadTool
-from tools.memory_write import ConversationMemoryWriteTool as MemoryWriteTool
+from tools.memory_read import WorkingMemoryReadTool
+from tools.memory_read import LongTermMemoryReadTool
+from tools.memory_write import WorkingMemoryWriteTool
 from tools.doc_summary import DocSummaryTool
 from tools.ocr_extract import OCRExtractTool as OCRTool
 from tools.execution import tool_execution_tracker
@@ -16,8 +17,9 @@ def register_all_tools():
         QuestionRewriteTool(),
         KnowledgeSearchTool(),
         RerankTool(),
-        MemoryReadTool(),
-        MemoryWriteTool(),
+        WorkingMemoryReadTool(),
+        LongTermMemoryReadTool(),
+        WorkingMemoryWriteTool(),
         DocSummaryTool(),
         OCRTool(),
     ]
@@ -43,8 +45,9 @@ __all__ = [
     "QuestionRewriteTool",
     "KnowledgeSearchTool",
     "RerankTool",
-    "MemoryReadTool",
-    "MemoryWriteTool",
+    "WorkingMemoryReadTool",
+    "LongTermMemoryReadTool",
+    "WorkingMemoryWriteTool",
     "DocSummaryTool",
     "OCRTool",
     "register_all_tools",
