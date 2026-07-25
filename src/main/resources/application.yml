@@ -1,5 +1,9 @@
 server:
   port: ${SERVER_PORT:8080}
+  tomcat:
+    socket:
+      tcp-no-delay: true
+    # Reduce internal buffering for streaming responses
 
 spring:
   application:

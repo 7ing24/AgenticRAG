@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './AdminChat.css';
@@ -37,6 +38,61 @@ const adminChatAPI = {
     adminApi.get(`/conversations?adminId=${adminId}`),
   sendMessage: (adminId, conversationId, content) =>
     adminApi.post(`/messages?adminId=${adminId}&conversationId=${conversationId}`, { content }),
+  sendMessageStream: async (adminId, conversationId, content, onMessage, onError, onComplete, signal) => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(
+        `/api/admin-chat/stream/messages?adminId=${adminId}&conversationId=${conversationId}`,
+        {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({ content }),
+          signal: signal,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          if (onComplete) onComplete();
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data:')) {
+            const jsonStr = line.substring(5).trim();
+            if (jsonStr) {
+              try {
+                const event = JSON.parse(jsonStr);
+                onMessage(event);
+              } catch (error) {
+                console.error('Failed to parse SSE message:', error, jsonStr);
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      if (onError) onError(error);
+    }
+  },
   getMessages: (conversationId) =>
     adminApi.get(`/messages?conversationId=${conversationId}`),
   deleteConversation: (id) => adminApi.delete(`/conversations/${id}`),
@@ -61,7 +117,6 @@ export default function AdminChat() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConversationId, setDeleteConversationId] = useState(null);
   const [abortController, setAbortController] = useState(null);
-  const [abortedRequests, setAbortedRequests] = useState(new Set());
   const messagesEndRef = useRef(null);
   const menuRef = useRef(null);
 
@@ -313,10 +368,9 @@ export default function AdminChat() {
       isStreaming: true,
       processingStep: null,
       taskType: null,
+      sources: null,
       createTime: new Date().toISOString()
     };
-
-    const requestId = Date.now() + Math.random();
 
     setMessages(prev => [...prev, userMessage, thinkingMessage]);
     setInputMessage('');
@@ -328,62 +382,99 @@ export default function AdminChat() {
     setAbortController(controller);
 
     try {
-      const response = await adminChatAPI.sendMessage(adminId, currentConversation.id, inputMessage);
+      let accumulatedContent = '';
+      let finalTaskType = null;
+      let finalSources = null;
 
-      if (abortedRequests.has(requestId)) {
-        console.log('Request was aborted, skipping response processing');
-        return;
-      }
-
-      setProcessingStep('generating');
-
-      const aiMessage = {
-        id: response.data.data.id || thinkingMessageId,
-        conversationId: currentConversation.id,
-        role: 'assistant',
-        content: response.data.data.content,
-        sources: response.data.data.sources,
-        feedbackType: response.data.data.feedbackType || null,
-        taskType: response.data.data.taskType || null,
-        createTime: response.data.data.createTime || new Date().toISOString()
-      };
-
-      setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? aiMessage : msg));
-      setLoading(false);
-      setProcessingStep(null);
-      setAbortController(null);
-
-      loadConversations();
+      adminChatAPI.sendMessageStream(
+        adminId,
+        currentConversation.id,
+        inputMessage,
+        // onMessage
+        (event) => {
+          switch (event.type) {
+            case 'routed':
+              setProcessingStep('generating');
+              break;
+            case 'start':
+              setProcessingStep('generating');
+              break;
+            case 'token':
+              accumulatedContent += event.content;
+              flushSync(() => {
+                setMessages(prev => prev.map(msg =>
+                  msg.id === thinkingMessageId
+                    ? { ...msg, content: accumulatedContent }
+                    : msg
+                ));
+              });
+              break;
+            case 'end':
+              finalTaskType = event.task_type || null;
+              if (event.content) {
+                accumulatedContent = event.content;
+              }
+              break;
+            case 'sources':
+              try {
+                finalSources = typeof event.content === 'string'
+                  ? event.content
+                  : JSON.stringify(event.content);
+              } catch (e) {
+                finalSources = event.content;
+              }
+              break;
+            case 'error':
+              console.error('Admin stream error:', event.content);
+              break;
+            default:
+              break;
+          }
+        },
+        // onError
+        (error) => {
+          console.error('发送消息失败:', error);
+          setMessages(prev => prev.map(msg =>
+            msg.id === thinkingMessageId
+              ? { ...msg, content: msg.content || '抱歉，我暂时无法回答这个问题，请稍后再试。', isStreaming: false }
+              : msg
+          ));
+          setLoading(false);
+          setProcessingStep(null);
+          setAbortController(null);
+        },
+        // onComplete
+        () => {
+          setMessages(prev => prev.map(msg =>
+            msg.id === thinkingMessageId
+              ? {
+                  ...msg,
+                  content: accumulatedContent,
+                  taskType: finalTaskType,
+                  sources: finalSources,
+                  isStreaming: false
+                }
+              : msg
+          ));
+          setLoading(false);
+          setProcessingStep(null);
+          setAbortController(null);
+          loadConversations();
+        },
+        controller.signal
+      );
 
     } catch (err) {
-      // 检查是否是取消请求
-      const isAborted = err.name === 'AbortError' || 
-                        err.message?.includes('cancel') || 
-                        err.message?.includes('abort') ||
-                        err.code === 'ERR_CANCELED';
-      
-      if (isAborted) {
-        console.log('Request was aborted by user');
-        const abortedMessage = {
-          id: thinkingMessageId,
-          conversationId: currentConversation.id,
-          role: 'assistant',
-          content: '已停止回答',
-          createTime: new Date().toISOString()
-        };
-        setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? abortedMessage : msg));
-        setAbortedRequests(prev => new Set(prev).add(requestId));
-      } else {
-        console.error('发送消息失败:', err);
-        const errorMessage = {
-          id: thinkingMessageId,
-          conversationId: currentConversation.id,
-          role: 'assistant',
-          content: '抱歉，我暂时无法回答这个问题，请稍后再试。',
-          createTime: new Date().toISOString()
-        };
-        setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? errorMessage : msg));
-      }
+      console.error('发送消息失败:', err);
+      const errorMessage = {
+        id: thinkingMessageId,
+        conversationId: currentConversation.id,
+        role: 'assistant',
+        content: '抱歉，我暂时无法回答这个问题，请稍后再试。',
+        isStreaming: false,
+        createTime: new Date().toISOString()
+      };
+      setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? errorMessage : msg));
       setLoading(false);
       setProcessingStep(null);
       setAbortController(null);
@@ -435,22 +526,6 @@ export default function AdminChat() {
   const handleStopGeneration = () => {
     if (abortController) {
       abortController.abort();
-      setMessages(prev => {
-        const lastAssistantMessageIndex = prev.findLastIndex(
-          msg => msg.role === 'assistant' && (msg.isStreaming || msg.processingStep)
-        );
-        if (lastAssistantMessageIndex !== -1) {
-          const updatedMessages = [...prev];
-          updatedMessages[lastAssistantMessageIndex] = {
-            ...updatedMessages[lastAssistantMessageIndex],
-            content: '已停止回答',
-            isStreaming: false,
-            processingStep: null
-          };
-          return updatedMessages;
-        }
-        return prev;
-      });
       setLoading(false);
       setProcessingStep(null);
       setAbortController(null);

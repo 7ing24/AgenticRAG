@@ -115,7 +115,7 @@ export const chatAPI = {
   getConversations: (userId) =>
     api.get(`/chat/conversations?userId=${userId}`),
   sendMessage: (data, config) => api.post('/chat/messages', data, config),
-  sendMessageStream: async (data, onMessage, onError, onComplete) => {
+  sendMessageStream: async (data, onMessage, onError, onComplete, signal) => {
     try {
       // 获取JWT token
       const token = getCookie('accessToken');
@@ -133,6 +133,7 @@ export const chatAPI = {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(data),
+        signal: signal,
       });
 
       console.log('Streaming response status:', response.status, response.statusText);
@@ -162,8 +163,8 @@ export const chatAPI = {
         buffer = lines.pop() || '';
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const jsonStr = line.substring(6).trim();
+          if (line.startsWith('data:')) {
+            const jsonStr = line.substring(5).trim();
             if (jsonStr) {
               try {
                 const response = JSON.parse(jsonStr);

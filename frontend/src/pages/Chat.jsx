@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { chatAPI, knowledgeAPI } from '../api';
 import './Chat.css';
@@ -27,7 +28,6 @@ export default function Chat() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConversationId, setDeleteConversationId] = useState(null);
   const [abortController, setAbortController] = useState(null);
-  const [abortedRequests, setAbortedRequests] = useState(new Set());
   const [uploadedImage, setUploadedImage] = useState(null);
   const [uploadedImageId, setUploadedImageId] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -289,10 +289,9 @@ export default function Chat() {
       isStreaming: true,
       processingStep: null,
       taskType: null,
+      sources: null,
       createTime: new Date().toISOString()
     };
-
-    const requestId = Date.now() + Math.random();
 
     setMessages(prev => [...prev, userMessage, thinkingMessage]);
     setInputMessage('');
@@ -311,68 +310,101 @@ export default function Chat() {
         aiRequestContent = `请根据图片内容回答问题。图片ID: ${uploadedImageId}\n图片名称: ${uploadedImage.name}\n图片URL: ${uploadedImage.url}\n问题: ${inputMessage}`;
       }
 
-      const response = await chatAPI.sendMessage({
-        userId,
-        conversationId: currentConversation.id,
-        content: aiRequestContent
-      }, {
-        signal: controller.signal
-      });
+      let accumulatedContent = '';
+      let finalTaskType = null;
+      let finalSources = null;
 
-      if (abortedRequests.has(requestId)) {
-        console.log('Request was aborted, skipping response processing');
-        return;
-      }
-
-      setProcessingStep('generating');
-
-      const aiMessage = {
-        id: response.data.id || thinkingMessageId,
-        conversationId: currentConversation.id,
-        role: 'assistant',
-        content: response.data.content,
-        sources: response.data.sources,
-        feedbackType: response.data.feedbackType || null,
-        taskType: response.data.taskType || null,
-        createTime: response.data.createTime || new Date().toISOString()
-      };
-
-      setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? aiMessage : msg));
-      setLoading(false);
-      setProcessingStep(null);
-      setAbortController(null);
-
-      loadConversations();
+      chatAPI.sendMessageStream(
+        {
+          userId,
+          conversationId: currentConversation.id,
+          content: aiRequestContent
+        },
+        // onMessage - handle each SSE event
+        (event) => {
+          switch (event.type) {
+            case 'routed':
+              setProcessingStep('generating');
+              break;
+            case 'start':
+              setProcessingStep('generating');
+              break;
+            case 'token':
+              accumulatedContent += event.content;
+              flushSync(() => {
+                setMessages(prev => prev.map(msg =>
+                  msg.id === thinkingMessageId
+                    ? { ...msg, content: accumulatedContent }
+                    : msg
+                ));
+              });
+              break;
+            case 'end':
+              finalTaskType = event.task_type || null;
+              if (event.content) {
+                accumulatedContent = event.content;
+              }
+              break;
+            case 'sources':
+              try {
+                finalSources = typeof event.content === 'string'
+                  ? event.content
+                  : JSON.stringify(event.content);
+              } catch (e) {
+                finalSources = event.content;
+              }
+              break;
+            case 'error':
+              console.error('Stream error:', event.content);
+              break;
+            default:
+              break;
+          }
+        },
+        // onError
+        (error) => {
+          console.error('发送消息失败:', error);
+          setMessages(prev => prev.map(msg =>
+            msg.id === thinkingMessageId
+              ? { ...msg, content: msg.content || '抱歉，我暂时无法回答这个问题，请稍后再试。', isStreaming: false }
+              : msg
+          ));
+          setLoading(false);
+          setProcessingStep(null);
+          setAbortController(null);
+        },
+        // onComplete
+        () => {
+          setMessages(prev => prev.map(msg =>
+            msg.id === thinkingMessageId
+              ? {
+                  ...msg,
+                  content: accumulatedContent,
+                  taskType: finalTaskType,
+                  sources: finalSources,
+                  isStreaming: false
+                }
+              : msg
+          ));
+          setLoading(false);
+          setProcessingStep(null);
+          setAbortController(null);
+          loadConversations();
+        },
+        controller.signal
+      );
 
     } catch (err) {
-      // 检查是否是取消请求
-      const isAborted = err.name === 'AbortError' || 
-                        err.message?.includes('cancel') || 
-                        err.message?.includes('abort') ||
-                        err.code === 'ERR_CANCELED';
-      
-      if (isAborted) {
-        console.log('Request was aborted by user');
-        const abortedMessage = {
-          id: thinkingMessageId,
-          conversationId: currentConversation.id,
-          role: 'assistant',
-          content: '已停止回答',
-          createTime: new Date().toISOString()
-        };
-        setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? abortedMessage : msg));
-        setAbortedRequests(prev => new Set(prev).add(requestId));
-      } else {
-        console.error('发送消息失败:', err);
-        const errorMessage = {
-          id: thinkingMessageId,
-          conversationId: currentConversation.id,
-          role: 'assistant',
-          content: '抱歉，我暂时无法回答这个问题，请稍后再试。',
-          createTime: new Date().toISOString()
-        };
-        setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? errorMessage : msg));
-      }
+      console.error('发送消息失败:', err);
+      const errorMessage = {
+        id: thinkingMessageId,
+        conversationId: currentConversation.id,
+        role: 'assistant',
+        content: '抱歉，我暂时无法回答这个问题，请稍后再试。',
+        isStreaming: false,
+        createTime: new Date().toISOString()
+      };
+      setMessages(prev => prev.map(msg => msg.id === thinkingMessageId ? errorMessage : msg));
       setLoading(false);
       setProcessingStep(null);
       setAbortController(null);
@@ -382,22 +414,6 @@ export default function Chat() {
   const handleStopGeneration = () => {
     if (abortController) {
       abortController.abort();
-      setMessages(prev => {
-        const lastAssistantMessageIndex = prev.findLastIndex(
-          msg => msg.role === 'assistant' && (msg.isStreaming || msg.processingStep)
-        );
-        if (lastAssistantMessageIndex !== -1) {
-          const updatedMessages = [...prev];
-          updatedMessages[lastAssistantMessageIndex] = {
-            ...updatedMessages[lastAssistantMessageIndex],
-            content: '已停止回答',
-            isStreaming: false,
-            processingStep: null
-          };
-          return updatedMessages;
-        }
-        return prev;
-      });
       setLoading(false);
       setProcessingStep(null);
       setAbortController(null);
@@ -572,35 +588,42 @@ export default function Chat() {
                         {msg.role === 'user' ? '👤' : '🤖'}
                       </div>
                       <div className="message-body">
-                        {msg.role === 'assistant' && msg.isStreaming && processingStep ? (
-                          <div className="processing-indicator">
-                            <div className="processing-icon">{getProcessingMessage()?.icon}</div>
-                            <div className="processing-text">{getProcessingMessage()?.text}</div>
-                            <div className="processing-dots">
-                              <span className="dot"></span>
-                              <span className="dot"></span>
-                              <span className="dot"></span>
+                        {/* ✅ 修复后的逻辑：如果是加载中且还没有文字内容，显示 Loading 动画；一旦有内容，就输出内容 */}
+                        {msg.role === 'assistant' && msg.isStreaming && processingStep && !msg.content ? (
+                            <div className="processing-indicator">
+                              <div className="processing-icon">{getProcessingMessage()?.icon}</div>
+                              <div className="processing-text">{getProcessingMessage()?.text}</div>
+                              <div className="processing-dots">
+                                <span className="dot"></span>
+                                <span className="dot"></span>
+                                <span className="dot"></span>
+                              </div>
                             </div>
-                          </div>
                         ) : (
-                          <>
-                            {msg.role === 'assistant' && msg.taskType && (
-                              <div className="message-task-type">
-                                {getTaskTypeBadge(msg.taskType)}
+                            <>
+                              {msg.role === 'assistant' && msg.taskType && (
+                                  <div className="message-task-type">
+                                    {getTaskTypeBadge(msg.taskType)}
+                                  </div>
+                              )}
+
+                              {/* 实时渲染逐字输出的内容，并在流式传输未结束时附带一个打字光标（可选） */}
+                              <div className="message-text">
+                                {msg.content}
+                                {msg.isStreaming && <span className="streaming-cursor"></span>}
                               </div>
-                            )}
-                            {msg.content}
-                            {msg.imageUrl && (
-                              <div className="message-image">
-                                <img
-                                  src={msg.imageUrl}
-                                  alt="用户上传的图片"
-                                  onClick={() => handleImageClick(msg.imageUrl)}
-                                />
-                              </div>
-                            )}
-                            {msg.role === 'assistant' && msg.sources && renderSources(msg.sources)}
-                          </>
+
+                              {msg.imageUrl && (
+                                  <div className="message-image">
+                                    <img
+                                        src={msg.imageUrl}
+                                        alt="用户上传的图片"
+                                        onClick={() => handleImageClick(msg.imageUrl)}
+                                    />
+                                  </div>
+                              )}
+                              {msg.role === 'assistant' && msg.sources && renderSources(msg.sources)}
+                            </>
                         )}
                       </div>
                       {msg.role === 'assistant' && !msg.isStreaming && !msg.processingStep && (

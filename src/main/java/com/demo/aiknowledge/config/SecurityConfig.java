@@ -1,6 +1,7 @@
 package com.demo.aiknowledge.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,7 +23,7 @@ import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@EnableMethodSecurity1
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -37,6 +38,8 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             // 配置请求授权
             .authorizeHttpRequests(auth -> auth
+                // 允许异步转发（SSE/Streaming 需要）
+                .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                 // 允许OPTIONS预检请求
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 // 允许所有/api/auth下的请求
@@ -49,6 +52,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/knowledge/view-file/**").permitAll()
                 // 管理员接口需要ADMIN角色
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                // 管理端对话接口
+                .requestMatchers("/api/admin-chat/**").hasAnyRole("USER", "ADMIN")
                 // 用户接口需要USER或ADMIN角色
                 .requestMatchers("/api/chat/**").hasAnyRole("USER", "ADMIN")
                 .requestMatchers("/api/knowledge/**").hasAnyRole("USER", "ADMIN")
