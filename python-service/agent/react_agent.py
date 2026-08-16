@@ -1,10 +1,12 @@
 """ReAct Agent — 真正的 ReAct 循环: Observe → Think → Act → Observe → ... → Final Answer"""
 
 import uuid
+import time
 import logging
 import json
 from typing import Dict, Any, Optional, List, Generator
 from datetime import datetime
+
 
 from engine.state import AgentState, AgentStatus, AgentStep, StepType, TerminationCondition
 from engine.events import (
@@ -145,11 +147,16 @@ class ReActAgent:
         **kwargs,
     ) -> Generator[str, None, None]:
         """流式执行 ReAct 循环，yield JSON 事件"""
+        collector = kwargs.get("trace_collector")
         state = self._create_state(question, conversation_id, user_id,
                                    trace_id=kwargs.get("trace_id", ""),
                                    parent_run_id=kwargs.get("parent_run_id", ""))
 
+        react_start = time.time() if collector else 0
+
         try:
+            if collector:
+                collector.start_timer("react")
             yield json.dumps({"type": "start", "task_type": "react"})
 
             initial_prompt = self.prompts.build_initial_messages(
@@ -164,30 +171,114 @@ class ReActAgent:
                 trace_id=state.trace_id
             ))
 
+            # ── ORCHESTRATOR_PLAN（对齐非流式 MultiAgentOrchestrator）──
+            if collector:
+                collector.record_event(
+                    event_type="ORCHESTRATOR_PLAN",
+                    phase="REACT",
+                    input_data={"question": question},
+                    output_data={"decomposable": True, "sub_task_count": 1,
+                                 "reasoning": f"ReActAgent 流式循环，最大迭代 {self.max_iterations} 次",
+                                 "sub_questions": [question[:150]]},
+                    agent_name="ReActAgent",
+                )
+                collector.record_event(
+                    event_type="ORCHESTRATOR_WORKERS_START",
+                    phase="REACT",
+                    input_data={"sub_task_count": 1},
+                    output_data={"status": "dispatching"},
+                    agent_name="ReActAgent",
+                )
+
             # ReAct loop with streaming
             last_tool_calls = set()
+            tool_call_count = 0
             for iteration in range(self.max_iterations):
                 if TerminationCondition.should_terminate(state):
+                    logger.info(f"[{state.run_id}] Termination condition met at iteration {iteration}")
                     break
+
+                if collector:
+                    collector.start_timer(f"react_iter_{iteration}")
 
                 step = state.add_step(StepType.TOOL_CALL, f"react_iteration_{iteration}")
                 step.start()
                 yield json.dumps({"type": "step_started", "step_name": step.step_name})
 
-                llm_response = self._call_llm(messages)
+                # 流式 LLM + 状态机：检测到 Final Answer: 前静默缓冲，之后才 yield
+                llm_response = ""
+                streaming = False
+                last_yielded_pos = 0
+                for chunk in self._call_llm_stream(messages):
+                    llm_response += chunk
+                    if not streaming:
+                        keyword_idx = llm_response.lower().find("final answer:")
+                        if keyword_idx >= 0:
+                            streaming = True
+                            last_yielded_pos = keyword_idx + len("final answer:")
+                            while last_yielded_pos < len(llm_response) and llm_response[last_yielded_pos] in (' ', '\n', '\r'):
+                                last_yielded_pos += 1
+                    if streaming and len(llm_response) > last_yielded_pos:
+                        new_text = llm_response[last_yielded_pos:]
+                        yield json.dumps({"type": "token", "content": new_text})
+                        last_yielded_pos = len(llm_response)
                 parsed = self.parser.parse(llm_response)
+
+                iter_latency, iter_start = collector.stop_timer(f"react_iter_{iteration}") if collector else (0, "")
 
                 if parsed.thought:
                     yield json.dumps({"type": "thought", "content": parsed.thought})
 
                 if parsed.is_final_answer:
                     final_answer = parsed.final_answer
-                    step.complete({"thought": parsed.thought, "final_answer": final_answer})
+                    step.complete({"thought": parsed.thought,
+                                   "final_answer": final_answer})
                     logger.info(f"[{state.run_id}] Iteration {iteration + 1}: "
                                 f"Thought → Final Answer ({len(final_answer)} chars)")
+                    # 记录 REACT_ITERATION + ANSWER_GENERATED（对齐非流式）
+                    if collector:
+                        token_usage = self.llm_service.get_last_token_usage()
+                        collector.record_event(
+                            event_type="REACT_ITERATION",
+                            phase="REACT",
+                            input_data={"question": question, "iteration": iteration + 1,
+                                        "thought": parsed.thought if parsed.thought else ""},
+                            output_data={"final_answer": final_answer},
+                            agent_name="ReActAgent",
+                            model_name="qwen-plus",
+                            latency_ms=iter_latency,
+                            event_time=iter_start,
+                            input_tokens=token_usage.get("input_tokens") if token_usage else None,
+                            output_tokens=token_usage.get("output_tokens") if token_usage else None,
+                            total_tokens=token_usage.get("total_tokens") if token_usage else None,
+                        )
+                        collector.record_event(
+                            event_type="ANSWER_GENERATED",
+                            phase="GENERATION",
+                            input_data={"question": question, "iterations": iteration + 1},
+                            output_data={"answer": final_answer},
+                            agent_name="ReActAgent",
+                            model_name="qwen-plus",
+                            latency_ms=iter_latency,
+                            event_time=iter_start,
+                            input_tokens=token_usage.get("input_tokens") if token_usage else None,
+                            output_tokens=token_usage.get("output_tokens") if token_usage else None,
+                            total_tokens=token_usage.get("total_tokens") if token_usage else None,
+                        )
+                        collector.record_event(
+                            event_type="ORCHESTRATOR_SYNTHESIS",
+                            phase="GENERATION",
+                            input_data={"question": question},
+                            output_data={"answer": final_answer},
+                            agent_name="ReActAgent",
+                            model_name="qwen-plus",
+                            latency_ms=iter_latency,
+                            event_time=iter_start,
+                        )
                     break
 
                 if parsed.action and parsed.tool_name:
+                    tool_call_count += 1
                     logger.info(f"[{state.run_id}] Iteration {iteration + 1}: "
                                 f"Thought → Action({parsed.tool_name})")
                     # Loop detection
@@ -216,6 +307,25 @@ class ReActAgent:
                     observation = self.prompts.format_observation(parsed.tool_name, tool_result)
                     yield json.dumps({"type": "observation", "content": observation[:300]})
 
+                    # 记录 REACT_ITERATION trace 事件（对齐非流式字段）
+                    if collector:
+                        token_usage = self.llm_service.get_last_token_usage()
+                        collector.record_event(
+                            event_type="REACT_ITERATION",
+                            phase="REACT",
+                            input_data={"question": question, "iteration": iteration + 1,
+                                        "thought": parsed.thought if parsed.thought else ""},
+                            output_data={"action": parsed.tool_name,
+                                         "observation": observation},
+                            agent_name="ReActAgent",
+                            model_name="qwen-plus",
+                            latency_ms=iter_latency,
+                            event_time=iter_start,
+                            input_tokens=token_usage.get("input_tokens") if token_usage else None,
+                            output_tokens=token_usage.get("output_tokens") if token_usage else None,
+                            total_tokens=token_usage.get("total_tokens") if token_usage else None,
+                        )
+
                     messages.append({"role": "assistant", "content": llm_response})
                     messages.append({"role": "user", "content": f"Observation: {observation}"})
                 else:
@@ -225,23 +335,45 @@ class ReActAgent:
                     )})
                     step.complete({"thought": parsed.thought, "parse_error": parsed.parse_error})
             else:
+                # 达到最大迭代次数，强制生成最终答案
+                logger.info(f"[{state.run_id}] Max iterations reached, forcing final answer")
                 final_answer = self._force_final_answer(messages, question, state.run_id)
+                for char in final_answer:
+                    yield json.dumps({"type": "token", "content": char})
 
-            # Build and return response
+            # ── ORCHESTRATOR_WORKERS_END（对齐非流式）──
+            if collector:
+                collector.record_event(
+                    event_type="ORCHESTRATOR_WORKERS_END",
+                    phase="REACT",
+                    input_data={"sub_task_count": 1},
+                    output_data={"completed": tool_call_count},
+                    agent_name="ReActAgent",
+                )
+
+            # Build and return response（仅在非正常 break 退出时执行）
             sources = self._extract_sources_from_state(state)
             steps = self._extract_steps_from_state(state)
             response = self._build_response(state, final_answer, sources, steps)
 
-            yield json.dumps({"type": "sources", "sources": sources})
+            yield json.dumps({"type": "sources", "content": sources})
 
-            # Stream tokens of final answer
-            for char in final_answer:
-                yield json.dumps({"type": "token", "content": char})
+            # Record REACT_EXECUTED trace event
+            if collector:
+                react_latency, react_start_time = collector.stop_timer("react")
+                collector.record_event(
+                    event_type="REACT_EXECUTED",
+                    phase="REACT",
+                    input_data={"question": question, "iterations": len(steps)},
+                    output_data={"answer": final_answer},
+                    agent_name="ReActAgent",
+                    model_name="qwen-plus",
+                    latency_ms=react_latency,
+                    event_time=react_start_time,
+                )
 
-            yield json.dumps({"type": "end", "content": {
-                "answer": final_answer, "sources": sources,
-                "task_type": "knowledge_qa", "steps": steps
-            }})
+            yield json.dumps({"type": "end", "content": final_answer,
+                               "task_type": "knowledge_qa"})
 
             state.complete(response)
             self.event_bus.publish(RunCompletedEvent(run_id=state.run_id, output=response,
@@ -316,9 +448,9 @@ class ReActAgent:
                     trace_collector.record_event(
                         event_type="REACT_ITERATION",
                         phase="REACT",
-                        input_data={"question": question[:150], "iteration": iteration + 1,
-                                    "thought": parsed.thought[:200] if parsed.thought else ""},
-                        output_data={"final_answer": final_answer[:300]},
+                        input_data={"question": question, "iteration": iteration + 1,
+                                    "thought": parsed.thought if parsed.thought else ""},
+                        output_data={"final_answer": final_answer},
                         agent_name=agent_label,
                         model_name="qwen-plus",
                         latency_ms=it_latency,
@@ -387,7 +519,7 @@ class ReActAgent:
                             score = tool_scores[i] if i < len(tool_scores) else doc.get("score", 0) if isinstance(doc, dict) else getattr(doc, "score", 0)
                             trace_chunks.append({
                                 "doc_id": meta.get("doc_id"),
-                                "chunk_index": meta.get("chunk_index"),
+                                "chunk_index": meta.get("chunk_index") or meta.get("parent_chunk_index", "-"),
                                 "page": meta.get("page"),
                                 "score": round(score, 3) if isinstance(score, (int, float)) else score,
                             })
@@ -397,8 +529,8 @@ class ReActAgent:
                     trace_collector.record_event(
                         event_type="REACT_ITERATION",
                         phase="REACT",
-                        input_data={"question": question[:150], "iteration": iteration + 1,
-                                    "thought": parsed.thought[:200] if parsed.thought else ""},
+                        input_data={"question": question, "iteration": iteration + 1,
+                                    "thought": parsed.thought if parsed.thought else ""},
                         output_data=output_data,
                         agent_name=agent_label,
                         model_name="qwen-plus",
@@ -442,7 +574,6 @@ class ReActAgent:
 
     def _call_llm(self, messages: List[Dict[str, str]]) -> str:
         """调用 LLM，将消息列表转换为单次生成请求"""
-        # 构建完整的对话文本
         conversation_text = ""
         for msg in messages:
             role = msg["role"]
@@ -464,6 +595,40 @@ class ReActAgent:
             logger.error(f"LLM call failed: {e}")
             from core.llm_fallback import fallback_handler
             return f"Final Answer: {fallback_handler.registry.get('generation')}"
+
+    def _call_llm_stream(self, messages: List[Dict[str, str]]) -> Generator[str, None, str]:
+        """流式调用 LLM，逐 token yield，返回完整文本"""
+        conversation_text = ""
+        for msg in messages:
+            role = msg["role"]
+            content = msg["content"]
+            if role in ("user", "assistant"):
+                conversation_text += f"\n\n{content}"
+
+        full_text = ""
+        prompt = conversation_text.strip()
+        if self.llm_service.llm:
+            try:
+                input_tokens = self.llm_service.llm.get_num_tokens(prompt)
+                for chunk in self.llm_service.llm.stream(prompt):
+                    full_text += chunk
+                    yield chunk
+                output_tokens = self.llm_service.llm.get_num_tokens(full_text)
+                from core.llm import _TokenUsage
+                self.llm_service._last_token_callback = _TokenUsage(input_tokens, output_tokens)
+            except Exception as e:
+                logger.error(f"Stream LLM call failed: {e}")
+                from core.llm_fallback import fallback_handler
+                full_text = f"Final Answer: {fallback_handler.registry.get('generation')}"
+                for char in full_text:
+                    yield char
+        else:
+            from core.llm_fallback import fallback_handler
+            full_text = f"Final Answer: {fallback_handler.registry.get('generation')}"
+            for char in full_text:
+                yield char
+
+        return full_text
 
     # ── Tool Execution ──────────────────────────────────────────
 

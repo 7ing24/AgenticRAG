@@ -12,4 +12,10 @@ public interface AdminChatService {
     void deleteConversation(Long conversationId);
     AdminConversation updateConversation(Long conversationId, String title, Boolean isPinned);
     AdminMessage submitFeedback(Long messageId, String feedbackType);
+
+    /**
+     * 流式回答完成后，持久化 AI 消息等
+     */
+    AdminMessage completeStreamingMessage(Long adminId, Long conversationId, String question,
+                                          String answer, String taskType, String sourcesJson, String traceId);
 }

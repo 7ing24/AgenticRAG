@@ -45,4 +45,17 @@ public interface AiService {
      * @return AI回答对象（含 traces 字段）
      */
     java.util.Map<String, Object> askForAdmin(String question, Long adminId, Long conversationId, String traceId);
+
+    /**
+     * 语义缓存查找：查找与问题语义相似的已缓存问题
+     * @param question 用户问题
+     * @return 匹配的缓存 key，未找到返回 null
+     */
+    String semanticCacheLookup(String question);
+
+    /**
+     * 向语义缓存索引中添加问题（异步，不阻塞）
+     * @param question 已缓存的问题文本
+     */
+    void addToSemanticCache(String question);
 }

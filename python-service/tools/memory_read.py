@@ -4,13 +4,22 @@ from core.config import config
 from core.redis_client import redis_client
 from core.llm import LLMService
 
-# 压缩阈值配置
-COMPRESS_THRESHOLD = 10  # 超过10轮触发压缩
-KEEP_RECENT = 5          # 保留最近5轮完整对话
+# 压缩阈值：当前上下文 token 数 > 此值触发压缩
+COMPRESS_TOKEN_THRESHOLD = 3000
+KEEP_RECENT_MSG = 10  # 保留最近 N 条消息不压缩
+
+
+def _estimate_tokens(text: str) -> int:
+    """估算文本 token 数（中英文混合）"""
+    if not text:
+        return 0
+    chinese = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
+    other = len(text) - chinese
+    return int(chinese / 1.5 + other / 4.0) + 1
 
 
 class WorkingMemoryReadTool(Tool):
-    """对话记忆读取工具（L0 工作记忆，含上下文压缩）"""
+    """对话记忆读取工具（L0 工作记忆，含 Token 驱动的上下文压缩）"""
 
     def __init__(self):
         input_schema = ToolSchema(
@@ -51,7 +60,12 @@ class WorkingMemoryReadTool(Tool):
                     type="boolean",
                     description="是否已压缩",
                     required=False
-                )
+                ),
+                "token_count": SchemaProperty(
+                    type="number",
+                    description="当前上下文 token 数",
+                    required=False
+                ),
             },
             type="object"
         )
@@ -60,12 +74,12 @@ class WorkingMemoryReadTool(Tool):
             timeout_ms=10000,
             max_retries=1,
             permission="user",
-            description="读取L0工作记忆（当前会话对话历史）"
+            description="读取L0工作记忆（Token驱动压缩）"
         )
 
         super().__init__(
             name="working_memory_read",
-            description="读取L0工作记忆（当前会话对话历史）",
+            description="读取L0工作记忆",
             input_schema=input_schema,
             output_schema=output_schema,
             metadata=metadata
@@ -74,7 +88,6 @@ class WorkingMemoryReadTool(Tool):
         self.llm_service = LLMService()
 
     def execute(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
-        """执行 L0 工作记忆读取（含上下文压缩）"""
         conversation_id = parameters.get("conversation_id")
         limit = int(parameters.get("limit", 10))
 
@@ -84,63 +97,107 @@ class WorkingMemoryReadTool(Tool):
 
         if total_count == 0:
             return {
-                "messages": [],
-                "conversation_id": conversation_id,
-                "total_count": 0,
-                "compressed": False
+                "messages": [], "conversation_id": conversation_id,
+                "total_count": 0, "compressed": False, "token_count": 0,
             }
 
-        if total_count <= COMPRESS_THRESHOLD:
-            messages = redis_client.get_messages(conversation_id, limit)
+        all_messages = redis_client.get_all_messages(conversation_id)
+        full_text = "\n".join(
+            f"{m.get('role', 'unknown')}: {m.get('content', '')}"
+            for m in all_messages
+        )
+        full_tokens = _estimate_tokens(full_text)
+
+        # ── 未超过 token 阈值：不压缩，返回全部消息 ──
+        if full_tokens <= COMPRESS_TOKEN_THRESHOLD:
             return {
-                "messages": messages,
-                "conversation_id": conversation_id,
-                "total_count": total_count,
-                "compressed": False
+                "messages": all_messages, "conversation_id": conversation_id,
+                "total_count": total_count, "compressed": False,
+                "token_count": full_tokens,
             }
 
-        # 超过阈值，触发压缩
-        recent_messages = redis_client.get_messages(conversation_id, KEEP_RECENT)
+        # ── 超过 token 阈值：需要压缩 ──
         cached_summary = redis_client.get_summary(conversation_id)
+        compressed_count = redis_client.get_compressed_count(conversation_id)
 
-        if cached_summary:
-            summary = cached_summary
+        if compressed_count == 0:
+            # ── 首次压缩 ──
+            early = all_messages[:-KEEP_RECENT_MSG]
+            summary = self._compress(early, conversation_id)
+            redis_client.set_summary(conversation_id, summary)
+            redis_client.set_compressed_count(conversation_id, len(early))
             config.logger.info(
-                f"Using cached summary for conversation {conversation_id}"
+                f"[{conversation_id}] First compress: "
+                f"{len(early)} msgs → summary (full={full_tokens}t)"
             )
         else:
-            all_messages = redis_client.get_all_messages(conversation_id)
-            early_messages = all_messages[:-KEEP_RECENT]
-            summary = self._compress_history(early_messages, conversation_id)
-            redis_client.set_summary(conversation_id, summary)
-            config.logger.info(
-                f"Compressed {len(early_messages)} messages into summary"
-            )
+            # ── 检查是否需要增量重压缩 ──
+            middle = all_messages[compressed_count:-KEEP_RECENT_MSG]
+            if len(middle) == 0:
+                # 没有新消息需要合并，复用旧摘要
+                summary = cached_summary
+                config.logger.info(
+                    f"[{conversation_id}] Reuse cached summary "
+                    f"(compressed={compressed_count} msgs)"
+                )
+            else:
+                # 旧摘要 + 中间新增消息 → 新摘要
+                summary = self._recompress(cached_summary, middle, conversation_id)
+                new_count = compressed_count + len(middle)
+                redis_client.set_summary(conversation_id, summary)
+                redis_client.set_compressed_count(conversation_id, new_count)
+                config.logger.info(
+                    f"[{conversation_id}] Recompress: "
+                    f"old_summary + {len(middle)} msgs → new "
+                    f"({compressed_count} → {new_count} compressed)"
+                )
 
+        # ── 构建返回 ──
+        recent = redis_client.get_messages(conversation_id, KEEP_RECENT_MSG)
+        context = f"[历史对话摘要] {summary}\n"
+        context += "\n".join(
+            f"{m.get('role', 'unknown')}: {m.get('content', '')}" for m in recent
+        )
         return {
             "messages": [
                 {"role": "system", "content": f"[历史对话摘要] {summary}"}
-            ] + recent_messages,
+            ] + recent,
             "conversation_id": conversation_id,
             "total_count": total_count,
             "compressed": True,
-            "original_count": total_count
+            "token_count": _estimate_tokens(context),
         }
 
-    def _compress_history(self, messages: List[Dict], conversation_id: str) -> str:
-        """用 LLM 压缩早期对话为摘要"""
-        if not messages:
-            return "无历史对话记录。"
+    def _compress(self, messages: List[Dict], conversation_id: str) -> str:
+        """首次压缩：将消息列表压缩为摘要"""
+        return self._call_llm_compress(messages, conversation_id)
 
-        history_text = "\n".join([
+    def _recompress(self, old_summary: str, new_messages: List[Dict],
+                    conversation_id: str) -> str:
+        """增量重压缩：旧摘要 + 新增消息 → 新摘要"""
+        history_text = f"[之前的对话摘要]\n{old_summary}\n\n"
+        history_text += "[最近新增的对话]\n"
+        history_text += "\n".join(
             f"{m.get('role', 'unknown')}: {m.get('content', '')}"
-            for m in messages
-        ])
+            for m in new_messages
+        )
+        return self._call_llm_compress(history_text, conversation_id, is_recompress=True)
+
+    def _call_llm_compress(self, input_text, conversation_id: str,
+                           is_recompress: bool = False) -> str:
+        """调 LLM 生成摘要"""
+        if isinstance(input_text, list):
+            input_text = "\n".join(
+                f"{m.get('role', 'unknown')}: {m.get('content', '')}"
+                for m in input_text
+            )
+
+        label = "[重新压缩]" if is_recompress else "[压缩]"
 
         prompt = f"""请将以下对话压缩为结构化摘要，按用户提问逐条总结，不要遗漏任何一个问题。
 
 对话内容：
-{history_text}
+{input_text}
 
 要求：
 1. 用"用户询问了以下问题："开头
@@ -150,10 +207,15 @@ class WorkingMemoryReadTool(Tool):
 
         try:
             summary = self.llm_service.generate(prompt)
+            config.logger.info(
+                f"{label} {conversation_id}: "
+                f"input ~{_estimate_tokens(input_text)}t → "
+                f"summary ~{_estimate_tokens(summary)}t"
+            )
             return summary
         except Exception as e:
             config.logger.warning(f"Failed to compress history: {e}")
-            return f"用户进行了 {len(messages)} 轮对话，讨论了相关知识问题。"
+            return f"用户进行了多轮对话，讨论了相关知识问题。"
 
 
 class LongTermMemoryReadTool(Tool):

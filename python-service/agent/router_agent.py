@@ -60,7 +60,7 @@ class RouterAgent:
         collector.record_event(
             event_type="INTENT_CLASSIFIED",
             phase="INTENT",
-            input_data={"question": input_text[:200], "is_admin": is_admin},
+            input_data={"question": input_text, "is_admin": is_admin},
             output_data={"intent": result.intent.value if hasattr(result.intent, 'value') else str(result.intent),
                          "confidence": getattr(result, 'confidence', None)},
             agent_name="IntentClassifier",
@@ -131,20 +131,48 @@ class RouterAgent:
                      user_id: Optional[str] = None,
                      is_admin: bool = False, **kwargs) -> Generator[str, None, None]:
         """
-        流式路由并执行任务
-
-        Args:
-            input_text: 用户输入
-            conversation_id: 会话ID
-            user_id: 用户ID
-            is_admin: 是否为管理员
-            **kwargs: 其他参数
+        流式路由并执行任务（含全链路追踪）
 
         Yields:
-            JSON格式的事件流
+            JSON格式的事件流，最后会有一个 type="traces" 的事件
         """
+        trace_id = kwargs.get("trace_id", "")
+        collector = TraceCollector(
+            trace_id=trace_id,
+            session_id=str(conversation_id) if conversation_id else "",
+            user_id=str(user_id) if user_id else "",
+        )
+
+        # ── 1. 意图分类 ────────────────────────────
+        collector.start_timer("intent")
+        result = self.classifier.classify(input_text, is_admin)
+        intent_latency, intent_start = collector.stop_timer("intent")
+        collector.record_event(
+            event_type="INTENT_CLASSIFIED",
+            phase="INTENT",
+            input_data={"question": input_text, "is_admin": is_admin},
+            output_data={"intent": result.intent.value if hasattr(result.intent, 'value') else str(result.intent),
+                         "confidence": getattr(result, 'confidence', None)},
+            agent_name="IntentClassifier",
+            model_name="qwen-plus",
+            latency_ms=intent_latency,
+            metadata={"fallback": getattr(result, 'is_fallback', False)},
+            event_time=intent_start,
+        )
+
         task_type = self.classify_task(input_text, is_admin)
-        logger.info(f"[RouterAgent] Streaming route to: {task_type.value}")
+        logger.info(f"[RouterAgent] Streaming route to: {task_type.value} for input: {input_text[:50]}...")
+
+        # ── 2. 路由分发 ────────────────────────────
+        collector.record_event(
+            event_type="ROUTE_SELECTED",
+            phase="ROUTE",
+            input_data={"task_type": task_type.value},
+            output_data={"agent": task_type.value},
+        )
+
+        # 将 collector 传给下游 agent
+        kwargs["trace_collector"] = collector
 
         try:
             yield json.dumps({
@@ -172,16 +200,28 @@ class RouterAgent:
 
             else:
                 for event in self.knowledge_qa_agent.ask_stream(
-                    input_text, conversation_id, user_id, context, **kwargs
+                    input_text, conversation_id, user_id, **kwargs
                 ):
                     yield event
 
         except Exception as e:
             logger.error(f"[RouterAgent] Stream route error: {str(e)}")
+            collector.record_event(
+                event_type="ROUTE_FAILED",
+                phase="ROUTE",
+                output_data={"error": str(e)[:200]},
+                metadata={"error_type": type(e).__name__},
+            )
             yield json.dumps({
                 "type": "error",
                 "content": str(e)
             })
+
+        # ── 3. 发送 Python 端 traces（最后一个事件）───
+        yield json.dumps({
+            "type": "traces",
+            "traces": collector.to_list()
+        })
 
     def classify_task(self, input_text: str, is_admin: bool = False) -> TaskType:
         """

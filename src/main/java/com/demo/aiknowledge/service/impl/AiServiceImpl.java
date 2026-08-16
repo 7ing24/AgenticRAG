@@ -494,4 +494,52 @@ public class AiServiceImpl implements AiService {
 
         return response;
     }
+
+    @Override
+    public String semanticCacheLookup(String question) {
+        try {
+            String url = aiServiceUrl + "/cache/lookup";
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("question", question);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                Boolean found = (Boolean) response.getBody().get("found");
+                if (Boolean.TRUE.equals(found)) {
+                    String cacheKey = (String) response.getBody().get("cache_key");
+                    Double similarity = response.getBody().get("similarity") != null
+                            ? ((Number) response.getBody().get("similarity")).doubleValue() : 0;
+                    log.info("Semantic cache HIT: question='{}' → key='{}' (sim={:.3f})",
+                            question.length() > 50 ? question.substring(0, 50) : question,
+                            cacheKey, similarity);
+                    return cacheKey;
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            log.warn("Semantic cache lookup failed (will fall back to full AI call): {}", e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
+    @Async
+    public void addToSemanticCache(String question) {
+        try {
+            String url = aiServiceUrl + "/cache/question";
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("question", question);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+            restTemplate.postForEntity(url, entity, Map.class);
+            log.debug("Semantic cache: added question (len={})", question.length());
+        } catch (Exception e) {
+            log.warn("Semantic cache add failed (non-critical): {}", e.getMessage());
+        }
+    }
 }

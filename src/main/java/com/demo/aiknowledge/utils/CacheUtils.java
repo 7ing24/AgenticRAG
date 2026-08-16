@@ -302,6 +302,19 @@ public class CacheUtils {
         cacheService.delete(cacheName, lockKey);
     }
 
+    /**
+     * 问题正则化，用于缓存 key 生成。
+     * 去除标点、语气词、多余空白，统一小写，提高缓存命中率。
+     */
+    public static String normalizeQuestion(String question) {
+        if (question == null) return "";
+        String normalized = question.trim().toLowerCase();
+        normalized = normalized.replaceAll("[\\p{P}\\p{S}]+", "");
+        normalized = normalized.replaceAll("[吗呢啊吧呀嘛哦哈呵嘿]+", "");
+        normalized = normalized.replaceAll("\\s+", " ").trim();
+        return normalized;
+    }
+
     private long getDefaultTtl(String cacheName) {
         switch (cacheName) {
             case CacheConfig.CacheConstants.CACHE_AI_ANSWER:

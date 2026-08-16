@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { flushSync } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { chatAPI, knowledgeAPI } from '../api';
 import './Chat.css';
@@ -331,13 +330,11 @@ export default function Chat() {
               break;
             case 'token':
               accumulatedContent += event.content;
-              flushSync(() => {
-                setMessages(prev => prev.map(msg =>
-                  msg.id === thinkingMessageId
-                    ? { ...msg, content: accumulatedContent }
-                    : msg
-                ));
-              });
+              setMessages(prev => prev.map(msg =>
+                msg.id === thinkingMessageId
+                  ? { ...msg, content: accumulatedContent }
+                  : msg
+              ));
               break;
             case 'end':
               finalTaskType = event.task_type || null;

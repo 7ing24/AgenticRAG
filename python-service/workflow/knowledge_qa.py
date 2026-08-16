@@ -161,8 +161,8 @@ class KnowledgeQAAgent:
             collector.record_event(
                 event_type="QUESTION_REWRITTEN",
                 phase="REWRITE",
-                input_data={"original": question[:200]},
-                output_data={"rewritten": current_query[:200]},
+                input_data={"original": question},
+                output_data={"rewritten": current_query},
                 agent_name="QuestionRewriteTool",
                 latency_ms=rewrite_latency,
                 event_time=rewrite_start,
@@ -190,13 +190,13 @@ class KnowledgeQAAgent:
                 collector.record_event(
                     event_type="RETRIEVAL_EXECUTED",
                     phase="RETRIEVAL",
-                    input_data={"query": current_query[:200], "round": round_num + 1},
+                    input_data={"query": current_query, "round": round_num + 1},
                     output_data={
                         "chunks": [
                             {
                                 "doc_id": self._extract_metadata(doc).get("doc_id"),
                                 "parent_id": self._extract_metadata(doc).get("parent_id",
-                                    self._extract_metadata(doc).get("chunk_index", "-")),
+                                    self._extract_metadata(doc).get("chunk_index") or self._extract_metadata(doc).get("parent_chunk_index", "-")),
                                 "page": self._extract_metadata(doc).get("page"),
                                 "score": round(score, 3),
                             }
@@ -222,7 +222,7 @@ class KnowledgeQAAgent:
                     {
                         "doc_id": self._extract_metadata(doc).get("doc_id"),
                         "parent_id": self._extract_metadata(doc).get("parent_id",
-                            self._extract_metadata(doc).get("chunk_index", "-")),
+                            self._extract_metadata(doc).get("chunk_index") or self._extract_metadata(doc).get("parent_chunk_index", "-")),
                         "page": self._extract_metadata(doc).get("page"),
                         "score": round(score, 3),
                     }
@@ -260,8 +260,8 @@ class KnowledgeQAAgent:
                 collector.record_event(
                     event_type="ANSWER_GENERATED",
                     phase="GENERATION",
-                    input_data={"question": question[:200]},
-                    output_data={"answer": answer[:200], "chunk_count": 0},
+                    input_data={"question": question},
+                    output_data={"answer": answer, "chunk_count": 0},
                     agent_name="KnowledgeQAAgent",
                     model_name="qwen-plus",
                     input_tokens=token_usage.get("input_tokens") if token_usage else None,
@@ -287,8 +287,8 @@ class KnowledgeQAAgent:
             collector.record_event(
                 event_type="ANSWER_GENERATED",
                 phase="GENERATION",
-                input_data={"question": question[:200], "chunk_count": len(best_docs)},
-                output_data={"answer": answer[:200]},
+                input_data={"question": question, "chunk_count": len(best_docs)},
+                output_data={"answer": answer},
                 agent_name="KnowledgeQAAgent",
                 model_name="qwen-plus",
                 latency_ms=gen_latency,
@@ -331,8 +331,8 @@ class KnowledgeQAAgent:
             collector.record_event(
                 event_type="REACT_EXECUTED",
                 phase="REACT",
-                input_data={"question": question[:200], "context_tokens": context_token_count},
-                output_data={"answer": result.get("answer", "")[:200]},
+                input_data={"question": question, "context_tokens": context_token_count},
+                output_data={"answer": result.get("answer", "")},
                 agent_name="ReActAgent",
                 model_name="qwen-plus",
                 latency_ms=latency,
@@ -595,55 +595,208 @@ class KnowledgeQAAgent:
                    user_id: Optional[str] = None, context: str = "",
                    **kwargs) -> Generator[str, None, None]:
         """
-        流式处理知识问答 - 精简RAG链路
+        流式处理知识问答 — 与非流式完全相同的逻辑链路。
 
-        直接走：向量检索 → LLM流式生成 → 返回
+        simple：改写 → 检索+Rerank+自省 → **流式 LLM 生成**（真 token 级流式）
+        complex：_ask_with_multi_agent() → 逐字 SSE 输出
         """
+        collector = kwargs.get("trace_collector")
+        trace_id = kwargs.get("trace_id", "")
         logger.info(f"[KnowledgeQAAgent] Stream processing question: {question[:50]}...")
 
         try:
-            # 1. 直接向量检索
-            docs = self.vector_store.search(
-                query=question,
-                k=5,
-                use_rerank=False
+            # 1. 通过 MemoryAgent 加载记忆（与非流式完全相同）
+            memory_state = SimpleNamespace(
+                conversation_id=conversation_id, user_id=user_id,
+                original_input=question, run_id="memory_load"
             )
+            memory_result = self.memory_agent.load_memory(memory_state)
+            conversation_history = memory_result.get("text", "")
 
-            logger.info(f"[KnowledgeQAAgent] Retrieved {len(docs)} documents")
+            # 2. 判断复杂度，选择链路（与非流式完全相同）
+            complexity = self._classify_complexity_with_llm(question)
+            if complexity is None:
+                raw = self.router.classifier.classify_complexity(question)
+                complexity = "complex" if raw == "react" else "simple"
+                logger.info(f"[KnowledgeQAAgent] Stream complexity (keyword): {complexity}")
+            else:
+                logger.info(f"[KnowledgeQAAgent] Stream complexity (LLM): {complexity}")
 
-            # 2. 构建引用来源（按 doc_id 去重）
-            seen_doc_ids = set()
-            sources = []
-            for doc in docs:
-                metadata = self._extract_metadata(doc)
-                score = getattr(doc, 'score', metadata.get('score', 0))
-                doc_id = metadata.get("doc_id")
-                if doc_id and doc_id in seen_doc_ids:
-                    continue
-                if doc_id:
-                    seen_doc_ids.add(doc_id)
-                sources.append({
-                    "doc_id": doc_id,
-                    "doc": metadata.get("source", "未知文档"),
-                    "page": metadata.get("page"),
-                    "chunk_index": metadata.get("chunk_index"),
-                    "score": round(score, 3) if isinstance(score, (int, float)) else score,
+            # 3. 复杂问题：MultiAgentOrchestrator 流式（PLAN→WORKERS静默，SYNTHESIS真流式）
+            if complexity == "complex":
+                logger.info(f"[KnowledgeQAAgent] Stream routing to MultiAgentOrchestrator.run_stream")
+                for event in self.multi_agent_orchestrator.run_stream(
+                    question, conversation_id=conversation_id,
+                    user_id=user_id, conversation_history=conversation_history,
+                    **kwargs
+                ):
+                    yield event
+                return
+
+            # 4. 简单问题：完全复用 _ask_fast 的检索逻辑 → 真流式 LLM 生成
+            logger.info(f"[KnowledgeQAAgent] Stream routing to _ask_fast pipeline + streaming generation")
+            import uuid as _uuid
+            run_id = str(_uuid.uuid4())
+            best_docs = []
+            best_scores = []
+
+            # ── 4a. 改写 ──
+            if collector:
+                collector.start_timer("rewrite")
+            try:
+                rewritten = self.question_rewrite_tool.execute({
+                    "question": question,
+                    "conversation_context": conversation_history
                 })
+                current_query = rewritten.get("rewritten_question", question)
+                logger.info(f"[KnowledgeQAAgent] Stream rewritten: '{question[:30]}...' -> '{current_query[:50]}...'")
+            except Exception:
+                current_query = question
+            if collector:
+                rewrite_latency, rewrite_start = collector.stop_timer("rewrite")
+                collector.record_event(
+                    event_type="QUESTION_REWRITTEN",
+                    phase="REWRITE",
+                    input_data={"original": question},
+                    output_data={"rewritten": current_query},
+                    agent_name="QuestionRewriteTool",
+                    latency_ms=rewrite_latency,
+                    event_time=rewrite_start,
+                )
 
-            # 3. 流式 LLM 生成
+            # ── 4b. 检索 + Rerank + 自省循环（与 _ask_fast 完全一致）──
+            for round_num in range(self.max_retrieval_rounds):
+                if collector:
+                    collector.start_timer(f"retrieval_r{round_num}")
+                retrieval_result = self.retrieval_agent.retrieve(
+                    query=current_query,
+                    conversation_context=conversation_history,
+                    use_rewrite=False,
+                    use_rerank=True,
+                    top_k=5,
+                )
+                docs = retrieval_result.reranked_documents
+                scores = retrieval_result.scores
+                ret_result = collector.stop_timer(f"retrieval_r{round_num}") if collector else (0, "")
+                ret_latency, ret_start = ret_result if isinstance(ret_result, tuple) else (ret_result, "")
+                logger.info(f"[KnowledgeQAAgent] Stream round {round_num + 1}: "
+                            f"retrieved {len(docs)} docs")
+
+                if collector:
+                    collector.record_event(
+                        event_type="RETRIEVAL_EXECUTED",
+                        phase="RETRIEVAL",
+                        input_data={"query": current_query, "round": round_num + 1},
+                        output_data={
+                            "chunks": [
+                                {
+                                    "doc_id": self._extract_metadata(doc).get("doc_id"),
+                                    "parent_id": self._extract_metadata(doc).get("parent_id",
+                                        self._extract_metadata(doc).get("chunk_index") or self._extract_metadata(doc).get("parent_chunk_index", "-")),
+                                    "page": self._extract_metadata(doc).get("page"),
+                                    "score": round(score, 3),
+                                }
+                                for doc, score in zip(docs, scores)
+                            ] if docs else [],
+                        },
+                        agent_name="RetrievalAgent",
+                        latency_ms=ret_latency,
+                        event_time=ret_start,
+                        metadata={"mode": "hybrid",
+                                  "vector_store": "FAISS" if not self.vector_store.use_milvus else "Milvus",
+                                  "use_rerank": True, "top_k": 5},
+                    )
+
+                sufficient = docs and self.planner.evaluate_retrieval_sufficiency(
+                    docs, question, scores, score_threshold=0.2
+                ).is_sufficient
+
+                if sufficient:
+                    logger.info(f"[KnowledgeQAAgent] Stream sufficient at round {round_num + 1}")
+                    best_docs = docs
+                    best_scores = scores
+                    break
+
+                if len(docs) > len(best_docs):
+                    best_docs = docs
+                    best_scores = scores
+
+                if round_num < self.max_retrieval_rounds - 1:
+                    current_query = self._rewrite_query_for_retry(
+                        current_query, conversation_history, round_num + 1
+                    )
+                    logger.info(f"[KnowledgeQAAgent] Stream retry with: {current_query[:50]}...")
+            else:
+                logger.info(f"[KnowledgeQAAgent] Stream max rounds reached, using best ({len(best_docs)} docs)")
+
+            sources = self._build_sources(best_docs) if best_docs else []
+
+            # ── 4c. 无文档时：直接返回 ──
+            if not best_docs:
+                if conversation_history:
+                    answer = self.llm_service.get_answer(question, [], conversation_history)
+                else:
+                    answer = "抱歉，知识库中没有找到与您问题相关的内容。"
+                if collector:
+                    collector.record_event(
+                        event_type="ANSWER_GENERATED",
+                        phase="GENERATION",
+                        input_data={"question": question},
+                        output_data={"answer": answer, "chunk_count": 0},
+                        agent_name="KnowledgeQAAgent",
+                        model_name="qwen-plus",
+                    )
+                self._save_to_memory(conversation_id, question, answer, user_id)
+                yield json.dumps({"type": "start"})
+                for char in answer:
+                    yield json.dumps({"type": "token", "content": char})
+                yield json.dumps({"type": "end", "content": answer, "task_type": "knowledge_qa"})
+                if sources:
+                    yield json.dumps({"type": "sources", "content": sources, "task_type": "knowledge_qa"})
+                return
+
+            # ── 4d. 真流式 LLM 生成（唯一与非流式不同的地方）──
+            if collector:
+                collector.start_timer("generation")
+            llm_docs = self._docs_to_llm_format(best_docs)
+            full_answer = ""
             for chunk in self.llm_service.get_answer_stream(
                 question=question,
-                context_docs=docs,
-                conversation_context=context
+                context_docs=llm_docs,
+                conversation_context=conversation_history
             ):
+                try:
+                    event = json.loads(chunk)
+                    if event.get("type") == "token":
+                        full_answer += event.get("content", "")
+                    elif event.get("type") == "end":
+                        full_answer = event.get("content", full_answer)
+                except Exception:
+                    pass
                 yield chunk
 
-            # 4. 发送来源信息
-            yield json.dumps({
-                "type": "sources",
-                "sources": sources,
-                "task_type": "knowledge_qa"
-            })
+            if collector:
+                gen_latency, gen_start = collector.stop_timer("generation")
+                token_usage = self.llm_service.get_last_token_usage()
+                collector.record_event(
+                    event_type="ANSWER_GENERATED",
+                    phase="GENERATION",
+                    input_data={"question": question, "chunk_count": len(best_docs)},
+                    output_data={"answer": full_answer},
+                    agent_name="KnowledgeQAAgent",
+                    model_name="qwen-plus",
+                    latency_ms=gen_latency,
+                    event_time=gen_start,
+                    input_tokens=token_usage.get("input_tokens") if token_usage else None,
+                    output_tokens=token_usage.get("output_tokens") if token_usage else None,
+                    total_tokens=token_usage.get("total_tokens") if token_usage else None,
+                )
+
+            self._save_to_memory(conversation_id, question, full_answer, user_id)
+
+            # 发送来源信息
+            if sources:
+                yield json.dumps({"type": "sources", "content": sources, "task_type": "knowledge_qa"})
 
         except Exception as e:
             logger.error(f"[KnowledgeQAAgent] Stream QA failed: {e}", exc_info=True)

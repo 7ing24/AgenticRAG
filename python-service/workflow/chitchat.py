@@ -91,8 +91,8 @@ class ChitChatAgent:
                 collector.record_event(
                     event_type="CHITCHAT_HANDLED",
                     phase="GENERATION",
-                    input_data={"question": question[:200]},
-                    output_data={"answer": answer[:200]},
+                    input_data={"question": question},
+                    output_data={"answer": answer},
                     agent_name="ChitChatAgent",
                     model_name="qwen-plus" if match_method == "llm" else None,
                     latency_ms=chitchat_latency,
@@ -133,18 +133,7 @@ class ChitChatAgent:
     def chat_stream(self, question: str, conversation_id: Optional[str] = None,
                     user_id: Optional[str] = None,
                     **kwargs) -> Generator[str, None, None]:
-        """
-        流式处理闲聊
-
-        Args:
-            question: 用户问题
-            conversation_id: 会话ID
-            user_id: 用户ID
-            **kwargs: 其他参数
-
-        Yields:
-            JSON格式的事件流
-        """
+        """流式处理闲聊 — LLM 场景真流式，规则匹配直接输出"""
         logger.info(f"[ChitChatAgent] Stream chitchat: {question[:50]}...")
 
         try:
@@ -153,33 +142,48 @@ class ChitChatAgent:
             if conversation_id:
                 memory_state = SimpleNamespace(
                     conversation_id=conversation_id, user_id=user_id,
-                original_input=question, run_id="chitchat_stream_memory"
+                    original_input=question, run_id="chitchat_stream_memory"
                 )
                 context_result = self.memory_agent.load_memory(memory_state, max_rounds=5)
                 conversation_history = context_result.get("text", "")
 
-            answer = self._generate_chitchat_response(question, conversation_history)
+            # 判断匹配方式（只取 match_method，LLM 场景不预生成）
+            match_method, _ = self._generate_chitchat_response_with_method(question, conversation_history)
 
-            for char in answer:
-                yield json.dumps({
-                    "type": "token",
-                    "content": char
-                })
+            if match_method == "rule_match":
+                # 规则匹配 — 短文本直接输出
+                answer = self._generate_chitchat_response(question, conversation_history)
+                if conversation_id:
+                    self.memory_agent.save_memory(
+                        SimpleNamespace(conversation_id=conversation_id, user_id=user_id, run_id="chitchat_stream_save"),
+                        question, answer)
+                for char in answer:
+                    yield json.dumps({"type": "token", "content": char})
+                yield json.dumps({"type": "end", "content": answer, "task_type": "chitchat"})
+                return
 
-            yield json.dumps({
-                "type": "end",
-                "content": {
-                    "answer": answer,
-                    "sources": [],
-                    "task_type": "chitchat"
-                }
-            })
+            # LLM 生成 — 真流式
+            context_section = ""
+            if conversation_history:
+                context_section = f"\n对话历史：\n{conversation_history}\n请基于对话历史，理解上下文后回复用户。"
+            prompt = (
+                "你是一个友好、健谈的AI助手。请用自然、亲切的方式回复用户，就像朋友之间聊天一样。"
+                f"回复要简短有趣，100字以内。不要说'你可以问我知识类问题'这种话。{context_section}\n用户说：{question}"
+            )
+            full_answer = ""
+            for chunk in llm.llm.stream(prompt):
+                full_answer += chunk
+                yield json.dumps({"type": "token", "content": chunk})
+
+            if conversation_id:
+                self.memory_agent.save_memory(
+                    SimpleNamespace(conversation_id=conversation_id, user_id=user_id, run_id="chitchat_stream_save"),
+                    question, full_answer)
+            yield json.dumps({"type": "end", "content": full_answer, "task_type": "chitchat"})
+
         except Exception as e:
             logger.error(f"[ChitChatAgent] Stream error: {str(e)}")
-            yield json.dumps({
-                "type": "error",
-                "content": str(e)
-            })
+            yield json.dumps({"type": "error", "content": "处理闲聊时遇到错误，请稍后再试。"})
 
     def _generate_chitchat_response_with_method(self, question: str, conversation_history: str = "") -> tuple:
         """生成闲聊回复，同时返回匹配方式。返回值: (match_method, answer)"""

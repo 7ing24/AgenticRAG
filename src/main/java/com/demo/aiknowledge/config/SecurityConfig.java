@@ -23,7 +23,7 @@ import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity1
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -50,6 +50,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/chat/view/image/**").permitAll()
                 // 允许文档文件预览（新标签页打开，不带 token）
                 .requestMatchers("/api/knowledge/view-file/**").permitAll()
+                // 允许缓存监控端点（内部指标采集）
+                .requestMatchers("/api/cache/**").permitAll()
                 // 管理员接口需要ADMIN角色
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // 管理端对话接口

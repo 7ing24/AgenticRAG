@@ -58,6 +58,23 @@ def recall_at_k(relevant_at_positions: List[bool], k: int) -> float:
     return 1.0 if any(relevant_at_positions[:k]) else 0.0
 
 
+def precision_at_k(relevant_at_positions: List[bool], k: int) -> float:
+    """Top-K 中相关文档占比"""
+    top_k = relevant_at_positions[:k]
+    if not top_k:
+        return 0.0
+    return sum(top_k) / len(top_k)
+
+
+def f1_at_k(relevant_at_positions: List[bool], k: int) -> float:
+    """F1 = 2 * Precision * Recall / (Precision + Recall)，基于 LLM 判定"""
+    p = precision_at_k(relevant_at_positions, k)
+    r = recall_at_k(relevant_at_positions, k)
+    if p + r == 0:
+        return 0.0
+    return 2 * p * r / (p + r)
+
+
 def mrr_from_positions(relevant_at_positions: List[bool]) -> float:
     """第一个相关文档的倒数排名"""
     for i, relevant in enumerate(relevant_at_positions):
@@ -145,6 +162,12 @@ def compute_ir_metrics(
                 v_ndcg = ndcg_at_k(relevant, k)
                 query_metrics[f"ndcg@{k}"] = v_ndcg
                 metrics[f"ndcg@{k}"].append(v_ndcg)
+                v_prec = precision_at_k(relevant, k)
+                query_metrics[f"precision@{k}"] = v_prec
+                metrics[f"precision@{k}"].append(v_prec)
+                v_f1 = f1_at_k(relevant, k)
+                query_metrics[f"f1@{k}"] = v_f1
+                metrics[f"f1@{k}"].append(v_f1)
             mrr_val = mrr_from_positions(relevant)
             query_metrics["mrr"] = mrr_val
             metrics["mrr"].append(mrr_val)

@@ -375,6 +375,22 @@ public class CacheServiceImpl implements CacheService {
         }
     }
 
+    @Override
+    public void addHotData(String cacheName, String key) {
+        // CacheServiceImpl 不支持本地缓存热点检测，委托给 MultiLevelCacheServiceImpl
+        log.debug("addHotData is a no-op in CacheServiceImpl, use MultiLevelCacheServiceImpl");
+    }
+
+    @Override
+    public boolean isHotData(String cacheName, String key) {
+        return false;
+    }
+
+    @Override
+    public void evictHotData(String cacheName, String key) {
+        // no-op
+    }
+
     // 私有辅助方法
 
     private String getFullKey(String cacheName, String key) {

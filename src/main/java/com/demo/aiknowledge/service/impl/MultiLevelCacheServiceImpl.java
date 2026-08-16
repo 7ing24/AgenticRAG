@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -46,6 +47,15 @@ public class MultiLevelCacheServiceImpl implements CacheService {
 
     // 热点数据标识（永不过期）
     private final Set<String> hotDataKeys = ConcurrentHashMap.newKeySet();
+
+    // 访问频率统计（累计计数，用于自动热点检测）
+    private final Map<String, AtomicInteger> accessFrequency = new ConcurrentHashMap<>();
+
+    // 热点检测阈值：累计访问超过此次数自动提升为热点
+    private static final int HOT_DATA_THRESHOLD = 10;
+
+    // 热点数据在 Redis 中的 TTL 倍数（默认 TTL × 3）
+    private static final int HOT_DATA_TTL_MULTIPLIER = 3;
 
     public MultiLevelCacheServiceImpl(
             RedisTemplate<String, Object> redisTemplate,
@@ -78,9 +88,9 @@ public class MultiLevelCacheServiceImpl implements CacheService {
         // 根据缓存类型配置不同参数
         switch (cacheName) {
             case CacheConfig.CacheConstants.CACHE_AI_ANSWER:
-                // 问答缓存：高频访问，中等大小
+                // 问答缓存：高频访问，中等大小，访问后续期
                 builder.maximumSize(1000)
-                       .expireAfterWrite(10, TimeUnit.MINUTES)  // 本地缓存10分钟
+                       .expireAfterAccess(30, TimeUnit.MINUTES)  // 30分钟无访问则过期
                        .recordStats();
                 break;
             case CacheConfig.CacheConstants.CACHE_USER_SESSION:
@@ -138,14 +148,16 @@ public class MultiLevelCacheServiceImpl implements CacheService {
         String fullKey = getFullKey(cacheName, key);
 
         try {
-            // 1. 设置本地缓存（使用较短的TTL）
-            long localTtl = Math.min(ttl, TimeUnit.MINUTES.toSeconds(10)); // 本地缓存最多10分钟
-            getLocalCache(cacheName).put(key, new CacheEntry(value, System.currentTimeMillis(), localTtl));
+            // 1. 本地缓存（Caffeine expireAfterAccess 管理过期，无需额外打包）
+            getLocalCache(cacheName).put(key, value);
 
-            // 2. 设置Redis缓存
-            redisTemplate.opsForValue().set(fullKey, value, ttl, timeUnit);
+            // 2. 设置Redis缓存（热点数据使用延长TTL）
+            long redisTtl = isHotData(cacheName, key)
+                    ? ttl * HOT_DATA_TTL_MULTIPLIER
+                    : ttl;
+            redisTemplate.opsForValue().set(fullKey, value, redisTtl, timeUnit);
 
-            // 3. 如果是热点数据，标记为永不过期（本地）
+            // 3. 如果是热点数据，保持标记（TTL已在上面延长）
             if (isHotData(cacheName, key)) {
                 hotDataKeys.add(getHotDataKey(cacheName, key));
             }
@@ -178,19 +190,18 @@ public class MultiLevelCacheServiceImpl implements CacheService {
 
         if (localValue != null) {
             if (localValue instanceof CacheEntry) {
+                // Redis 回填的值，带自定义 TTL，需检查过期
                 CacheEntry entry = (CacheEntry) localValue;
-                // 检查本地缓存是否过期
                 if (!entry.isExpired()) {
-                    recordCacheHit(cacheName);
+                    recordCacheHit(cacheName, key);
                     log.debug("Local cache hit - name: {}, key: {}", cacheName, key);
                     return clazz.cast(entry.getValue());
-                } else {
-                    // 本地缓存过期，清除
-                    localCache.invalidate(key);
                 }
+                localCache.invalidate(key);
             } else {
-                recordCacheHit(cacheName);
-                log.debug("Local cache hit (simple) - name: {}, key: {}", cacheName, key);
+                // Caffeine 直接写入的值，过期由 Caffeine 管理
+                recordCacheHit(cacheName, key);
+                log.debug("Local cache hit - name: {}, key: {}", cacheName, key);
                 return clazz.cast(localValue);
             }
         }
@@ -236,7 +247,7 @@ public class MultiLevelCacheServiceImpl implements CacheService {
                     
                     localCache.put(key, new CacheEntry(finalValue, System.currentTimeMillis(), localTtl));
 
-                    recordCacheHit(cacheName);
+                    recordCacheHit(cacheName, key);
                     log.debug("Redis cache hit - name: {}, key: {}", cacheName, key);
                     return clazz.cast(finalValue);
                 }
@@ -656,21 +667,48 @@ public class MultiLevelCacheServiceImpl implements CacheService {
         return cacheName + ":" + key;
     }
 
-    /**
-     * 判断是否为热点数据
-     */
-    private boolean isHotData(String cacheName, String key) {
-        // 这里可以添加热点数据判断逻辑
-        // 例如：访问频率超过阈值的数据
+    @Override
+    public void addHotData(String cacheName, String key) {
+        hotDataKeys.add(getHotDataKey(cacheName, key));
+        // 热点数据刷新 Redis TTL：延长至默认 TTL × 倍数
+        String fullKey = getFullKey(cacheName, key);
+        try {
+            long hotTtl = getDefaultTtl(cacheName) * HOT_DATA_TTL_MULTIPLIER;
+            redisTemplate.expire(fullKey, hotTtl, TimeUnit.SECONDS);
+            log.info("Hot data added: cacheName={}, key={}, redisTtl={}s", cacheName, key, hotTtl);
+        } catch (Exception e) {
+            log.warn("Failed to extend TTL for hot data: cacheName={}, key={}", cacheName, key);
+        }
+    }
+
+    @Override
+    public boolean isHotData(String cacheName, String key) {
         return hotDataKeys.contains(getHotDataKey(cacheName, key));
     }
 
+    @Override
+    public void evictHotData(String cacheName, String key) {
+        String hotKey = getHotDataKey(cacheName, key);
+        hotDataKeys.remove(hotKey);
+        accessFrequency.remove(hotKey);
+        log.info("Hot data evicted: cacheName={}, key={}", cacheName, key);
+    }
+
     /**
-     * 记录缓存命中
+     * 记录缓存命中，并自动检测热点数据
      */
-    private void recordCacheHit(String cacheName) {
+    private void recordCacheHit(String cacheName, String key) {
         CacheStats stats = cacheStatsMap.computeIfAbsent(cacheName, k -> new CacheStats());
         stats.recordHit();
+
+        // 自动热点检测：统计访问频率
+        String hotKey = getHotDataKey(cacheName, key);
+        AtomicInteger freq = accessFrequency.computeIfAbsent(hotKey, k -> new AtomicInteger(0));
+        int count = freq.incrementAndGet();
+        if (count >= HOT_DATA_THRESHOLD && !hotDataKeys.contains(hotKey)) {
+            addHotData(cacheName, key);
+            log.info("Auto-promoted to hot data: cacheName={}, key={}, frequency={}", cacheName, key, count);
+        }
     }
 
     /**

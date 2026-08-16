@@ -161,6 +161,7 @@ class VectorStoreManager:
             config.logger.error(f"Failed to initialize Milvus: {e}")
             config.logger.info("Falling back to FAISS...")
             self.use_milvus = False
+            self._init_bm25()
             self._init_faiss()
 
     def _init_faiss(self):

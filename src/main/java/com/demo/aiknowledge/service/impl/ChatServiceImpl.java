@@ -19,6 +19,7 @@ import com.demo.aiknowledge.service.ChatService;
 import com.demo.aiknowledge.service.ConversationContextService;
 import com.demo.aiknowledge.service.QaUnansweredService;
 import com.demo.aiknowledge.service.AgentTraceService;
+import com.demo.aiknowledge.utils.CacheUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -90,7 +92,7 @@ public class ChatServiceImpl implements ChatService {
 
             // ── 1. REQUEST_RECEIVED ──────────────────────
             agentTraceService.recordEvent("REQUEST_RECEIVED", "HTTP",
-                    Map.of("content", truncate(content, 200), "conversationId", conversationId),
+                    Map.of("content", content, "conversationId", conversationId),
                     null);
 
             try {
@@ -112,7 +114,7 @@ public class ChatServiceImpl implements ChatService {
 
             // ── 3. USER_MESSAGE_SAVED ────────────────────
             agentTraceService.recordEvent("USER_MESSAGE_SAVED", "DB",
-                    Map.of("content", truncate(content, 100)),
+                    Map.of("content", content),
                     Map.of("messageId", userMsg.getId()));
 
             // 1.1 更新对话上下文缓存（前端拉历史消息列表时用，不影响AI回答）
@@ -125,7 +127,7 @@ public class ChatServiceImpl implements ChatService {
             }
 
             // 2. 先查缓存，再决定是否调用 Python AI 服务
-            String cacheKey = (userId != null ? userId : "anonymous") + ":" + content.trim().toLowerCase();
+            String cacheKey = CacheUtils.normalizeQuestion(content);
             long cacheStart = System.nanoTime();
             AiResponse cachedResponse = cacheService.get(
                     CacheConfig.CacheConstants.CACHE_AI_ANSWER, cacheKey, AiResponse.class);
@@ -153,29 +155,46 @@ public class ChatServiceImpl implements ChatService {
                 answer = aiResponse.getAnswer();
                 taskType = aiResponse.getTaskType();
                 agentTraceService.recordEvent("CACHE_HIT_RETURN", "CACHE",
-                        Map.of("question", truncate(content, 100)),
-                        Map.of("answer", truncate(answer, 100)));
+                        Map.of("question", content),
+                        Map.of("answer", answer));
             } else {
-                agentTraceService.recordEvent("PYTHON_CALL_START", "AI_CALL",
-                        Map.of("question", truncate(content, 200), "conversationId", conversationId),
-                        null);
-
-                long pyStart = System.nanoTime();
-                aiResponse = aiService.ask(content, userId, conversationId, traceId);
-                long pyLatency = (System.nanoTime() - pyStart) / 1_000_000;
-
-                answer = aiResponse.getAnswer();
-                taskType = aiResponse.getTaskType();
-
-                if (aiResponse.getTraces() != null && !aiResponse.getTraces().isEmpty()) {
-                    agentTraceService.mergePythonTraces(aiResponse.getTraces());
+                // 精确未命中 → 尝试语义缓存
+                String semanticKey = aiService.semanticCacheLookup(content);
+                AiResponse semanticCached = null;
+                if (semanticKey != null) {
+                    semanticCached = cacheService.get(
+                            CacheConfig.CacheConstants.CACHE_AI_ANSWER, semanticKey, AiResponse.class);
                 }
 
-                agentTraceService.recordEvent("PYTHON_CALL_END", "AI_CALL",
-                        Map.of("question", truncate(content, 200), "conversationId", conversationId),
-                        Map.of("answer", truncate(answer, 200), "taskType", taskType != null ? taskType : "unknown",
-                               "sourceCount", aiResponse.getSources() != null ? aiResponse.getSources().size() : 0),
-                        pyLatency);
+                if (semanticCached != null && semanticCached.getAnswer() != null
+                        && !semanticCached.getAnswer().contains("AI服务")) {
+                    aiResponse = semanticCached;
+                    aiResponse.setCached(true);
+                    answer = aiResponse.getAnswer();
+                    taskType = aiResponse.getTaskType();
+                    log.info("Semantic cache HIT: key='{}'", semanticKey);
+                } else {
+                    agentTraceService.recordEvent("PYTHON_CALL_START", "AI_CALL",
+                            Map.of("question", content, "conversationId", conversationId),
+                            null);
+
+                    long pyStart = System.nanoTime();
+                    aiResponse = aiService.ask(content, userId, conversationId, traceId);
+                    long pyLatency = (System.nanoTime() - pyStart) / 1_000_000;
+
+                    answer = aiResponse.getAnswer();
+                    taskType = aiResponse.getTaskType();
+
+                    if (aiResponse.getTraces() != null && !aiResponse.getTraces().isEmpty()) {
+                        agentTraceService.mergePythonTraces(aiResponse.getTraces());
+                    }
+
+                    agentTraceService.recordEvent("PYTHON_CALL_END", "AI_CALL",
+                            Map.of("question", content, "conversationId", conversationId),
+                            Map.of("answer", answer, "taskType", taskType != null ? taskType : "unknown",
+                                   "sourceCount", aiResponse.getSources() != null ? aiResponse.getSources().size() : 0),
+                            pyLatency);
+                }
             }
 
             String sourcesJson = null;
@@ -315,6 +334,24 @@ public class ChatServiceImpl implements ChatService {
 
             agentTraceService.recordEvent("REQUEST_FINISHED", "HTTP", null,
                     Map.of("answerLength", answer != null ? answer.length() : 0, "taskType", taskType));
+
+            // 缓存非错误响应
+            if (!cacheHit && answer != null && !answer.contains("AI服务") && !answer.contains("抱歉")) {
+                AiResponse cacheResponse = new AiResponse();
+                cacheResponse.setAnswer(answer);
+                cacheResponse.setTaskType(taskType);
+                try {
+                    if (sourcesJson != null) {
+                        cacheResponse.setSources(objectMapper.readValue(sourcesJson, List.class));
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to deserialize sources for cache", e);
+                }
+                String normalizedKey = CacheUtils.normalizeQuestion(content);
+                cacheService.set(CacheConfig.CacheConstants.CACHE_AI_ANSWER, normalizedKey, cacheResponse);
+                aiService.addToSemanticCache(normalizedKey);
+            }
+
             return aiMsg;
 
             } catch (Exception e) {
@@ -324,6 +361,117 @@ public class ChatServiceImpl implements ChatService {
                 throw e;
             }
         } // TraceScope.close(): flush all trace events + cleanup ThreadLocal
+    }
+
+    @Override
+    @Transactional
+    public Message completeStreamingMessage(Long userId, Long conversationId, String question,
+                                            String answer, String taskType, String sourcesJson, String traceId) {
+
+        // 如果已有 trace 上下文（来自 Controller 流式端点），复用；否则创建新的
+        com.demo.aiknowledge.common.AgentTraceContext existingCtx =
+                com.demo.aiknowledge.common.AgentTraceContext.current();
+        final boolean ownsContext = (existingCtx == null);
+        final AgentTraceService.TraceScope scope;
+
+        if (ownsContext) {
+            scope = agentTraceService.openTrace(traceId, conversationId.toString(), userId);
+        } else {
+            scope = null;
+        }
+
+        try {
+            // 1. 保存 AI 回答
+            Message aiMsg = new Message();
+            aiMsg.setConversationId(conversationId);
+            aiMsg.setRole("assistant");
+            aiMsg.setContent(answer);
+            aiMsg.setSources(sourcesJson);
+            aiMsg.setTaskType(taskType);
+            aiMsg.setCreateTime(LocalDateTime.now());
+            messageMapper.insert(aiMsg);
+
+            agentTraceService.recordEvent("AI_MESSAGE_SAVED", "DB",
+                    Map.of("answerLength", answer != null ? answer.length() : 0, "taskType", taskType),
+                    Map.of("messageId", aiMsg.getId()));
+
+            // 2. 更新对话上下文
+            conversationContextService.updateConversationContext(conversationId, userId, aiMsg);
+
+            // 3. 记录 QA 日志
+            QaLog qaLog = new QaLog();
+            qaLog.setUserId(userId);
+            qaLog.setQuestion(question);
+            qaLog.setAnswer(answer);
+            qaLog.setCreateTime(LocalDateTime.now());
+            qaLogMapper.insert(qaLog);
+
+            agentTraceService.recordEvent("QA_LOG_RECORDED", "DB", null,
+                    Map.of("qaLogId", qaLog.getId()));
+
+            // 4. 未回答问题记录（对齐非流式：仅在无参考来源时记录）
+            if (sourcesJson == null && answer != null
+                    && (answer.contains("抱歉") || answer.contains("无法回答"))) {
+                qaUnansweredService.recordUnansweredQuestion(question);
+            }
+
+            // 5. 记录 AgentRun（对齐非流式字段）
+            try {
+                AgentRun agentRun = new AgentRun();
+                agentRun.setId(UUID.randomUUID().toString());
+                agentRun.setRunId(UUID.randomUUID().toString());
+                agentRun.setTraceId(traceId);
+                agentRun.setAgentType(taskType != null ? taskType : "unknown");
+                agentRun.setConversationId(String.valueOf(conversationId));
+                agentRun.setUserId(String.valueOf(userId));
+                agentRun.setStatus("COMPLETED");
+                agentRun.setGoal("Answer: " + question);
+                agentRun.setInput(question);
+                agentRun.setOutput(answer);
+                agentRun.setStartTime(LocalDateTime.now());
+                agentRun.setEndTime(LocalDateTime.now());
+                agentRun.setCreatedAt(LocalDateTime.now());
+                agentRunService.saveAgentRun(agentRun);
+            } catch (Exception e) {
+                log.error("Failed to save agent run record for streaming", e);
+            }
+
+            // 6. 缓存 AI 回答（仅缓存有效响应）
+            if (answer != null && !answer.contains("AI服务") && !answer.contains("抱歉")) {
+                String cacheKey = CacheUtils.normalizeQuestion(question);
+                AiResponse cacheResponse = new AiResponse();
+                cacheResponse.setAnswer(answer);
+                cacheResponse.setTaskType(taskType);
+                try {
+                    if (sourcesJson != null) {
+                        cacheResponse.setSources(objectMapper.readValue(sourcesJson, List.class));
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to deserialize sources for cache", e);
+                }
+                cacheService.set(CacheConfig.CacheConstants.CACHE_AI_ANSWER, cacheKey, cacheResponse);
+                aiService.addToSemanticCache(cacheKey);
+            }
+
+            // 7. 检查是否首条消息，异步生成标题
+            Long msgCount = messageMapper.selectCount(new LambdaQueryWrapper<Message>()
+                    .eq(Message::getConversationId, conversationId));
+            if (msgCount <= 2) {
+                aiService.generateTitle(conversationId, question);
+            }
+
+            return aiMsg;
+
+        } catch (Exception e) {
+            log.error("Post-stream processing failed: traceId={}", traceId, e);
+            agentTraceService.recordEvent("STREAM_POST_PROCESS_FAILED", "HTTP", null,
+                    Map.of("error", e.getClass().getSimpleName()));
+            throw e;
+        } finally {
+            if (ownsContext && scope != null) {
+                scope.close();
+            }
+        }
     }
 
     @Override
@@ -382,4 +530,5 @@ public class ChatServiceImpl implements ChatService {
         if (text.length() <= maxLen) return text;
         return text.substring(0, maxLen) + "...[truncated]";
     }
+
 }

@@ -89,5 +89,16 @@ class RedisClient:
         self.client.setex(summary_key, expire, summary)
         logger.debug(f"Set summary for conversation {conversation_id}")
 
+    def get_compressed_count(self, conversation_id: str) -> int:
+        """获取已被压缩的消息数（用于增量重压缩判断）"""
+        key = f"conversation:{conversation_id}:compressed_count"
+        val = self.client.get(key)
+        return int(val) if val else 0
+
+    def set_compressed_count(self, conversation_id: str, count: int, expire: int = 3600):
+        """设置已被压缩的消息数"""
+        key = f"conversation:{conversation_id}:compressed_count"
+        self.client.setex(key, expire, str(count))
+
 # 创建全局实例
 redis_client = RedisClient()

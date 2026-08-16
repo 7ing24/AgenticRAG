@@ -346,12 +346,16 @@ async def ask_question_stream(request: ChatRequest):
             # 使用 RouterAgent 进行流式任务路由
             for event_data in router_agent.route_stream(
                 input_text=request.question,
+                conversation_id=request.conversation_id,
+                user_id=request.user_id,
                 username=request.username,
-                is_admin=request.is_admin
+                is_admin=request.is_admin,
+                trace_id=request.trace_id or "",
             ):
                 yield f"data: {event_data}\n\n"
 
             process_time = time.time() - start_time
+            logger.info(f"Stream response completed successfully in {process_time:.2f}s")
             logger.info(
                 json.dumps({
                     "method": "POST",
@@ -593,3 +597,33 @@ async def delete_vector_collection():
             })
         )
         raise HTTPException(status_code=500, detail="删除向量库失败")
+
+
+# ── 语义缓存端点 ──────────────────────────────────────────────────
+
+class CacheAddRequest(BaseModel):
+    question: str
+
+
+class CacheLookupRequest(BaseModel):
+    question: str
+
+
+@router.post("/cache/question")
+async def add_to_semantic_cache(request: CacheAddRequest):
+    """向语义缓存索引中添加问题（用于缓存写入时）"""
+    from service.semantic_cache import semantic_cache_store
+    semantic_cache_store.add_question(request.question)
+    return {"status": "ok"}
+
+
+@router.post("/cache/lookup")
+async def semantic_cache_lookup(request: CacheLookupRequest):
+    """语义缓存查找（用于精确匹配未命中时）"""
+    from service.semantic_cache import semantic_cache_store
+    found, cache_key, similarity = semantic_cache_store.lookup(request.question)
+    return {
+        "found": found,
+        "cache_key": cache_key,
+        "similarity": round(similarity, 4),
+    }

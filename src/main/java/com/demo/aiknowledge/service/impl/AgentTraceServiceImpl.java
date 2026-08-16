@@ -28,7 +28,7 @@ public class AgentTraceServiceImpl implements AgentTraceService {
     private final RequestTraceMapper requestTraceMapper;
     private final ObjectMapper objectMapper;
 
-    private static final int MAX_SNAPSHOT_LENGTH = 500;
+    private static final int MAX_SNAPSHOT_LENGTH = 100000; // 不截断
     private static final DateTimeFormatter ISO_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
 
     // ── 生命周期 ─────────────────────────────────────

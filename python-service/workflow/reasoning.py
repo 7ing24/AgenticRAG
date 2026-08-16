@@ -172,7 +172,7 @@ class ReasoningAgent:
                         seen_ids.add(doc_id)
                         all_sources.append(src)
 
-            yield json.dumps({"type": "sources", "sources": all_sources})
+            yield json.dumps({"type": "sources", "content": all_sources})
 
             # 流式输出最终答案
             for char in final_answer:

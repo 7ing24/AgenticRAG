@@ -7,7 +7,7 @@ Agent 间通过 EventBus（兼黑板）共享中间结果，EventBus 线程安�
 import uuid
 import logging
 import json
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Generator
 from dataclasses import dataclass, field
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -98,7 +98,7 @@ class MultiAgentOrchestrator:
                 collector.record_event(
                     event_type="ORCHESTRATOR_PLAN",
                     phase="REACT",
-                    input_data={"question": question[:200]},
+                    input_data={"question": question},
                     output_data={"decomposable": plan.is_decomposable,
                                  "sub_task_count": len(plan.sub_tasks),
                                  "reasoning": plan.reasoning[:200],
@@ -188,13 +188,13 @@ class MultiAgentOrchestrator:
                     worker_answers.append({
                         "worker": sub_id,
                         "question": st.question if st else "",
-                        "answer": (r.get("answer", "") if isinstance(r, dict) else str(r))[:100],
+                        "answer": (r.get("answer", "") if isinstance(r, dict) else str(r)),
                     })
                 collector.record_event(
                     event_type="ORCHESTRATOR_SYNTHESIS",
                     phase="GENERATION",
-                    input_data={"question": question[:200], "worker_answers": worker_answers},
-                    output_data={"answer": final_answer[:200]},
+                    input_data={"question": question, "worker_answers": worker_answers},
+                    output_data={"answer": final_answer},
                     agent_name="MultiAgentOrchestrator",
                     model_name="qwen-plus",
                     latency_ms=syn_latency,
@@ -464,6 +464,139 @@ class MultiAgentOrchestrator:
 
     # ── Synthesize ──────────────────────────────────────────────
 
+    def run_stream(
+        self,
+        question: str,
+        conversation_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        conversation_history: str = "",
+        trace_id: str = "",
+        **kwargs,
+    ) -> Generator[str, None, None]:
+        """流式执行多 Agent 协作：PLAN + WORKERS 静默，SYNTHESIS 真流式"""
+        import uuid as _uuid
+        run_id = str(_uuid.uuid4())
+        collector = kwargs.get("trace_collector")
+
+        try:
+            # ── 1. Analyze & Plan ──
+            if collector:
+                collector.start_timer("orchestrator_plan")
+            plan = self._analyze_and_plan(question)
+            if collector:
+                plan_latency, plan_start = collector.stop_timer("orchestrator_plan")
+                sub_questions = [st.question for st in plan.sub_tasks]
+                collector.record_event(
+                    event_type="ORCHESTRATOR_PLAN",
+                    phase="REACT",
+                    input_data={"question": question},
+                    output_data={"decomposable": plan.is_decomposable,
+                                 "sub_task_count": len(plan.sub_tasks),
+                                 "reasoning": plan.reasoning,
+                                 "sub_questions": sub_questions},
+                    agent_name="MultiAgentOrchestrator",
+                    latency_ms=plan_latency,
+                    event_time=plan_start,
+                )
+
+            if not plan.is_decomposable:
+                logger.info(f"[{run_id}] Not decomposable, delegating to ReActAgent")
+                worker_result = self._run_single_worker(
+                    question=question, conversation_id=conversation_id,
+                    user_id=user_id, conversation_history=conversation_history,
+                    run_id=run_id, trace_id=trace_id, **kwargs,
+                )
+                answer = worker_result.get("answer", "")
+                for char in answer:
+                    yield json.dumps({"type": "token", "content": char})
+                yield json.dumps({"type": "end", "content": answer, "task_type": "knowledge_qa"})
+                return
+
+            # ── 2. Execute workers ──
+            if collector:
+                collector.start_timer("orchestrator_workers")
+                collector.record_event(
+                    event_type="ORCHESTRATOR_WORKERS_START",
+                    phase="REACT",
+                    input_data={"sub_task_count": len(plan.sub_tasks)},
+                    output_data={"status": "dispatching"},
+                    agent_name="MultiAgentOrchestrator",
+                )
+            results = self._execute_parallel(
+                plan=plan, run_id=run_id, conversation_id=conversation_id,
+                user_id=user_id, conversation_history=conversation_history,
+                trace_id=trace_id, **kwargs,
+            )
+            if collector:
+                workers_latency, workers_start = collector.stop_timer("orchestrator_workers")
+                collector.record_event(
+                    event_type="ORCHESTRATOR_WORKERS_END",
+                    phase="REACT",
+                    input_data={"sub_task_count": len(plan.sub_tasks)},
+                    output_data={"worker_count": len(results),
+                                 "completed": sum(1 for r in results.values()
+                                                  if isinstance(r.get("result", {}), dict)
+                                                  and not r.get("result", {}).get("error"))},
+                    agent_name="MultiAgentOrchestrator",
+                    latency_ms=workers_latency,
+                    event_time=workers_start,
+                )
+
+            # ── 3. Synthesize — 真流式 ──
+            if collector:
+                collector.start_timer("orchestrator_synthesis")
+            full_answer = ""
+            for chunk in self._synthesize_stream(question, results):
+                full_answer += chunk
+                yield json.dumps({"type": "token", "content": chunk})
+
+            if collector:
+                syn_latency, syn_start = collector.stop_timer("orchestrator_synthesis")
+                collector.record_event(
+                    event_type="ORCHESTRATOR_SYNTHESIS",
+                    phase="GENERATION",
+                    input_data={"question": question},
+                    output_data={"answer": full_answer},
+                    agent_name="MultiAgentOrchestrator",
+                    model_name="qwen-plus",
+                    latency_ms=syn_latency,
+                    event_time=syn_start,
+                )
+
+            yield json.dumps({"type": "end", "content": full_answer, "task_type": "knowledge_qa"})
+
+        except Exception as e:
+            logger.error(f"[{run_id}] Orchestrator stream error: {e}", exc_info=True)
+            yield json.dumps({"type": "error", "content": str(e)})
+
+    def _build_synthesis_prompt(self, original_question: str,
+                                 results: Dict[str, Dict[str, Any]]) -> str:
+        parts = []
+        for task_id, entry in results.items():
+            sub_task = entry["sub_task"]
+            answer = entry["result"].get("answer", "") if isinstance(entry["result"], dict) else str(entry["result"])
+            parts.append(f"【{sub_task.question}】\n{answer}")
+        sub_answers_text = "\n\n".join(parts)
+        return (
+            "你是一个知识问答汇总专家。请基于以下分步检索结果，回答用户的原始问题。\n\n"
+            f"原始问题：{original_question}\n\n"
+            "分步检索结果：\n"
+            f"{sub_answers_text}\n\n"
+            "要求：\n"
+            "- 综合所有子问题的答案，给出结构化的完整回答\n"
+            "- 如果子问题之间有矛盾，请明确指出\n"
+            "- 保留引用的来源信息\n"
+            "- 使用与原始问题相同的语言回复"
+        )
+
+    def _synthesize_stream(self, original_question: str,
+                            results: Dict[str, Dict[str, Any]]) -> Generator[str, None, None]:
+        """流式合成最终答案"""
+        prompt = self._build_synthesis_prompt(original_question, results)
+        if self.llm_service and self.llm_service.llm:
+            for chunk in self.llm_service.llm.stream(prompt):
+                yield chunk
+
     def _synthesize(
         self,
         original_question: str,
@@ -472,28 +605,9 @@ class MultiAgentOrchestrator:
         trace_id: str = "",
     ) -> str:
         """LLM 汇总所有 sub-task 结果，生成最终答案"""
-        # 收集所有 sub-answers
-        parts = []
-        for task_id, entry in results.items():
-            sub_task = entry["sub_task"]
-            answer = entry["result"].get("answer", "") if isinstance(entry["result"], dict) else str(entry["result"])
-            parts.append(f"【{sub_task.question}】\n{answer}")
-
-        sub_answers_text = "\n\n".join(parts)
+        prompt = self._build_synthesis_prompt(original_question, results)
 
         try:
-            prompt = (
-                "你是一个知识问答汇总专家。请基于以下分步检索结果，回答用户的原始问题。\n\n"
-                f"原始问题：{original_question}\n\n"
-                "分步检索结果：\n"
-                f"{sub_answers_text}\n\n"
-                "要求：\n"
-                "- 综合所有子问题的答案，给出结构化的完整回答\n"
-                "- 如果子问题之间有矛盾，请明确指出\n"
-                "- 保留引用的来源信息\n"
-                "- 使用与原始问题相同的语言回复"
-            )
-
             result = self.llm_service.generate(prompt)
             if result:
                 self.event_bus.publish(SynthesisCompletedEvent(

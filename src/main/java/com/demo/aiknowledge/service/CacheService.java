@@ -276,4 +276,29 @@ public interface CacheService {
      * @return 元素集合
      */
     <T> Set<T> smembers(String cacheName, String key, Class<T> clazz);
+
+    /**
+     * 添加热点数据（永不过期或延长TTL）
+     *
+     * @param cacheName 缓存名称
+     * @param key       缓存键
+     */
+    void addHotData(String cacheName, String key);
+
+    /**
+     * 判断是否为热点数据
+     *
+     * @param cacheName 缓存名称
+     * @param key       缓存键
+     * @return 是否为热点数据
+     */
+    boolean isHotData(String cacheName, String key);
+
+    /**
+     * 移除热点数据标记
+     *
+     * @param cacheName 缓存名称
+     * @param key       缓存键
+     */
+    void evictHotData(String cacheName, String key);
 }

@@ -22,6 +22,21 @@ from core.llm_fallback import (
 if config.TESSERACT_PATH:
     pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_PATH
 
+class _TokenUsage:
+    """Token 用量辅助类 — 用于流式调用后记录 token 数"""
+    def __init__(self, input_tokens, output_tokens):
+        self.input_tokens = input_tokens
+        self.output_tokens = output_tokens
+        self.total_tokens = input_tokens + output_tokens
+
+    def to_dict(self):
+        return {
+            "input_tokens": self.input_tokens or None,
+            "output_tokens": self.output_tokens or None,
+            "total_tokens": self.total_tokens or None,
+        }
+
+
 class LLMService:
     def __init__(self):
         self._last_token_callback = None
@@ -234,6 +249,14 @@ class LLMService:
             | StrOutputParser()
         )
 
+        # 计算 prompt 文本用于 token 计数
+        prompt_text = self.prompt.format(
+            conversation_context=cleaned_context,
+            knowledge_context=knowledge_context,
+            question=processed_question
+        )
+        input_tokens = self.llm.get_num_tokens(prompt_text) if self.llm else 0
+
         try:
             # 发送开始信号
             yield json.dumps({"type": "start", "content": ""})
@@ -250,6 +273,10 @@ class LLMService:
                 yield json.dumps({"type": "token", "content": chunk})
             llm_time = time.time() - llm_start
             config.logger.info(f"LLM stream invocation completed in {llm_time:.4f}s")
+
+            # 用 get_num_tokens 计算 token 用量（比 callback 可靠）
+            output_tokens = self.llm.get_num_tokens(full_response) if self.llm else 0
+            self._last_token_callback = _TokenUsage(input_tokens, output_tokens)
 
             # 发送结束信号
             yield json.dumps({"type": "end", "content": full_response})

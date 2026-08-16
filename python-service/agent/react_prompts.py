@@ -7,6 +7,10 @@ from datetime import datetime
 class ReActPrompts:
     """ReAct Agent 的 prompt 模板和工具描述生成"""
 
+    # ReAct 循环中实际需要 LLM 自主决策调用的工具
+    # 记忆读写由 MemoryAgent 在循环外预加载/后写入，rerank 已内嵌在 knowledge_search 中
+    REACT_TOOL_NAMES = {"knowledge_search", "question_rewrite"}
+
     SYSTEM_TEMPLATE = """You are an intelligent AI assistant with access to a knowledge base and tools.
 Answer user questions by reasoning step by step and using the available tools to gather information.
 
@@ -55,9 +59,19 @@ or
 Final Answer: <answer>"""
 
     @staticmethod
-    def format_tools_for_llm(tool_registry) -> str:
-        """从 ToolRegistry 动态生成工具描述文本"""
-        tools = tool_registry.get_all_tools()
+    def format_tools_for_llm(tool_registry, tool_filter: set = None) -> str:
+        """从 ToolRegistry 动态生成工具描述文本
+
+        Args:
+            tool_registry: 工具注册中心
+            tool_filter: 可选，只展示指定名称的工具；不传则展示全部已注册工具
+        """
+        all_tools = tool_registry.get_all_tools()
+        if tool_filter is not None:
+            tools = {k: v for k, v in all_tools.items() if k in tool_filter}
+        else:
+            tools = all_tools
+
         if not tools:
             return "(No tools available)"
 
@@ -213,7 +227,9 @@ Final Answer: <answer>"""
         tool_registry,
     ) -> str:
         """构建 ReAct 循环的初始对话文本"""
-        tools_desc = ReActPrompts.format_tools_for_llm(tool_registry)
+        tools_desc = ReActPrompts.format_tools_for_llm(
+            tool_registry, tool_filter=ReActPrompts.REACT_TOOL_NAMES
+        )
 
         system_prompt = ReActPrompts.SYSTEM_TEMPLATE.format(
             tools=tools_desc,

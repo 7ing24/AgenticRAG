@@ -20,10 +20,6 @@ logger = logging.getLogger(__name__)
 class MemoryAgent:
     """三层记忆管理 Agent — 协调 L0/L1/L2 的加载与保存"""
 
-    # L0 工作记忆压缩配置
-    COMPRESS_THRESHOLD = 10  # 超过10轮触发压缩
-    KEEP_RECENT = 5          # 保留最近5轮完整对话
-
     # L1 检索默认参数
     DEFAULT_SEMANTIC_K = 3
     DEFAULT_EPISODIC_K = 2

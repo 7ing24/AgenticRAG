@@ -12,4 +12,10 @@ public interface ChatService {
     void deleteConversation(Long conversationId);
     Conversation updateConversation(Long conversationId, String title, Boolean isPinned);
     Message submitFeedback(Long messageId, String feedbackType);
+
+    /**
+     * 流式回答完成后，持久化 AI 消息、更新上下文、记录日志等
+     */
+    Message completeStreamingMessage(Long userId, Long conversationId, String question,
+                                     String answer, String taskType, String sourcesJson, String traceId);
 }

@@ -72,8 +72,8 @@ class AdminCopilotAgent:
                 collector.record_event(
                     event_type="ADMIN_OPERATION",
                     phase="GENERATION",
-                    input_data={"question": question[:200], "operation": operation},
-                    output_data={"answer": result.get("answer", "")[:200]},
+                    input_data={"question": question, "operation": operation},
+                    output_data={"answer": result.get("answer", "")},
                     agent_name="AdminCopilotAgent",
                     latency_ms=admin_latency,
                     event_time=admin_start,
@@ -127,11 +127,11 @@ class AdminCopilotAgent:
             for char in answer:
                 yield json.dumps({"type": "token", "content": char})
 
-            yield json.dumps({"type": "end", "content": result})
+            yield json.dumps({"type": "end", "content": answer, "task_type": "admin_copilot"})
 
         except Exception as e:
             logger.error(f"[AdminCopilotAgent] Stream error: {e}", exc_info=True)
-            yield json.dumps({"type": "error", "error": str(e)})
+            yield json.dumps({"type": "error", "content": str(e)})
 
     def _parse_operation(self, question: str, context: str = "") -> str:
         """解析操作类型，对跟进类请求回溯上下文"""

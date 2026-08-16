@@ -30,16 +30,25 @@ class MySQLClient:
                 password=self.password,
                 use_unicode=True,
                 charset='utf8mb4',
-                time_zone='+08:00'
+                time_zone='+08:00',
+                autocommit=True,
+                pool_reset_session=True,
             )
             if self.connection.is_connected():
                 logger.info("Successfully connected to MySQL database")
-                # 设置会话时区
                 cursor = self.connection.cursor()
                 cursor.execute("SET time_zone = '+08:00'")
                 cursor.close()
         except Error as e:
             logger.error(f"Error connecting to MySQL: {e}")
+
+    def _ensure_connected(self):
+        """确保连接可用，断开则重连"""
+        try:
+            if self.connection is None or not self.connection.is_connected():
+                self.connect()
+        except Exception:
+            self.connect()
     
     def disconnect(self):
         """关闭数据库连接"""

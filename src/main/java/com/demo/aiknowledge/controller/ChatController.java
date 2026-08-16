@@ -10,7 +10,14 @@ import com.demo.aiknowledge.mapper.ConversationMapper;
 import com.demo.aiknowledge.mapper.MessageMapper;
 import com.demo.aiknowledge.service.ChatService;
 import com.demo.aiknowledge.service.UserService;
+import com.demo.aiknowledge.config.CacheConfig;
+import com.demo.aiknowledge.dto.AiResponse;
+import com.demo.aiknowledge.common.AgentTraceContext;
+import com.demo.aiknowledge.service.AgentTraceService;
+import com.demo.aiknowledge.service.AiService;
+import com.demo.aiknowledge.service.CacheService;
 import com.demo.aiknowledge.service.ConversationContextService;
+import com.demo.aiknowledge.utils.CacheUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.demo.aiknowledge.entity.Admin;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -25,12 +32,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import java.io.File;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -51,6 +59,9 @@ public class ChatController {
     private final MessageMapper messageMapper;
     private final ConversationContextService conversationContextService;
     private final ObjectMapper objectMapper;
+    private final AgentTraceService agentTraceService;
+    private final CacheService cacheService;
+    private final AiService aiService;
 
     @Value("${upload.dir}/temp")
     private String uploadTempDir;
@@ -70,14 +81,28 @@ public class ChatController {
         return Result.success(chatService.sendMessage(request.getUserId(), request.getConversationId(), request.getContent()));
     }
 
+    /**
+     * 流式 SSE 端点 —— 透传代理 + 消息落库 + 全链路追踪。
+     *
+     * <pre>
+     * Servlet 线程：保存用户消息 → 返回 Flux
+     * BoundedElastic 线程：打开 trace → 透传 Python SSE → 落库 → 关闭 trace
+     * </pre>
+     *
+     * 用 .publishOn(Schedulers.boundedElastic()) 把 [doOnSubscribe..doOnComplete]
+     * 固定在一个 worker 线程上，trace 的 ThreadLocal 自然可用，无需手动迁移。
+     */
     @PostMapping(value = "/stream/messages", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public ResponseEntity<SseEmitter> sendMessageStream(@RequestBody ChatRequest request) {
+    public Flux<String> sendMessageStream(@RequestBody ChatRequest request) {
         Long userId = request.getUserId();
         Long conversationId = request.getConversationId();
         String content = request.getContent();
         String traceId = UUID.randomUUID().toString();
 
-        // Save user message
+        log.info("Stream request received: userId={}, conversationId={}, question={}, traceId={}",
+                userId, conversationId, content.length() > 50 ? content.substring(0, 50) + "..." : content, traceId);
+
+        // ── Servlet 线程：保存用户消息、检查缓存 ──
         Message userMsg = new Message();
         userMsg.setConversationId(conversationId);
         userMsg.setRole("user");
@@ -85,62 +110,273 @@ public class ChatController {
         userMsg.setCreateTime(LocalDateTime.now());
         messageMapper.insert(userMsg);
 
-        // Update conversation context
         conversationContextService.updateConversationContext(conversationId, userId, userMsg);
 
-        // Build request body for Python
+        String cacheKey = CacheUtils.normalizeQuestion(content);
+        long cacheStart = System.nanoTime();
+        AiResponse cachedResponse = cacheService.get(
+                CacheConfig.CacheConstants.CACHE_AI_ANSWER, cacheKey, AiResponse.class);
+        long cacheLatency = (System.nanoTime() - cacheStart) / 1_000_000;
+        final boolean cacheHit = cachedResponse != null
+                && cachedResponse.getAnswer() != null
+                && !cachedResponse.getAnswer().contains("AI服务");
+
+        log.info("Cache {} for stream question: {} ({}ms)",
+                cacheHit ? "HIT" : "MISS",
+                content.length() > 50 ? content.substring(0, 50) + "..." : content,
+                cacheLatency);
+
+        if (cacheHit) {
+            String cachedAnswer = cachedResponse.getAnswer();
+            String cachedTaskType = cachedResponse.getTaskType();
+            log.info("<<< [Stream] Cache HIT: traceId={}, answerLen={}, taskType={}",
+                    traceId, cachedAnswer.length(), cachedTaskType);
+
+            // 用数组持有 scope/ctx，doOnSubscribe 和 doOnComplete 可能在不同线程
+            final AgentTraceService.TraceScope[] hitScope = {null};
+            final AgentTraceContext[] hitCtx = {null};
+
+            return Flux.just(
+                    "{\"type\":\"start\"}",
+                    "{\"type\":\"end\",\"content\":" + writeJson(cachedAnswer)
+                            + ",\"task_type\":\"" + (cachedTaskType != null ? cachedTaskType : "unknown") + "\"}"
+            ).doOnSubscribe(s -> {
+                hitScope[0] = agentTraceService.openTrace(
+                        traceId, conversationId.toString(), userId);
+                hitCtx[0] = AgentTraceContext.current();
+                agentTraceService.recordEvent("REQUEST_RECEIVED", "HTTP",
+                        Map.of("content", content, "conversationId", conversationId), null);
+
+                Long hitMsgCount = messageMapper.selectCount(
+                        new LambdaQueryWrapper<Message>().eq(Message::getConversationId, conversationId));
+                agentTraceService.recordEvent("CONVERSATION_LOADED", "DB",
+                        Map.of("conversationId", conversationId),
+                        Map.of("messageCount", hitMsgCount, "isNew", hitMsgCount <= 1));
+                agentTraceService.recordEvent("USER_MESSAGE_SAVED", "DB",
+                        Map.of("content", content), Map.of("messageId", userMsg.getId()));
+                agentTraceService.recordEvent("CACHE_LOOKUP", "CACHE",
+                        Map.of("cacheKey", cacheKey.length() > 60 ? cacheKey.substring(0, 60) + "..." : cacheKey),
+                        Map.of("result", "HIT"));
+                agentTraceService.recordEvent("CACHE_HIT_RETURN", "CACHE",
+                        Map.of("question", content),
+                        Map.of("answer", cachedAnswer));
+                // 不关 scope — doOnComplete 里关
+            }).doOnComplete(() -> {
+                // 恢复 trace 上下文
+                if (hitCtx[0] != null) { AgentTraceContext.set(hitCtx[0]); }
+                try {
+                    chatService.completeStreamingMessage(
+                            userId, conversationId, content,
+                            cachedAnswer, cachedTaskType, null, traceId);
+                    agentTraceService.recordEvent("REQUEST_FINISHED", "HTTP", null,
+                            Map.of("answerLength", cachedAnswer.length(), "taskType", cachedTaskType, "cached", true));
+                } finally {
+                    if (hitScope[0] != null) { hitScope[0].close(); }
+                }
+            });
+        }
+
+        // ── 精确未命中 → 尝试语义缓存 ──
+        String semanticKey = aiService.semanticCacheLookup(content);
+        if (semanticKey != null) {
+            AiResponse semanticCached = cacheService.get(
+                    CacheConfig.CacheConstants.CACHE_AI_ANSWER, semanticKey, AiResponse.class);
+            if (semanticCached != null && semanticCached.getAnswer() != null
+                    && !semanticCached.getAnswer().contains("AI服务")) {
+                String semAnswer = semanticCached.getAnswer();
+                String semTaskType = semanticCached.getTaskType();
+                log.info("<<< [Stream] Semantic cache HIT: traceId={}, key='{}', answerLen={}",
+                        traceId, semanticKey, semAnswer.length());
+
+                final AgentTraceService.TraceScope[] semScope = {null};
+                final AgentTraceContext[] semCtx = {null};
+                return Flux.just(
+                        "{\"type\":\"start\"}",
+                        "{\"type\":\"end\",\"content\":" + writeJson(semAnswer)
+                                + ",\"task_type\":\"" + (semTaskType != null ? semTaskType : "unknown") + "\"}"
+                ).doOnSubscribe(s -> {
+                    semScope[0] = agentTraceService.openTrace(
+                            traceId, conversationId.toString(), userId);
+                    semCtx[0] = AgentTraceContext.current();
+                    agentTraceService.recordEvent("CACHE_LOOKUP", "CACHE",
+                            Map.of("cacheKey", cacheKey.length() > 60 ? cacheKey.substring(0, 60) + "..." : cacheKey),
+                            Map.of("result", "SEMANTIC_HIT", "semanticKey", semanticKey));
+                    agentTraceService.recordEvent("CACHE_HIT_RETURN", "CACHE",
+                            Map.of("question", content), Map.of("answer", semAnswer));
+                }).doOnComplete(() -> {
+                    if (semCtx[0] != null) { AgentTraceContext.set(semCtx[0]); }
+                    try {
+                        chatService.completeStreamingMessage(
+                                userId, conversationId, content,
+                                semAnswer, semTaskType, null, traceId);
+                        agentTraceService.recordEvent("REQUEST_FINISHED", "HTTP", null,
+                                Map.of("answerLength", semAnswer.length(), "taskType", semTaskType, "cached", true));
+                    } finally {
+                        if (semScope[0] != null) { semScope[0].close(); }
+                    }
+                });
+            }
+        }
+
+        // ── 缓存未命中：透传 Python SSE + 全链路追踪 ──
+
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("question", content);
-
         String username = null;
         if (userId != null) {
             var user = userService.getById(userId);
             if (user != null) {
                 username = user.getUsername();
                 requestBody.put("username", username);
+                log.info("Added username to stream request: {}", username);
             }
         }
-
         boolean isAdmin = username != null
                 && adminMapper.selectCount(new LambdaQueryWrapper<Admin>().eq(Admin::getUsername, username)) > 0;
         requestBody.put("is_admin", isAdmin);
-        if (userId != null) {
-            requestBody.put("user_id", userId.toString());
-        }
+        if (userId != null) requestBody.put("user_id", userId.toString());
         requestBody.put("conversation_id", conversationId.toString());
         requestBody.put("trace_id", traceId);
 
-        log.info("Streaming request to Python: userId={}, conversationId={}, traceId={}", userId, conversationId, traceId);
+        log.info("User is admin: {}, userId: {}, conversationId: {}, traceId: {}", isAdmin, userId, conversationId, traceId);
+        log.info(">>> [Stream] Calling Python /api/ask/stream: traceId={}", traceId);
 
-        SseEmitter emitter = new SseEmitter(180000L);
+        final StringBuilder answer = new StringBuilder();
+        final String[] taskType = {null};
+        final List<Map<String, Object>> sources = new ArrayList<>();
+        final List<Map<String, Object>> pythonTraces = new ArrayList<>();
+        final long[] pyStart = {0};
+        final boolean[] firstToken = {true};
 
-        webClient.post()
+        // 持有 scope 和 context — doOnSubscribe 和 doOnComplete 可能在不同线程
+        final AgentTraceService.TraceScope[] scopeHolder = {null};
+        final AgentTraceContext[] ctxHolder = {null};
+
+        return webClient.post()
                 .uri("/api/ask/stream")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
                 .accept(MediaType.TEXT_EVENT_STREAM)
                 .retrieve()
                 .bodyToFlux(String.class)
-                .subscribe(
-                    line -> {
-                        if (line.isEmpty()) return;
-                        try {
-                            emitter.send(SseEmitter.event().data(line.replaceFirst("^data: ", "")));
-                        } catch (IOException e) {
-                            emitter.completeWithError(e);
-                        }
-                    },
-                    error -> {
-                        log.error("Stream error for traceId={}: {}", traceId, error.getMessage());
-                        emitter.completeWithError(error);
-                    },
-                    () -> emitter.complete()
-                );
+                .doOnSubscribe(s -> {
+                    scopeHolder[0] = agentTraceService.openTrace(
+                            traceId, conversationId.toString(), userId);
+                    ctxHolder[0] = AgentTraceContext.current();  // 保存引用
+                    agentTraceService.recordEvent("REQUEST_RECEIVED", "HTTP",
+                            Map.of("content", content, "conversationId", conversationId), null);
 
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CACHE_CONTROL, "no-cache")
-                .header("X-Accel-Buffering", "no")
-                .body(emitter);
+                    Long msgCount = messageMapper.selectCount(
+                            new LambdaQueryWrapper<Message>().eq(Message::getConversationId, conversationId));
+                    agentTraceService.recordEvent("CONVERSATION_LOADED", "DB",
+                            Map.of("conversationId", conversationId),
+                            Map.of("messageCount", msgCount, "isNew", msgCount <= 1));
+                    agentTraceService.recordEvent("USER_MESSAGE_SAVED", "DB",
+                            Map.of("content", content), Map.of("messageId", userMsg.getId()));
+                    agentTraceService.recordEvent("CACHE_LOOKUP", "CACHE",
+                            Map.of("cacheKey", cacheKey.length() > 60 ? cacheKey.substring(0, 60) + "..." : cacheKey),
+                            Map.of("result", "MISS"));
+                    agentTraceService.recordEvent("PYTHON_CALL_START", "AI_CALL",
+                            Map.of("question", content, "conversationId", conversationId), null);
+                    pyStart[0] = System.nanoTime();
+                })
+                .publishOn(Schedulers.boundedElastic())
+                .filter(line -> !line.isEmpty())
+                .map(line -> line.replaceFirst("^data: ", ""))
+                .doOnNext(json -> {
+                    try {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> event = objectMapper.readValue(json, Map.class);
+                        String type = (String) event.get("type");
+                        if ("token".equals(type) && event.get("content") != null) {
+                            if (firstToken[0]) {
+                                long ttfb = (System.nanoTime() - pyStart[0]) / 1_000_000;
+                                log.info("First token received: traceId={}, ttfbMs={}", traceId, ttfb);
+                                firstToken[0] = false;
+                            }
+                            answer.append(event.get("content"));
+                        } else if ("end".equals(type)) {
+                            if (event.get("content") != null) { answer.setLength(0); answer.append((String) event.get("content")); }
+                            if (event.get("task_type") != null) taskType[0] = (String) event.get("task_type");
+                        } else if ("routed".equals(type) && event.get("task_type") != null) {
+                            taskType[0] = (String) event.get("task_type");
+                            log.info("Stream routed: traceId={}, taskType={}", traceId, taskType[0]);
+                        } else if ("sources".equals(type) && event.get("content") instanceof List) {
+                            @SuppressWarnings("unchecked")
+                            List<Map<String, Object>> srcs = (List<Map<String, Object>>) event.get("content");
+                            sources.addAll(srcs);
+                        } else if ("traces".equals(type) && event.get("traces") instanceof List) {
+                            @SuppressWarnings("unchecked")
+                            List<Map<String, Object>> pts = (List<Map<String, Object>>) event.get("traces");
+                            pythonTraces.addAll(pts);
+                            log.info("<<< [Stream] Python trace events received: traceId={}, count={}", traceId, pts.size());
+                        }
+                    } catch (Exception ignored) {}
+                })
+                .doOnComplete(() -> {
+                    // ⚠️ BoundedElastic Worker 不保证同一线程，手动迁移上下文
+                    if (ctxHolder[0] != null) { AgentTraceContext.set(ctxHolder[0]); }
+                    try {
+                        long pyLatency = (System.nanoTime() - pyStart[0]) / 1_000_000;
+                        String finalAnswer = answer.toString();
+                        String finalTaskType = taskType[0];
+                        String sourcesJson = sources.isEmpty() ? null : writeJson(sources);
+
+                        // 先合并 Python trace（排在 PYTHON_CALL_END 前面）
+                        if (!pythonTraces.isEmpty()) {
+                            agentTraceService.mergePythonTraces(pythonTraces);
+                        }
+
+                        agentTraceService.recordEvent("PYTHON_CALL_END", "AI_CALL",
+                                Map.of("question", content),
+                                Map.of("answer", finalAnswer, "taskType",
+                                        finalTaskType != null ? finalTaskType : "unknown",
+                                        "sourceCount", sources.size()),
+                                pyLatency);
+
+                        if (finalAnswer != null && !finalAnswer.isEmpty()) {
+                            chatService.completeStreamingMessage(
+                                    userId, conversationId, content,
+                                    finalAnswer, finalTaskType, sourcesJson, traceId);
+
+                            agentTraceService.recordEvent("REQUEST_FINISHED", "HTTP", null,
+                                    Map.of("answerLength", finalAnswer.length(), "taskType", finalTaskType));
+
+                            log.info("<<< [Stream] Response generated successfully: traceId={}, answerLen={}, taskType={}, latencyMs={}, sourceCount={}",
+                                    traceId, finalAnswer.length(), finalTaskType, pyLatency, sources.size());
+                        } else {
+                            agentTraceService.markFailed();
+                            agentTraceService.recordEvent("REQUEST_FAILED", "HTTP", null,
+                                    Map.of("error", "Empty answer from Python"));
+                            log.warn("<<< [Stream] Empty answer, not persisted: traceId={}", traceId);
+                        }
+                    } finally {
+                        if (scopeHolder[0] != null) { scopeHolder[0].close(); }
+                    }
+                })
+                .doOnError(e -> {
+                    log.error("Stream error: traceId={}", traceId, e);
+                    if (ctxHolder[0] != null) { AgentTraceContext.set(ctxHolder[0]); }
+                    try {
+                        if (scopeHolder[0] != null) {
+                            agentTraceService.recordEvent("REQUEST_FAILED", "HTTP", null,
+                                    Map.of("error", e.getClass().getSimpleName()));
+                            agentTraceService.markFailed();
+                            scopeHolder[0].close();
+                        }
+                    } finally {
+                        AgentTraceContext.remove();
+                    }
+                });
+    }
+
+
+    private String writeJson(Object obj) {
+        try {
+            return objectMapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            return "\"\"";
+        }
     }
 
     @GetMapping("/messages")

@@ -55,7 +55,7 @@ class TraceEvent:
 class TraceCollector:
     """请求级的 trace 事件收集器，非线程安全（每个请求创建一个新实例）"""
 
-    MAX_SNAPSHOT_LENGTH = 500
+    MAX_SNAPSHOT_LENGTH = 100000  # 不截断
 
     def __init__(self, trace_id: str, session_id: str = "", user_id: str = ""):
         self.trace_id = trace_id
@@ -146,13 +146,5 @@ class TraceCollector:
     # ── 内部工具 ────────────────────────────────────
 
     def _truncate(self, value: Any) -> Any:
-        """递归截断长字符串和 dict/str 值"""
-        if value is None:
-            return None
-        if isinstance(value, str) and len(value) > self.MAX_SNAPSHOT_LENGTH:
-            return value[:self.MAX_SNAPSHOT_LENGTH] + "...[truncated]"
-        if isinstance(value, dict):
-            return {k: self._truncate(v) for k, v in value.items()}
-        if isinstance(value, list):
-            return [self._truncate(v) for v in value]
+        """保留方法签名但不再截断，直接返回原值"""
         return value
