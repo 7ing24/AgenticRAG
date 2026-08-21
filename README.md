@@ -291,12 +291,12 @@ flowchart LR
 | 层次 / 模块 | 技术选型 | 核心作用说明 |
 | :--- | :--- | :--- |
 | **业务中台** | `Java 17` / `Spring Boot 3.4` / `MyBatis-Plus` | 核心业务路由、高并发鉴权、审计持久化 |
-| **流式通信** | `Spring WebFlux` (SSE) | 生产级 Server-Sent Events 流式响应与心跳保活 |
+| **流式通信** | `Spring WebFlux` (SSE) | 生产级 Server-Sent Events 流式响应 |
 | **AI 引擎** | `Python 3.10+` / `FastAPI` / `Pydantic` | 异步 AI 服务、DAG 编排、多智能体协同 |
 | **向量数据库** | `Milvus 2.4+` | BM25 稀疏检索、HNSW 稠密检索与语义缓存索引 |
 | **持久化存储** | `MySQL 8.0` | 业务元数据、Trace 全链路审计日志持久化 |
 | **多级缓存** | `Caffeine` + `Redis 7.0` | 本地微秒级缓存 + 分布式高可用会话与缓存 |
-| **大模型 / 向量** | `DashScope (Qwen-Plus)` / `Cross-Encoder` | 复杂多跳推理生成、高维文本向量化与精准重排 |
+| **大模型 / 向量** | `DashScope` / `Cross-Encoder` | 复杂多跳推理生成、高维文本向量化与精准重排 |
 | **质量评估** | `RAGAS` | 针对上下文相关性、忠实度与召回率的自动化评测 |
 
 ---
