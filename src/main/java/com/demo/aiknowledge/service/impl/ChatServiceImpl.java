@@ -8,6 +8,7 @@ import com.demo.aiknowledge.entity.AgentStep;
 import com.demo.aiknowledge.entity.Conversation;
 import com.demo.aiknowledge.entity.Message;
 import com.demo.aiknowledge.entity.QaLog;
+import com.demo.aiknowledge.entity.ToolCall;
 import com.demo.aiknowledge.mapper.AgentStepMapper;
 import com.demo.aiknowledge.mapper.ConversationMapper;
 import com.demo.aiknowledge.mapper.MessageMapper;
@@ -18,6 +19,7 @@ import com.demo.aiknowledge.service.CacheService;
 import com.demo.aiknowledge.service.ChatService;
 import com.demo.aiknowledge.service.ConversationContextService;
 import com.demo.aiknowledge.service.QaUnansweredService;
+import com.demo.aiknowledge.service.ToolCallService;
 import com.demo.aiknowledge.service.AgentTraceService;
 import com.demo.aiknowledge.utils.CacheUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,9 +46,26 @@ public class ChatServiceImpl implements ChatService {
     private final ConversationContextService conversationContextService;
     private final AgentRunService agentRunService;
     private final AgentStepMapper agentStepMapper;
+    private final ToolCallService toolCallService;
     private final ObjectMapper objectMapper;
     private final CacheService cacheService;
     private final AgentTraceService agentTraceService;
+
+    private static final String[] UNANSWERED_KEYWORDS = {
+            "抱歉", "无法回答", "知识库中暂无", "暂无相关", "未找到相关", "没有找到相关", "无相关信息"
+    };
+
+    private boolean isUnanswered(String answer) {
+        if (answer == null) {
+            return false;
+        }
+        for (String keyword : UNANSWERED_KEYWORDS) {
+            if (answer.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     @Override
     public Conversation createConversation(Long userId, String title) {
@@ -97,267 +116,225 @@ public class ChatServiceImpl implements ChatService {
 
             try {
 
-            // ── 2. CONVERSATION_LOADED ───────────────────
-            Long msgCount = messageMapper.selectCount(new LambdaQueryWrapper<Message>()
-                    .eq(Message::getConversationId, conversationId));
-            agentTraceService.recordEvent("CONVERSATION_LOADED", "DB",
-                    Map.of("conversationId", conversationId),
-                    Map.of("messageCount", msgCount, "isNew", msgCount == 0));
+                // ── 2. CONVERSATION_LOADED ───────────────────
+                Long msgCount = messageMapper.selectCount(new LambdaQueryWrapper<Message>()
+                        .eq(Message::getConversationId, conversationId));
+                agentTraceService.recordEvent("CONVERSATION_LOADED", "DB",
+                        Map.of("conversationId", conversationId),
+                        Map.of("messageCount", msgCount, "isNew", msgCount == 0));
 
-            // 1. 保存用户消息
-            Message userMsg = new Message();
-            userMsg.setConversationId(conversationId);
-            userMsg.setRole("user");
-            userMsg.setContent(content);
-            userMsg.setCreateTime(LocalDateTime.now());
-            messageMapper.insert(userMsg);
+                // 1. 保存用户消息
+                Message userMsg = new Message();
+                userMsg.setConversationId(conversationId);
+                userMsg.setRole("user");
+                userMsg.setContent(content);
+                userMsg.setCreateTime(LocalDateTime.now());
+                messageMapper.insert(userMsg);
 
-            // ── 3. USER_MESSAGE_SAVED ────────────────────
-            agentTraceService.recordEvent("USER_MESSAGE_SAVED", "DB",
-                    Map.of("content", content),
-                    Map.of("messageId", userMsg.getId()));
+                // ── 3. USER_MESSAGE_SAVED ────────────────────
+                agentTraceService.recordEvent("USER_MESSAGE_SAVED", "DB",
+                        Map.of("content", content),
+                        Map.of("messageId", userMsg.getId()));
 
-            // 1.1 更新对话上下文缓存（前端拉历史消息列表时用，不影响AI回答）
-            conversationContextService.updateConversationContext(conversationId, userId, userMsg);
+                // 1.1 更新对话上下文缓存（前端拉历史消息列表时用，不影响AI回答）
+                conversationContextService.updateConversationContext(conversationId, userId, userMsg);
 
-            // 检查是否为第一条消息，如果是则生成标题
-            if (msgCount == 0) { // 保存前 count=0，保存后为第一条
-                 // 异步生成标题，避免阻塞
-                 aiService.generateTitle(conversationId, content);
-            }
-
-            // 2. 先查缓存，再决定是否调用 Python AI 服务
-            String cacheKey = CacheUtils.normalizeQuestion(content);
-            long cacheStart = System.nanoTime();
-            AiResponse cachedResponse = cacheService.get(
-                    CacheConfig.CacheConstants.CACHE_AI_ANSWER, cacheKey, AiResponse.class);
-            long cacheLatency = (System.nanoTime() - cacheStart) / 1_000_000;
-            boolean cacheHit = cachedResponse != null
-                    && cachedResponse.getAnswer() != null
-                    && !cachedResponse.getAnswer().contains("AI服务");
-
-            log.info("Cache {} for question: {} ({}ms)",
-                    cacheHit ? "HIT" : "MISS",
-                    content.length() > 50 ? content.substring(0, 50) + "..." : content,
-                    cacheLatency);
-
-            agentTraceService.recordEvent("CACHE_LOOKUP", "CACHE",
-                    Map.of("cacheKey", cacheKey.length() > 60 ? cacheKey.substring(0, 60) + "..." : cacheKey),
-                    Map.of("result", cacheHit ? "HIT" : "MISS", "latencyMs", cacheLatency));
-
-            AiResponse aiResponse;
-            String answer;
-            String taskType;
-
-            if (cacheHit) {
-                aiResponse = cachedResponse;
-                aiResponse.setCached(true);
-                answer = aiResponse.getAnswer();
-                taskType = aiResponse.getTaskType();
-                agentTraceService.recordEvent("CACHE_HIT_RETURN", "CACHE",
-                        Map.of("question", content),
-                        Map.of("answer", answer));
-            } else {
-                // 精确未命中 → 尝试语义缓存
-                String semanticKey = aiService.semanticCacheLookup(content);
-                AiResponse semanticCached = null;
-                if (semanticKey != null) {
-                    semanticCached = cacheService.get(
-                            CacheConfig.CacheConstants.CACHE_AI_ANSWER, semanticKey, AiResponse.class);
+                // 检查是否为第一条消息，如果是则生成标题
+                if (msgCount == 0) { // 保存前 count=0，保存后为第一条
+                    // 异步生成标题，避免阻塞
+                    aiService.generateTitle(conversationId, content);
                 }
 
-                if (semanticCached != null && semanticCached.getAnswer() != null
-                        && !semanticCached.getAnswer().contains("AI服务")) {
-                    aiResponse = semanticCached;
+                // 2. 先查缓存，再决定是否调用 Python AI 服务
+                String cacheKey = CacheUtils.normalizeQuestion(content);
+                long cacheStart = System.nanoTime();
+                AiResponse cachedResponse = cacheService.get(
+                        CacheConfig.CacheConstants.CACHE_AI_ANSWER, cacheKey, AiResponse.class);
+                long cacheLatency = (System.nanoTime() - cacheStart) / 1_000_000;
+                boolean cacheHit = cachedResponse != null && cachedResponse.isValidAnswer();
+
+                log.info("Cache {} for question: {} ({}ms)",
+                        cacheHit ? "HIT" : "MISS",
+                        content.length() > 50 ? content.substring(0, 50) + "..." : content,
+                        cacheLatency);
+
+                agentTraceService.recordEvent("CACHE_LOOKUP", "CACHE",
+                        Map.of("cacheKey", cacheKey.length() > 60 ? cacheKey.substring(0, 60) + "..." : cacheKey),
+                        Map.of("result", cacheHit ? "HIT" : "MISS", "latencyMs", cacheLatency));
+
+                AiResponse aiResponse;
+                String answer;
+                String taskType;
+
+                if (cacheHit) {
+                    aiResponse = cachedResponse;
                     aiResponse.setCached(true);
                     answer = aiResponse.getAnswer();
                     taskType = aiResponse.getTaskType();
-                    log.info("Semantic cache HIT: key='{}'", semanticKey);
+                    agentTraceService.recordEvent("CACHE_HIT_RETURN", "CACHE",
+                            Map.of("question", content),
+                            Map.of("answer", answer));
                 } else {
-                    agentTraceService.recordEvent("PYTHON_CALL_START", "AI_CALL",
-                            Map.of("question", content, "conversationId", conversationId),
-                            null);
-
-                    long pyStart = System.nanoTime();
-                    aiResponse = aiService.ask(content, userId, conversationId, traceId);
-                    long pyLatency = (System.nanoTime() - pyStart) / 1_000_000;
-
-                    answer = aiResponse.getAnswer();
-                    taskType = aiResponse.getTaskType();
-
-                    if (aiResponse.getTraces() != null && !aiResponse.getTraces().isEmpty()) {
-                        agentTraceService.mergePythonTraces(aiResponse.getTraces());
+                    // 精确未命中 → 尝试语义缓存
+                    String semanticKey = aiService.semanticCacheLookup(content);
+                    AiResponse semanticCached = null;
+                    if (semanticKey != null) {
+                        semanticCached = cacheService.get(
+                                CacheConfig.CacheConstants.CACHE_AI_ANSWER, semanticKey, AiResponse.class);
                     }
 
-                    agentTraceService.recordEvent("PYTHON_CALL_END", "AI_CALL",
-                            Map.of("question", content, "conversationId", conversationId),
-                            Map.of("answer", answer, "taskType", taskType != null ? taskType : "unknown",
-                                   "sourceCount", aiResponse.getSources() != null ? aiResponse.getSources().size() : 0),
-                            pyLatency);
-                }
-            }
+                    if (semanticCached != null && semanticCached.isValidAnswer()) {
+                        aiResponse = semanticCached;
+                        aiResponse.setCached(true);
+                        answer = aiResponse.getAnswer();
+                        taskType = aiResponse.getTaskType();
+                        log.info("Semantic cache HIT: key='{}'", semanticKey);
+                    } else {
+                        agentTraceService.recordEvent("PYTHON_CALL_START", "AI_CALL",
+                                Map.of("question", content, "conversationId", conversationId),
+                                null);
 
-            String sourcesJson = null;
-            if (aiResponse.getSources() != null && !aiResponse.getSources().isEmpty()) {
+                        long pyStart = System.nanoTime();
+                        aiResponse = aiService.ask(content, userId, conversationId, traceId);
+                        long pyLatency = (System.nanoTime() - pyStart) / 1_000_000;
+
+                        answer = aiResponse.getAnswer();
+                        taskType = aiResponse.getTaskType();
+
+                        if (aiResponse.getTraces() != null && !aiResponse.getTraces().isEmpty()) {
+                            agentTraceService.mergePythonTraces(aiResponse.getTraces());
+                        }
+
+                        agentTraceService.recordEvent("PYTHON_CALL_END", "AI_CALL",
+                                Map.of("question", content, "conversationId", conversationId),
+                                Map.of("answer", answer, "taskType", taskType != null ? taskType : "unknown",
+                                        "sourceCount", aiResponse.getSources() != null ? aiResponse.getSources().size() : 0),
+                                pyLatency);
+                    }
+                }
+
+                String sourcesJson = null;
+                if (aiResponse.getSources() != null && !aiResponse.getSources().isEmpty()) {
+                    try {
+                        sourcesJson = objectMapper.writeValueAsString(aiResponse.getSources());
+                    } catch (Exception e) {
+                        log.error("Failed to serialize sources", e);
+                    }
+                } else {
+                    if (isUnanswered(answer)) {
+                        qaUnansweredService.recordUnansweredQuestion(content);
+                    }
+                }
+
+                // 3. 保存 AI 回答
+                Message aiMsg = new Message();
+                aiMsg.setConversationId(conversationId);
+                aiMsg.setRole("assistant");
+                aiMsg.setContent(answer);
+                aiMsg.setSources(sourcesJson);
+                aiMsg.setTaskType(taskType);
+                aiMsg.setCreateTime(LocalDateTime.now());
+                messageMapper.insert(aiMsg);
+
+                // ── 8. AI_MESSAGE_SAVED ──────────────────────
+                agentTraceService.recordEvent("AI_MESSAGE_SAVED", "DB",
+                        Map.of("answerLength", answer != null ? answer.length() : 0, "taskType", taskType),
+                        Map.of("messageId", aiMsg.getId()));
+
+                // 3.1 更新对话上下文（AI消息）
+                conversationContextService.updateConversationContext(conversationId, userId, aiMsg);
+
+                // 4. 记录 QA 日志
+                QaLog qaLog = new QaLog();
+                qaLog.setUserId(userId);
+                qaLog.setQuestion(content);
+                qaLog.setAnswer(answer);
+                qaLog.setCreateTime(LocalDateTime.now());
+                qaLogMapper.insert(qaLog);
+
+                // ── 9. QA_LOG_RECORDED ───────────────────────
+                agentTraceService.recordEvent("QA_LOG_RECORDED", "DB", null,
+                        Map.of("qaLogId", qaLog.getId()));
+
+                // ── 10. 记录 Agent 执行记录（供管理端查看） ──
                 try {
-                    sourcesJson = objectMapper.writeValueAsString(aiResponse.getSources());
-                } catch (Exception e) {
-                    log.error("Failed to serialize sources", e);
-                }
-            } else {
-                if (answer.contains("抱歉") || answer.contains("无法回答")) {
-                     qaUnansweredService.recordUnansweredQuestion(content);
-                }
-            }
+                    String finalTraceId = aiResponse.getTraceId() != null ? aiResponse.getTraceId() : traceId;
+                    java.util.List<AiResponse.AgentRunRecord> runs = aiResponse.getRuns();
 
-            // 3. 保存 AI 回答
-            Message aiMsg = new Message();
-            aiMsg.setConversationId(conversationId);
-            aiMsg.setRole("assistant");
-            aiMsg.setContent(answer);
-            aiMsg.setSources(sourcesJson);
-            aiMsg.setTaskType(taskType);
-            aiMsg.setCreateTime(LocalDateTime.now());
-            messageMapper.insert(aiMsg);
+                    if (runs != null && !runs.isEmpty()) {
+                        for (AiResponse.AgentRunRecord runRecord : runs) {
+                            AgentRun agentRun = new AgentRun();
+                            agentRun.setId(java.util.UUID.randomUUID().toString());
+                            agentRun.setRunId(runRecord.getRunId());
+                            agentRun.setTraceId(finalTraceId);
+                            agentRun.setParentRunId(runRecord.getParentRunId());
+                            agentRun.setAgentType(runRecord.getAgentType());
+                            agentRun.setConversationId(String.valueOf(conversationId));
+                            agentRun.setUserId(String.valueOf(userId));
+                            agentRun.setStatus("completed");
+                            agentRun.setGoal("Answer: " + (content.length() > 100 ? content.substring(0, 100) + "..." : content));
+                            String runInput = (runRecord.getParentRunId() != null && runRecord.getQuestion() != null)
+                                    ? runRecord.getQuestion() : content;
+                            agentRun.setInput(runInput);
+                            if (runRecord.getParentRunId() == null) {
+                                agentRun.setOutput(answer.length() > 500 ? answer.substring(0, 500) + "..." : answer);
+                            }
+                            agentRun.setStartTime(LocalDateTime.now());
+                            agentRun.setEndTime(LocalDateTime.now());
+                            agentRun.setCreatedAt(LocalDateTime.now());
+                            agentRunService.saveAgentRun(agentRun);
 
-            // ── 8. AI_MESSAGE_SAVED ──────────────────────
-            agentTraceService.recordEvent("AI_MESSAGE_SAVED", "DB",
-                    Map.of("answerLength", answer != null ? answer.length() : 0, "taskType", taskType),
-                    Map.of("messageId", aiMsg.getId()));
-
-            // 3.1 更新对话上下文（AI消息）
-            conversationContextService.updateConversationContext(conversationId, userId, aiMsg);
-
-            // 4. 记录 QA 日志
-            QaLog qaLog = new QaLog();
-            qaLog.setUserId(userId);
-            qaLog.setQuestion(content);
-            qaLog.setAnswer(answer);
-            qaLog.setCreateTime(LocalDateTime.now());
-            qaLogMapper.insert(qaLog);
-
-            // ── 9. QA_LOG_RECORDED ───────────────────────
-            agentTraceService.recordEvent("QA_LOG_RECORDED", "DB", null,
-                    Map.of("qaLogId", qaLog.getId()));
-
-            // ── 10. 记录 Agent 执行记录（供管理端查看） ──
-            try {
-                String finalTraceId = aiResponse.getTraceId() != null ? aiResponse.getTraceId() : traceId;
-                java.util.List<AiResponse.AgentRunRecord> runs = aiResponse.getRuns();
-
-                if (runs != null && !runs.isEmpty()) {
-                    for (AiResponse.AgentRunRecord runRecord : runs) {
+                            saveAgentSteps(runRecord.getRunId(), runRecord.getSteps());
+                        }
+                    } else {
                         AgentRun agentRun = new AgentRun();
                         agentRun.setId(java.util.UUID.randomUUID().toString());
-                        agentRun.setRunId(runRecord.getRunId());
+                        agentRun.setRunId(java.util.UUID.randomUUID().toString());
                         agentRun.setTraceId(finalTraceId);
-                        agentRun.setParentRunId(runRecord.getParentRunId());
-                        agentRun.setAgentType(runRecord.getAgentType());
                         agentRun.setConversationId(String.valueOf(conversationId));
                         agentRun.setUserId(String.valueOf(userId));
-                        agentRun.setStatus("COMPLETED");
+                        agentRun.setStatus("completed");
                         agentRun.setGoal("Answer: " + (content.length() > 100 ? content.substring(0, 100) + "..." : content));
-                        String runInput = (runRecord.getParentRunId() != null && runRecord.getQuestion() != null)
-                                ? runRecord.getQuestion() : content;
-                        agentRun.setInput(runInput);
-                        if (runRecord.getParentRunId() == null) {
-                            agentRun.setOutput(answer.length() > 500 ? answer.substring(0, 500) + "..." : answer);
-                        }
+                        agentRun.setInput(content);
+                        agentRun.setOutput(answer.length() > 500 ? answer.substring(0, 500) + "..." : answer);
                         agentRun.setStartTime(LocalDateTime.now());
                         agentRun.setEndTime(LocalDateTime.now());
                         agentRun.setCreatedAt(LocalDateTime.now());
                         agentRunService.saveAgentRun(agentRun);
 
-                        java.util.List<java.util.Map<String, Object>> steps = runRecord.getSteps();
-                        if (steps != null && !steps.isEmpty()) {
-                            int stepIdx = 0;
-                            for (java.util.Map<String, Object> stepData : steps) {
-                                AgentStep step = new AgentStep();
-                                step.setId(java.util.UUID.randomUUID().toString());
-                                step.setRunId(runRecord.getRunId());
-                                step.setStepName(String.valueOf(stepData.getOrDefault("step_name", "unknown")));
-                                step.setStepType(String.valueOf(stepData.getOrDefault("step_type", "unknown")));
-                                step.setStatus(String.valueOf(stepData.getOrDefault("status", "completed")));
-                                if (stepData.containsKey("output")) {
-                                    String output = String.valueOf(stepData.get("output"));
-                                    step.setOutput(output.length() > 500 ? output.substring(0, 500) : output);
-                                }
-                                step.setStartTime(LocalDateTime.now());
-                                step.setEndTime(LocalDateTime.now());
-                                step.setCreatedAt(LocalDateTime.now().plusSeconds(stepIdx++));
-                                step.setDurationMs(0L);
-                                agentStepMapper.insert(step);
-                            }
-                        }
-                    }
-                } else {
-                    AgentRun agentRun = new AgentRun();
-                    agentRun.setId(java.util.UUID.randomUUID().toString());
-                    agentRun.setRunId(java.util.UUID.randomUUID().toString());
-                    agentRun.setTraceId(finalTraceId);
-                    agentRun.setConversationId(String.valueOf(conversationId));
-                    agentRun.setUserId(String.valueOf(userId));
-                    agentRun.setStatus("completed");
-                    agentRun.setGoal("Answer: " + (content.length() > 100 ? content.substring(0, 100) + "..." : content));
-                    agentRun.setInput(content);
-                    agentRun.setOutput(answer.length() > 500 ? answer.substring(0, 500) + "..." : answer);
-                    agentRun.setStartTime(LocalDateTime.now());
-                    agentRun.setEndTime(LocalDateTime.now());
-                    agentRun.setCreatedAt(LocalDateTime.now());
-                    agentRunService.saveAgentRun(agentRun);
-
-                    java.util.List<java.util.Map<String, Object>> steps = aiResponse.getSteps();
-                    if (steps != null && !steps.isEmpty()) {
-                        int fallbackStepIdx = 0;
-                        for (java.util.Map<String, Object> stepData : steps) {
-                            AgentStep step = new AgentStep();
-                            step.setId(java.util.UUID.randomUUID().toString());
-                            step.setRunId(agentRun.getRunId());
-                            step.setStepName(String.valueOf(stepData.getOrDefault("step_name", "unknown")));
-                            step.setStepType(String.valueOf(stepData.getOrDefault("step_type", "unknown")));
-                            step.setStatus(String.valueOf(stepData.getOrDefault("status", "completed")));
-                            if (stepData.containsKey("output")) {
-                                String output = String.valueOf(stepData.get("output"));
-                                step.setOutput(output.length() > 500 ? output.substring(0, 500) : output);
-                            }
-                            step.setStartTime(LocalDateTime.now());
-                            step.setEndTime(LocalDateTime.now());
-                            step.setCreatedAt(LocalDateTime.now().plusSeconds(fallbackStepIdx++));
-                            step.setDurationMs(0L);
-                            agentStepMapper.insert(step);
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                log.error("Failed to save agent run record", e);
-            }
-
-            agentTraceService.recordEvent("REQUEST_FINISHED", "HTTP", null,
-                    Map.of("answerLength", answer != null ? answer.length() : 0, "taskType", taskType));
-
-            // 缓存非错误响应
-            if (!cacheHit && answer != null && !answer.contains("AI服务") && !answer.contains("抱歉")) {
-                AiResponse cacheResponse = new AiResponse();
-                cacheResponse.setAnswer(answer);
-                cacheResponse.setTaskType(taskType);
-                try {
-                    if (sourcesJson != null) {
-                        cacheResponse.setSources(objectMapper.readValue(sourcesJson, List.class));
+                        saveAgentSteps(agentRun.getRunId(), aiResponse.getSteps());
                     }
                 } catch (Exception e) {
-                    log.error("Failed to deserialize sources for cache", e);
+                    log.error("Failed to save agent run record", e);
                 }
-                String normalizedKey = CacheUtils.normalizeQuestion(content);
-                cacheService.set(CacheConfig.CacheConstants.CACHE_AI_ANSWER, normalizedKey, cacheResponse);
-                aiService.addToSemanticCache(normalizedKey);
-            }
 
-            return aiMsg;
+                agentTraceService.recordEvent("REQUEST_FINISHED", "HTTP", null,
+                        Map.of("answerLength", answer != null ? answer.length() : 0, "taskType", taskType));
+
+                // 缓存非错误响应
+                if (!cacheHit && answer != null && !answer.contains("AI服务") && !answer.contains("抱歉")) {
+                    AiResponse cacheResponse = new AiResponse();
+                    cacheResponse.setAnswer(answer);
+                    cacheResponse.setTaskType(taskType);
+                    try {
+                        if (sourcesJson != null) {
+                            cacheResponse.setSources(objectMapper.readValue(sourcesJson, List.class));
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to deserialize sources for cache", e);
+                    }
+                    String normalizedKey = CacheUtils.normalizeQuestion(content);
+                    cacheService.set(CacheConfig.CacheConstants.CACHE_AI_ANSWER, normalizedKey, cacheResponse);
+                    aiService.addToSemanticCache(normalizedKey);
+                }
+
+                return aiMsg;
 
             } catch (Exception e) {
                 log.error("Request failed: traceId={}", traceId, e);
                 agentTraceService.recordEvent("REQUEST_FAILED", "HTTP", null,
                         Map.of("error", e.getClass().getSimpleName() + ": " + (e.getMessage() != null ? e.getMessage().substring(0, Math.min(e.getMessage().length(), 200)) : "")));
+                recordFailedAgentRun(conversationId, userId, content, traceId, e);
                 throw e;
             }
         } // TraceScope.close(): flush all trace events + cleanup ThreadLocal
@@ -366,7 +343,8 @@ public class ChatServiceImpl implements ChatService {
     @Override
     @Transactional
     public Message completeStreamingMessage(Long userId, Long conversationId, String question,
-                                            String answer, String taskType, String sourcesJson, String traceId) {
+                                            String answer, String taskType, String sourcesJson, String traceId,
+                                            List<Map<String, Object>> steps) {
 
         // 如果已有 trace 上下文（来自 Controller 流式端点），复用；否则创建新的
         com.demo.aiknowledge.common.AgentTraceContext existingCtx =
@@ -410,8 +388,7 @@ public class ChatServiceImpl implements ChatService {
                     Map.of("qaLogId", qaLog.getId()));
 
             // 4. 未回答问题记录（对齐非流式：仅在无参考来源时记录）
-            if (sourcesJson == null && answer != null
-                    && (answer.contains("抱歉") || answer.contains("无法回答"))) {
+            if (sourcesJson == null && isUnanswered(answer)) {
                 qaUnansweredService.recordUnansweredQuestion(question);
             }
 
@@ -424,7 +401,7 @@ public class ChatServiceImpl implements ChatService {
                 agentRun.setAgentType(taskType != null ? taskType : "unknown");
                 agentRun.setConversationId(String.valueOf(conversationId));
                 agentRun.setUserId(String.valueOf(userId));
-                agentRun.setStatus("COMPLETED");
+                agentRun.setStatus("completed");
                 agentRun.setGoal("Answer: " + question);
                 agentRun.setInput(question);
                 agentRun.setOutput(answer);
@@ -432,6 +409,8 @@ public class ChatServiceImpl implements ChatService {
                 agentRun.setEndTime(LocalDateTime.now());
                 agentRun.setCreatedAt(LocalDateTime.now());
                 agentRunService.saveAgentRun(agentRun);
+
+                saveAgentSteps(agentRun.getRunId(), steps);
             } catch (Exception e) {
                 log.error("Failed to save agent run record for streaming", e);
             }
@@ -466,11 +445,39 @@ public class ChatServiceImpl implements ChatService {
             log.error("Post-stream processing failed: traceId={}", traceId, e);
             agentTraceService.recordEvent("STREAM_POST_PROCESS_FAILED", "HTTP", null,
                     Map.of("error", e.getClass().getSimpleName()));
+            recordFailedAgentRun(conversationId, userId, question, traceId, e);
             throw e;
         } finally {
             if (ownsContext && scope != null) {
                 scope.close();
             }
+        }
+    }
+
+    /**
+     * 记录一次失败的 Agent 运行记录（独立事务，避免随外层异常回滚）。
+     */
+    private void recordFailedAgentRun(Long conversationId, Long userId, String question,
+                                      String traceId, Exception e) {
+        try {
+            AgentRun agentRun = new AgentRun();
+            agentRun.setId(java.util.UUID.randomUUID().toString());
+            agentRun.setRunId(java.util.UUID.randomUUID().toString());
+            agentRun.setTraceId(traceId);
+            agentRun.setConversationId(String.valueOf(conversationId));
+            agentRun.setUserId(String.valueOf(userId));
+            agentRun.setStatus("failed");
+            agentRun.setGoal("Answer: " + question);
+            agentRun.setInput(question);
+            String errMsg = e.getClass().getSimpleName() + ": "
+                    + (e.getMessage() != null ? e.getMessage() : "");
+            agentRun.setErrorMessage(errMsg.length() > 500 ? errMsg.substring(0, 500) : errMsg);
+            agentRun.setStartTime(LocalDateTime.now());
+            agentRun.setEndTime(LocalDateTime.now());
+            agentRun.setCreatedAt(LocalDateTime.now());
+            agentRunService.saveAgentRun(agentRun);
+        } catch (Exception ex) {
+            log.error("Failed to save failed agent run record", ex);
         }
     }
 
@@ -529,6 +536,57 @@ public class ChatServiceImpl implements ChatService {
         if (text == null) return null;
         if (text.length() <= maxLen) return text;
         return text.substring(0, maxLen) + "...[truncated]";
+    }
+
+    /** 落库 AgentStep + ToolCall（供非流式和流式路径复用） */
+    private void saveAgentSteps(String runId, List<Map<String, Object>> steps) {
+        if (steps == null || steps.isEmpty()) return;
+        int stepIdx = 0;
+        for (Map<String, Object> stepData : steps) {
+            AgentStep step = new AgentStep();
+            step.setId(java.util.UUID.randomUUID().toString());
+            step.setRunId(runId);
+            step.setStepName(String.valueOf(stepData.getOrDefault("step_name", "unknown")));
+            step.setStepType(String.valueOf(stepData.getOrDefault("step_type", "unknown")));
+            step.setStatus(String.valueOf(stepData.getOrDefault("status", "completed")));
+            if (stepData.containsKey("output")) {
+                String output = String.valueOf(stepData.get("output"));
+                step.setOutput(output.length() > 500 ? output.substring(0, 500) : output);
+            }
+            if (stepData.containsKey("input")) {
+                try {
+                    step.setInput(objectMapper.writeValueAsString(stepData.get("input")));
+                } catch (Exception e) {
+                    step.setInput(String.valueOf(stepData.get("input")));
+                }
+            }
+            if (stepData.containsKey("error_message")) {
+                step.setErrorMessage(String.valueOf(stepData.get("error_message")));
+            }
+            if (stepData.containsKey("tool_call_id")) {
+                step.setToolCallId(String.valueOf(stepData.get("tool_call_id")));
+            }
+            step.setStartTime(LocalDateTime.now());
+            step.setEndTime(LocalDateTime.now());
+            step.setCreatedAt(LocalDateTime.now().plusSeconds(stepIdx++));
+            step.setDurationMs(0L);
+            agentStepMapper.insert(step);
+
+            // 同步写入工具调用记录（供工具失败分析使用）
+            if ("tool_call".equals(step.getStepType())) {
+                ToolCall toolCall = new ToolCall();
+                toolCall.setToolCallId(step.getToolCallId());
+                toolCall.setRunId(runId);
+                toolCall.setToolName(step.getStepName());
+                toolCall.setInputParams(step.getInput());
+                toolCall.setOutput(step.getOutput());
+                toolCall.setStatus(step.getStatus());
+                toolCall.setErrorMessage(step.getErrorMessage());
+                toolCall.setDurationMs(step.getDurationMs());
+                toolCall.setTimestamp(LocalDateTime.now());
+                toolCallService.saveToolCall(toolCall);
+            }
+        }
     }
 
 }

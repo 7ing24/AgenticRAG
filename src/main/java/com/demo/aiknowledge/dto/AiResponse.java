@@ -18,6 +18,13 @@ public class AiResponse {
     /** 是否来自缓存 */
     private boolean cached;
 
+    /**
+     * 判断回答是否为有效答案（非错误响应）
+     */
+    public boolean isValidAnswer() {
+        return answer != null && !answer.contains("AI服务") && !answer.contains("抱歉");
+    }
+
     @Data
     public static class AgentRunRecord {
         @JsonProperty("run_id")

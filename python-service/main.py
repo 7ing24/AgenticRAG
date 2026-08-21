@@ -8,8 +8,20 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
-from api.routes import router
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+
+from api.doc_routes import router as doc_router
+from api.qa_routes import router as qa_router
+from api.vector_store_routes import router as vector_store_router
+from api.cache_routes import router as cache_router
 from api.agent_routes import router as agent_router
+from api.semantic_cluster_routes import router as semantic_cluster_router
 import tools
 
 from contextlib import asynccontextmanager
@@ -39,8 +51,12 @@ app.add_middleware(
 
 
 # 注册路由
-app.include_router(router, prefix="/api")
+app.include_router(doc_router, prefix="/api")
+app.include_router(qa_router, prefix="/api")
+app.include_router(vector_store_router, prefix="/api")
+app.include_router(cache_router, prefix="/api")
 app.include_router(agent_router, prefix="/api")
+app.include_router(semantic_cluster_router, prefix="/api")
 
 @app.get("/")
 async def root():

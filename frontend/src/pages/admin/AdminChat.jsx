@@ -12,14 +12,14 @@ const adminApi = axios.create({
 });
 
 adminApi.interceptors.request.use(
-  config => {
-    const token = localStorage.getItem('adminToken');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  error => Promise.reject(error)
+    config => {
+      const token = localStorage.getItem('adminToken');
+      if (token) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
+      return config;
+    },
+    error => Promise.reject(error)
 );
 
 const TASK_TYPE_INFO = {
@@ -32,11 +32,11 @@ const TASK_TYPE_INFO = {
 
 const adminChatAPI = {
   createConversation: (adminId, title) =>
-    adminApi.post(`/conversations?adminId=${adminId}&title=${title || ''}`),
+      adminApi.post(`/conversations?adminId=${adminId}&title=${title || ''}`),
   getConversations: (adminId) =>
-    adminApi.get(`/conversations?adminId=${adminId}`),
+      adminApi.get(`/conversations?adminId=${adminId}`),
   sendMessage: (adminId, conversationId, content) =>
-    adminApi.post(`/messages?adminId=${adminId}&conversationId=${conversationId}`, { content }),
+      adminApi.post(`/messages?adminId=${adminId}&conversationId=${conversationId}`, { content }),
   sendMessageStream: async (adminId, conversationId, content, onMessage, onError, onComplete, signal) => {
     try {
       const token = localStorage.getItem('adminToken');
@@ -46,13 +46,13 @@ const adminChatAPI = {
       }
 
       const response = await fetch(
-        `/api/admin-chat/stream/messages?adminId=${adminId}&conversationId=${conversationId}`,
-        {
-          method: 'POST',
-          headers: headers,
-          body: JSON.stringify({ content }),
-          signal: signal,
-        }
+          `/api/admin-chat/stream/messages?adminId=${adminId}&conversationId=${conversationId}`,
+          {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ content }),
+            signal: signal,
+          }
       );
 
       if (!response.ok) {
@@ -93,11 +93,11 @@ const adminChatAPI = {
     }
   },
   getMessages: (conversationId) =>
-    adminApi.get(`/messages?conversationId=${conversationId}`),
+      adminApi.get(`/messages?conversationId=${conversationId}`),
   deleteConversation: (id) => adminApi.delete(`/conversations/${id}`),
   updateConversation: (id, data) => adminApi.put(`/conversations/${id}`, data),
   submitFeedback: (messageId, feedbackType) =>
-    adminApi.post('/messages/feedback', { messageId, feedbackType }),
+      adminApi.post('/messages/feedback', { messageId, feedbackType }),
 };
 
 export default function AdminChat() {
@@ -185,27 +185,27 @@ export default function AdminChat() {
       const sources = JSON.parse(sourcesJson);
       if (!Array.isArray(sources) || sources.length === 0) return null;
       return (
-        <div className="message-sources">
-          <h4>参考来源:</h4>
-          <ul>
-            {sources.map((s, i) => {
-              const { icon, name } = getFileInfo(s.doc || s.doc_name);
-              return (
-                <li key={i}>
-                  {s.source && (s.source.startsWith('http://') || s.source.startsWith('https://')) ? (
-                      <span className="source-link" onClick={() => window.open(s.source, '_blank')}>
+          <div className="message-sources">
+            <h4>参考来源:</h4>
+            <ul>
+              {sources.map((s, i) => {
+                const { icon, name } = getFileInfo(s.doc || s.doc_name);
+                return (
+                    <li key={i}>
+                      {s.source && (s.source.startsWith('http://') || s.source.startsWith('https://')) ? (
+                          <span className="source-link" onClick={() => window.open(s.source, '_blank')}>
                         {icon} {name}
                       </span>
-                  ) : (
-                      <span className="source-link" onClick={() => window.open(`/knowledge?docId=${s.doc_id || s.docId}&page=${s.page}`, '_blank')}>
+                      ) : (
+                          <span className="source-link" onClick={() => window.open(`/knowledge?docId=${s.doc_id || s.docId}&page=${s.page}`, '_blank')}>
                         {icon} {name}
                       </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+                      )}
+                    </li>
+                );
+              })}
+            </ul>
+          </div>
       );
     } catch (e) {
       console.error("Parse sources failed", e);
@@ -216,11 +216,11 @@ export default function AdminChat() {
   const getTaskTypeBadge = (taskType) => {
     const info = TASK_TYPE_INFO[taskType] || TASK_TYPE_INFO.unknown;
     return (
-      <span
-        className="admin-task-type-badge"
-        style={{ backgroundColor: info.color + '20', color: info.color }}
-        title={`任务类型: ${info.label}`}
-      >
+        <span
+            className="admin-task-type-badge"
+            style={{ backgroundColor: info.color + '20', color: info.color }}
+            title={`任务类型: ${info.label}`}
+        >
         {info.icon} {info.label}
       </span>
     );
@@ -386,79 +386,79 @@ export default function AdminChat() {
       let finalSources = null;
 
       adminChatAPI.sendMessageStream(
-        adminId,
-        currentConversation.id,
-        inputMessage,
-        // onMessage
-        (event) => {
-          switch (event.type) {
-            case 'routed':
-              setProcessingStep('generating');
-              break;
-            case 'start':
-              setProcessingStep('generating');
-              break;
-            case 'token':
-              accumulatedContent += event.content;
-              setMessages(prev => prev.map(msg =>
-                msg.id === thinkingMessageId
-                  ? { ...msg, content: accumulatedContent }
-                  : msg
-              ));
-              break;
-            case 'end':
-              finalTaskType = event.task_type || null;
-              if (event.content) {
-                accumulatedContent = event.content;
-              }
-              break;
-            case 'sources':
-              try {
-                finalSources = typeof event.content === 'string'
-                  ? event.content
-                  : JSON.stringify(event.content);
-              } catch (e) {
-                finalSources = event.content;
-              }
-              break;
-            case 'error':
-              console.error('Admin stream error:', event.content);
-              break;
-            default:
-              break;
-          }
-        },
-        // onError
-        (error) => {
-          console.error('发送消息失败:', error);
-          setMessages(prev => prev.map(msg =>
-            msg.id === thinkingMessageId
-              ? { ...msg, content: msg.content || '抱歉，我暂时无法回答这个问题，请稍后再试。', isStreaming: false }
-              : msg
-          ));
-          setLoading(false);
-          setProcessingStep(null);
-          setAbortController(null);
-        },
-        // onComplete
-        () => {
-          setMessages(prev => prev.map(msg =>
-            msg.id === thinkingMessageId
-              ? {
-                  ...msg,
-                  content: accumulatedContent,
-                  taskType: finalTaskType,
-                  sources: finalSources,
-                  isStreaming: false
+          adminId,
+          currentConversation.id,
+          inputMessage,
+          // onMessage
+          (event) => {
+            switch (event.type) {
+              case 'routed':
+                setProcessingStep('generating');
+                break;
+              case 'start':
+                setProcessingStep('generating');
+                break;
+              case 'token':
+                accumulatedContent += event.content;
+                setMessages(prev => prev.map(msg =>
+                    msg.id === thinkingMessageId
+                        ? { ...msg, content: accumulatedContent }
+                        : msg
+                ));
+                break;
+              case 'end':
+                finalTaskType = event.task_type || null;
+                if (event.content) {
+                  accumulatedContent = event.content;
                 }
-              : msg
-          ));
-          setLoading(false);
-          setProcessingStep(null);
-          setAbortController(null);
-          loadConversations();
-        },
-        controller.signal
+                break;
+              case 'sources':
+                try {
+                  finalSources = typeof event.content === 'string'
+                      ? event.content
+                      : JSON.stringify(event.content);
+                } catch (e) {
+                  finalSources = event.content;
+                }
+                break;
+              case 'error':
+                console.error('Admin stream error:', event.content);
+                break;
+              default:
+                break;
+            }
+          },
+          // onError
+          (error) => {
+            console.error('发送消息失败:', error);
+            setMessages(prev => prev.map(msg =>
+                msg.id === thinkingMessageId
+                    ? { ...msg, content: msg.content || '抱歉，我暂时无法回答这个问题，请稍后再试。', isStreaming: false }
+                    : msg
+            ));
+            setLoading(false);
+            setProcessingStep(null);
+            setAbortController(null);
+          },
+          // onComplete
+          () => {
+            setMessages(prev => prev.map(msg =>
+                msg.id === thinkingMessageId
+                    ? {
+                      ...msg,
+                      content: accumulatedContent,
+                      taskType: finalTaskType,
+                      sources: finalSources,
+                      isStreaming: false
+                    }
+                    : msg
+            ));
+            setLoading(false);
+            setProcessingStep(null);
+            setAbortController(null);
+            loadConversations();
+          },
+          controller.signal
       );
 
     } catch (err) {
@@ -502,9 +502,9 @@ export default function AdminChat() {
       await adminChatAPI.submitFeedback(messageId, type);
 
       setMessages(prev => prev.map(msg =>
-        msg.id === messageId
-          ? { ...msg, feedbackType: type }
-          : msg
+          msg.id === messageId
+              ? { ...msg, feedbackType: type }
+              : msg
       ));
 
       console.log(`Feedback ${type} recorded for message ${messageId}`);
@@ -539,211 +539,211 @@ export default function AdminChat() {
   };
 
   return (
-    <div className="admin-chat-container">
-      <div className="admin-chat-sidebar">
-        <div className="admin-chat-header">
-          <h2>⚙️ 管理助手</h2>
-          <button className="admin-new-chat-btn" onClick={handleCreateConversation}>
-            <span>+</span> 开启新对话
-          </button>
-        </div>
+      <div className="admin-chat-container">
+        <div className="admin-chat-sidebar">
+          <div className="admin-chat-header">
+            <h2>⚙️ 管理助手</h2>
+            <button className="admin-new-chat-btn" onClick={handleCreateConversation}>
+              <span>+</span> 开启新对话
+            </button>
+          </div>
 
-        <div className="admin-conversation-list">
-          {conversations.map(conv => (
-            <div
-              key={conv.id}
-              className={`admin-conversation-item ${currentConversation?.id === conv.id ? 'active' : ''} ${conv.isPinned ? 'pinned' : ''}`}
-              onClick={() => setCurrentConversation(conv)}
-            >
-              {editingId === conv.id ? (
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  onBlur={() => handleRenameSave(conv.id)}
-                  onKeyDown={(e) => handleRenameKeyDown(e, conv.id)}
-                  autoFocus
-                  className="admin-rename-input"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              ) : (
-                <>
-                  <div className="admin-conversation-info">
+          <div className="admin-conversation-list">
+            {conversations.map(conv => (
+                <div
+                    key={conv.id}
+                    className={`admin-conversation-item ${currentConversation?.id === conv.id ? 'active' : ''} ${conv.isPinned ? 'pinned' : ''}`}
+                    onClick={() => setCurrentConversation(conv)}
+                >
+                  {editingId === conv.id ? (
+                      <input
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          onBlur={() => handleRenameSave(conv.id)}
+                          onKeyDown={(e) => handleRenameKeyDown(e, conv.id)}
+                          autoFocus
+                          className="admin-rename-input"
+                          onClick={(e) => e.stopPropagation()}
+                      />
+                  ) : (
+                      <>
+                        <div className="admin-conversation-info">
                     <span className="admin-conversation-title">
                       {conv.title || '新对话'}
                     </span>
-                    <span className="admin-conversation-time">
+                          <span className="admin-conversation-time">
                       {formatDateTime(conv.createTime)}
                     </span>
-                  </div>
-                  <button
-                    className="admin-menu-btn"
-                    onClick={(e) => handleMenuClick(conv.id, e)}
-                  >
-                    •••
-                  </button>
-                  {menuOpenId === conv.id && (
-                    <div className="admin-context-menu" ref={menuRef}>
-                      <div className="admin-menu-item" onClick={(e) => handleRenameStart(conv, e)}>
-                        ✏️ 重命名
-                      </div>
-                      <div className="admin-menu-item" onClick={(e) => handlePin(conv, e)}>
-                        {conv.isPinned ? '🚫 取消置顶' : '📌 置顶'}
-                      </div>
-                      <div className="admin-menu-item delete" onClick={(e) => handleDelete(conv.id, e)}>
-                        🗑️ 删除
-                      </div>
-                    </div>
+                        </div>
+                        <button
+                            className="admin-menu-btn"
+                            onClick={(e) => handleMenuClick(conv.id, e)}
+                        >
+                          •••
+                        </button>
+                        {menuOpenId === conv.id && (
+                            <div className="admin-context-menu" ref={menuRef}>
+                              <div className="admin-menu-item" onClick={(e) => handleRenameStart(conv, e)}>
+                                ✏️ 重命名
+                              </div>
+                              <div className="admin-menu-item" onClick={(e) => handlePin(conv, e)}>
+                                {conv.isPinned ? '🚫 取消置顶' : '📌 置顶'}
+                              </div>
+                              <div className="admin-menu-item delete" onClick={(e) => handleDelete(conv.id, e)}>
+                                🗑️ 删除
+                              </div>
+                            </div>
+                        )}
+                      </>
                   )}
-                </>
-              )}
-            </div>
-          ))}
-        </div>
+                </div>
+            ))}
+          </div>
 
-        <div className="sidebar-footer">
-          <div className="user-profile" onClick={handleLogout} title="点击退出登录">
-            <div className="user-avatar">👤</div>
-            <span>退出登录</span>
+          <div className="sidebar-footer">
+            <div className="user-profile" onClick={handleLogout} title="点击退出登录">
+              <div className="user-avatar">👤</div>
+              <span>退出登录</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="admin-chat-main">
-        {currentConversation ? (
-          <>
-            <div className="admin-chat-header-bar">
-              <h3>{currentConversation.title || '新对话'}</h3>
-            </div>
-
-            <div className="admin-messages-container">
-              {messages.length === 0 ? (
-                <div className="admin-welcome-screen">
-                  <div className="admin-welcome-avatar">⚙️</div>
-                  <h1>管理助手</h1>
-                  <p>我可以帮你进行知识巡检、用户分析、运营统计等管理操作</p>
+        <div className="admin-chat-main">
+          {currentConversation ? (
+              <>
+                <div className="admin-chat-header-bar">
+                  <h3>{currentConversation.title || '新对话'}</h3>
                 </div>
-              ) : (
-                messages.map((msg, index) => (
-                  <div key={msg.id || index} className={`admin-message-row ${msg.role}`}>
-                    <div className="admin-message-content-wrapper">
-                      <div className="admin-message-avatar">
-                        {msg.role === 'user' ? '👤' : '⚙️'}
+
+                <div className="admin-messages-container">
+                  {messages.length === 0 ? (
+                      <div className="admin-welcome-screen">
+                        <div className="admin-welcome-avatar">⚙️</div>
+                        <h1>管理助手</h1>
+                        <p>我可以帮你进行知识巡检、用户分析、运营统计等管理操作</p>
                       </div>
-                      <div className="admin-message-body">
-                        {msg.role === 'assistant' && msg.isStreaming && processingStep ? (
-                          <div className="admin-processing-indicator">
-                            <div className="admin-processing-icon">{getProcessingMessage()?.icon}</div>
-                            <div className="admin-processing-text">{getProcessingMessage()?.text}</div>
-                            <div className="admin-processing-dots">
-                              <span className="dot"></span>
-                              <span className="dot"></span>
-                              <span className="dot"></span>
+                  ) : (
+                      messages.map((msg, index) => (
+                          <div key={msg.id || index} className={`admin-message-row ${msg.role}`}>
+                            <div className="admin-message-content-wrapper">
+                              <div className="admin-message-avatar">
+                                {msg.role === 'user' ? '👤' : '⚙️'}
+                              </div>
+                              <div className="admin-message-body">
+                                {msg.role === 'assistant' && msg.isStreaming && processingStep ? (
+                                    <div className="admin-processing-indicator">
+                                      <div className="admin-processing-icon">{getProcessingMessage()?.icon}</div>
+                                      <div className="admin-processing-text">{getProcessingMessage()?.text}</div>
+                                      <div className="admin-processing-dots">
+                                        <span className="dot"></span>
+                                        <span className="dot"></span>
+                                        <span className="dot"></span>
+                                      </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                      {msg.role === 'assistant' && msg.taskType && (
+                                          <div className="admin-message-task-type">
+                                            {getTaskTypeBadge(msg.taskType)}
+                                          </div>
+                                      )}
+                                      {msg.content}
+                                      {msg.role === 'assistant' && msg.sources && renderSources(msg.sources)}
+                                    </>
+                                )}
+                              </div>
+                              {msg.role === 'assistant' && !msg.isStreaming && !msg.processingStep && (
+                                  <div className="admin-message-feedback">
+                                    <button
+                                        className={`admin-feedback-btn like ${msg.feedbackType === 'like' ? 'active' : ''}`}
+                                        onClick={() => handleFeedback(msg.id, 'like')}
+                                        title="点赞"
+                                    >
+                                      👍
+                                    </button>
+                                    <button
+                                        className={`admin-feedback-btn dislike ${msg.feedbackType === 'dislike' ? 'active' : ''}`}
+                                        onClick={() => handleFeedback(msg.id, 'dislike')}
+                                        title="点踩"
+                                    >
+                                      👎
+                                    </button>
+                                  </div>
+                              )}
                             </div>
                           </div>
-                        ) : (
-                          <>
-                            {msg.role === 'assistant' && msg.taskType && (
-                              <div className="admin-message-task-type">
-                                {getTaskTypeBadge(msg.taskType)}
-                              </div>
-                            )}
-                            {msg.content}
-                            {msg.role === 'assistant' && msg.sources && renderSources(msg.sources)}
-                          </>
-                        )}
-                      </div>
-                      {msg.role === 'assistant' && !msg.isStreaming && !msg.processingStep && (
-                        <div className="admin-message-feedback">
-                          <button
-                            className={`admin-feedback-btn like ${msg.feedbackType === 'like' ? 'active' : ''}`}
-                            onClick={() => handleFeedback(msg.id, 'like')}
-                            title="点赞"
-                          >
-                            👍
-                          </button>
-                          <button
-                            className={`admin-feedback-btn dislike ${msg.feedbackType === 'dislike' ? 'active' : ''}`}
-                            onClick={() => handleFeedback(msg.id, 'dislike')}
-                            title="点踩"
-                          >
-                            👎
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+                      ))
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
 
-            <div className="admin-input-container">
-              <div className="admin-input-wrapper">
-                <form className="admin-chat-input-area" onSubmit={handleSendMessage}>
+                <div className="admin-input-container">
+                  <div className="admin-input-wrapper">
+                    <form className="admin-chat-input-area" onSubmit={handleSendMessage}>
                   <textarea
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage(e);
-                      }
-                    }}
-                    placeholder="给管理助手发送消息..."
-                    rows={1}
+                      value={inputMessage}
+                      onChange={(e) => setInputMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage(e);
+                        }
+                      }}
+                      placeholder="给管理助手发送消息..."
+                      rows={1}
                   />
-                  <div className="admin-input-buttons">
-                    {loading && (
-                      <button
-                        type="button"
-                        className="admin-stop-btn"
-                        onClick={handleStopGeneration}
-                        title="停止生成"
-                      >
-                        ⏹️
-                      </button>
-                    )}
-                    <button type="submit" className="admin-send-btn" disabled={!inputMessage.trim()}>
-                      ➤
-                    </button>
+                      <div className="admin-input-buttons">
+                        {loading && (
+                            <button
+                                type="button"
+                                className="admin-stop-btn"
+                                onClick={handleStopGeneration}
+                                title="停止生成"
+                            >
+                              ⏹️
+                            </button>
+                        )}
+                        <button type="submit" className="admin-send-btn" disabled={!inputMessage.trim()}>
+                          ➤
+                        </button>
+                      </div>
+                    </form>
                   </div>
-                </form>
+                </div>
+              </>
+          ) : (
+              <div className="admin-welcome-screen">
+                <div className="admin-welcome-avatar">⚙️</div>
+                <h1>欢迎使用管理助手</h1>
+                <p>基于 AI 技术，为您提供智能化的管理操作支持</p>
+                <button className="admin-start-btn" onClick={handleCreateConversation}>
+                  开始新对话
+                </button>
+              </div>
+          )}
+        </div>
+
+        {showDeleteConfirm && (
+            <div className="admin-modal-overlay">
+              <div className="admin-modal-content">
+                <div className="admin-modal-header">
+                  <h3>确认删除</h3>
+                </div>
+                <div className="admin-modal-body">
+                  <p>确定删除此对话吗？</p>
+                </div>
+                <div className="admin-modal-footer">
+                  <button className="admin-modal-btn cancel" onClick={handleDeleteCancel}>
+                    取消
+                  </button>
+                  <button className="admin-modal-btn confirm" onClick={handleDeleteConfirm}>
+                    确定
+                  </button>
+                </div>
               </div>
             </div>
-          </>
-        ) : (
-          <div className="admin-welcome-screen">
-            <div className="admin-welcome-avatar">⚙️</div>
-            <h1>欢迎使用管理助手</h1>
-            <p>基于 AI 技术，为您提供智能化的管理操作支持</p>
-            <button className="admin-start-btn" onClick={handleCreateConversation}>
-              开始新对话
-            </button>
-          </div>
         )}
       </div>
-
-      {showDeleteConfirm && (
-        <div className="admin-modal-overlay">
-          <div className="admin-modal-content">
-            <div className="admin-modal-header">
-              <h3>确认删除</h3>
-            </div>
-            <div className="admin-modal-body">
-              <p>确定删除此对话吗？</p>
-            </div>
-            <div className="admin-modal-footer">
-              <button className="admin-modal-btn cancel" onClick={handleDeleteCancel}>
-                取消
-              </button>
-              <button className="admin-modal-btn confirm" onClick={handleDeleteConfirm}>
-                确定
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
   );
 }

@@ -7,9 +7,10 @@ Agent 间通过 EventBus（兼黑板）共享中间结果，EventBus 线程安�
 import uuid
 import logging
 import json
+import threading
 from typing import Dict, Any, Optional, List, Generator
 from dataclasses import dataclass, field
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 
 from core.llm import llm_service
 from engine.events import (
@@ -19,7 +20,6 @@ from engine.events import (
     SubTaskStartedEvent, SubTaskCompletedEvent,
     FindingPublishedEvent, SynthesisCompletedEvent,
 )
-from engine.agent_registry import agent_registry
 from agent.memory_agent import MemoryAgent
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,7 @@ class SubTask:
     id: str
     question: str
     worker: str = ""          # agent 名称
+    dependencies: List[str] = field(default_factory=list)  # 依赖的子任务 id 列表
 
 
 @dataclass
@@ -41,7 +42,28 @@ class Plan:
     reasoning: str = ""
 
 
-class MultiAgentOrchestrator:
+def _detect_cycle_ids(sub_tasks: List[SubTask]) -> set:
+    """用 Kahn 算法检测依赖图中的环，返回环上任务的 id 集合（无环时为空集）"""
+    indegree = {st.id: len(st.dependencies) for st in sub_tasks}
+    dependents = {}
+    for st in sub_tasks:
+        for dep_id in st.dependencies:
+            dependents.setdefault(dep_id, []).append(st.id)
+
+    queue = [sid for sid in indegree if indegree[sid] == 0]
+    visited = set()
+    while queue:
+        node = queue.pop()
+        visited.add(node)
+        for nxt in dependents.get(node, []):
+            indegree[nxt] -= 1
+            if indegree[nxt] == 0:
+                queue.append(nxt)
+
+    return {st.id for st in sub_tasks if st.id not in visited}
+
+
+class AgentOrchestrator:
     """多 Agent 编排器
 
     复杂问题入口：
@@ -51,7 +73,6 @@ class MultiAgentOrchestrator:
 
     def __init__(self, max_workers: int = 4):
         self.event_bus = event_bus
-        self.registry = agent_registry
         self.llm_service = llm_service
         self.memory_agent = MemoryAgent()
         self.max_workers = max_workers
@@ -62,7 +83,7 @@ class MultiAgentOrchestrator:
         """延迟加载 ReActAgent"""
         if self._react_agent is None:
             from agent.react_agent import ReActAgent
-            self._react_agent = ReActAgent(max_iterations=10)
+            self._react_agent = ReActAgent(max_iterations=5)
         return self._react_agent
 
     # ── Public API ──────────────────────────────────────────────
@@ -103,7 +124,7 @@ class MultiAgentOrchestrator:
                                  "sub_task_count": len(plan.sub_tasks),
                                  "reasoning": plan.reasoning[:200],
                                  "sub_questions": sub_questions},
-                    agent_name="MultiAgentOrchestrator",
+                    agent_name="AgentOrchestrator",
                     latency_ms=plan_latency,
                     event_time=plan_start,
                 )
@@ -148,7 +169,7 @@ class MultiAgentOrchestrator:
                     phase="REACT",
                     input_data={"sub_task_count": len(plan.sub_tasks)},
                     output_data={"status": "dispatching"},
-                    agent_name="MultiAgentOrchestrator",
+                    agent_name="AgentOrchestrator",
                 )
             results = self._execute_parallel(
                 plan=plan,
@@ -169,7 +190,7 @@ class MultiAgentOrchestrator:
                                  "completed": sum(1 for r in results.values()
                                                   if isinstance(r.get("result", {}), dict)
                                                   and not r.get("result", {}).get("error"))},
-                    agent_name="MultiAgentOrchestrator",
+                    agent_name="AgentOrchestrator",
                     latency_ms=workers_latency,
                     event_time=workers_start,
                 )
@@ -195,7 +216,7 @@ class MultiAgentOrchestrator:
                     phase="GENERATION",
                     input_data={"question": question, "worker_answers": worker_answers},
                     output_data={"answer": final_answer},
-                    agent_name="MultiAgentOrchestrator",
+                    agent_name="AgentOrchestrator",
                     model_name="qwen-plus",
                     latency_ms=syn_latency,
                     event_time=syn_start,
@@ -289,7 +310,11 @@ class MultiAgentOrchestrator:
                 f"问题：{question}\n\n"
                 "请以 JSON 格式回复：\n"
                 '{"decomposable": true/false, "reasoning": "判断理由", '
-                '"sub_questions": ["子问题1", "子问题2", ...]}\n\n'
+                '"sub_questions": ["子问题1", "子问题2", ...], '
+                '"dependencies": {"1": [0], "2": [0, 1]}}\n'
+                "其中 dependencies 可选，表示子问题之间的依赖：key 是子问题下标（字符串），"
+                "value 是它依赖的前置子问题下标列表。例如 \"2\": [0, 1] 表示子问题2依赖子问题0和1的结果。"
+                "子问题之间没有依赖时省略 dependencies。\n\n"
                 "只输出 JSON，不要其他内容。"
             )
 
@@ -312,10 +337,14 @@ class MultiAgentOrchestrator:
             if not isinstance(sub_questions, list) or len(sub_questions) <= 1:
                 return Plan(is_decomposable=False)
 
-            sub_tasks = [
-                SubTask(id=f"sub_{i}", question=q)
-                for i, q in enumerate(sub_questions[:4])
-            ]
+            deps_map = data.get("dependencies", {}) or {}
+            sub_tasks = []
+            for i, q in enumerate(sub_questions[:4]):
+                dep_ids = []
+                for d in deps_map.get(str(i), []):
+                    if isinstance(d, int) and 0 <= d < i:
+                        dep_ids.append(f"sub_{d}")
+                sub_tasks.append(SubTask(id=f"sub_{i}", question=q, dependencies=dep_ids))
 
             return Plan(
                 is_decomposable=True,
@@ -324,7 +353,7 @@ class MultiAgentOrchestrator:
             )
 
         except Exception as e:
-            logger.warning(f"[MultiAgentOrchestrator] Plan failed: {e}")
+            logger.warning(f"[AgentOrchestrator] Plan failed: {e}")
             return Plan(is_decomposable=False)
 
     # ── Execute ─────────────────────────────────────────────────
@@ -360,42 +389,75 @@ class MultiAgentOrchestrator:
         trace_id: str = "",
         **kwargs,
     ) -> Dict[str, Dict[str, Any]]:
-        """并行执行所有 sub-tasks，通过 EventBus 共享中间结果"""
+        """依赖级并行调度：每个任务在其直接依赖完成后立即启动，线程池满负荷运行"""
         results: Dict[str, Dict[str, Any]] = {}
+        sub_tasks = plan.sub_tasks
+        if not sub_tasks:
+            return results
 
-        with ThreadPoolExecutor(max_workers=min(self.max_workers, len(plan.sub_tasks))) as executor:
-            futures = {}
-            for sub_task in plan.sub_tasks:
-                future = executor.submit(
-                    self._execute_sub_task,
-                    sub_task=sub_task,
-                    run_id=run_id,
-                    conversation_id=conversation_id,
-                    user_id=user_id,
-                    conversation_history=conversation_history,
-                    trace_id=trace_id,
-                    trace_collector=kwargs.get("trace_collector"),
-                    worker_label=f"worker-{sub_task.id}",
-                )
-                futures[future] = sub_task
+        # 依赖反向图 + 未完成依赖计数
+        dependents: Dict[str, List[SubTask]] = {}
+        remaining_deps: Dict[str, int] = {}
+        for st in sub_tasks:
+            remaining_deps[st.id] = len(st.dependencies)
+            for dep_id in st.dependencies:
+                dependents.setdefault(dep_id, []).append(st)
 
-            for future in as_completed(futures):
-                sub_task = futures[future]
-                try:
-                    result = future.result()
-                    results[sub_task.id] = {
-                        "sub_task": sub_task,
-                        "result": result,
-                        "status": "completed",
-                    }
-                except Exception as e:
-                    logger.error(f"[{run_id}] Sub-task '{sub_task.id}' failed: {e}")
-                    results[sub_task.id] = {
-                        "sub_task": sub_task,
-                        "result": {"answer": f"子任务执行失败: {str(e)}", "sources": []},
-                        "status": "failed",
-                    }
+        lock = threading.Lock()
+        all_done = threading.Event()
+        total = len(sub_tasks)
+        completed = 0
+        executor = ThreadPoolExecutor(max_workers=self.max_workers)
 
+        def submit(st: SubTask):
+            future = executor.submit(
+                self._execute_sub_task,
+                sub_task=st,
+                run_id=run_id,
+                conversation_id=conversation_id,
+                user_id=user_id,
+                conversation_history=conversation_history,
+                trace_id=trace_id,
+                trace_collector=kwargs.get("trace_collector"),
+                user_profile=kwargs.get("user_profile", ""),
+                worker_label=f"worker-{st.id}",
+            )
+            future.add_done_callback(lambda fut, s=st: on_done(s, fut))
+
+        def on_done(st: SubTask, future):
+            nonlocal completed
+            try:
+                result = future.result()
+                entry = {"sub_task": st, "result": result, "status": "completed"}
+            except Exception as e:
+                logger.error(f"[{run_id}] Sub-task '{st.id}' failed: {e}")
+                entry = {"sub_task": st,
+                         "result": {"answer": f"子任务执行失败: {str(e)}", "sources": []},
+                         "status": "failed"}
+
+            to_submit = []
+            with lock:
+                results[st.id] = entry
+                completed += 1
+                for dep in dependents.get(st.id, []):
+                    remaining_deps[dep.id] -= 1
+                    if remaining_deps[dep.id] == 0:
+                        to_submit.append(dep)
+                if completed == total:
+                    all_done.set()
+
+            # 在锁外提交，避免嵌套加锁
+            for dep in to_submit:
+                submit(dep)
+
+        # 提交所有无依赖的任务 + 环上的任务（Kahn 检测环，环上任务兜底提交避免死锁）
+        cycle_ids = _detect_cycle_ids(sub_tasks)
+        for st in sub_tasks:
+            if remaining_deps[st.id] == 0 or st.id in cycle_ids:
+                submit(st)
+
+        all_done.wait()
+        executor.shutdown(wait=True)
         return results
 
     def _execute_sub_task(
@@ -422,12 +484,26 @@ class MultiAgentOrchestrator:
 
         t0 = __import__("time").time()
 
+        # 从 EventBus 黑板读取前置子任务结果，注入 conversation_history
+        combined_history = conversation_history or ""
+        if sub_task.dependencies:
+            dep_parts = []
+            for dep_id in sub_task.dependencies:
+                finding = self.event_bus.get_finding(f"{run_id}:{dep_id}")
+                if finding and finding.value:
+                    dep_q = finding.value.get("question", dep_id)
+                    dep_a = finding.value.get("answer", "")
+                    dep_parts.append(f"【子问题：{dep_q}】\n{dep_a}")
+            if dep_parts:
+                combined_history = f"{combined_history}\n\n[前置子任务结果]\n" + "\n\n".join(dep_parts)
+                combined_history = combined_history.strip()
+
         # 使用 ReActAgent 作为 worker，跳过记忆保存（由 Orchestrator 统一处理）
         worker_result = self.react_agent.run(
             question=sub_task.question,
             conversation_id=conversation_id,
             user_id=user_id,
-            conversation_history=conversation_history,
+            conversation_history=combined_history,
             skip_memory=True,
             trace_id=trace_id,
             parent_run_id=run_id,
@@ -440,7 +516,7 @@ class MultiAgentOrchestrator:
         # 发布结果到 EventBus 黑板，供其他 worker / synthesizer 读取
         self.event_bus.publish(FindingPublishedEvent(
             run_id=run_id,
-            key=sub_task.id,
+            key=f"{run_id}:{sub_task.id}",
             value={
                 "question": sub_task.question,
                 "answer": worker_result.get("answer", ""),
@@ -494,22 +570,23 @@ class MultiAgentOrchestrator:
                                  "sub_task_count": len(plan.sub_tasks),
                                  "reasoning": plan.reasoning,
                                  "sub_questions": sub_questions},
-                    agent_name="MultiAgentOrchestrator",
+                    agent_name="AgentOrchestrator",
                     latency_ms=plan_latency,
                     event_time=plan_start,
                 )
 
             if not plan.is_decomposable:
-                logger.info(f"[{run_id}] Not decomposable, delegating to ReActAgent")
-                worker_result = self._run_single_worker(
-                    question=question, conversation_id=conversation_id,
-                    user_id=user_id, conversation_history=conversation_history,
-                    run_id=run_id, trace_id=trace_id, **kwargs,
-                )
-                answer = worker_result.get("answer", "")
-                for char in answer:
-                    yield json.dumps({"type": "token", "content": char})
-                yield json.dumps({"type": "end", "content": answer, "task_type": "knowledge_qa"})
+                logger.info(f"[{run_id}] Not decomposable, delegating to ReActAgent (stream)")
+                for event in self.react_agent.run_stream(
+                    question=question,
+                    conversation_id=conversation_id,
+                    user_id=user_id,
+                    conversation_history=conversation_history,
+                    trace_id=trace_id,
+                    parent_run_id=run_id,
+                    **kwargs,
+                ):
+                    yield event
                 return
 
             # ── 2. Execute workers ──
@@ -520,7 +597,7 @@ class MultiAgentOrchestrator:
                     phase="REACT",
                     input_data={"sub_task_count": len(plan.sub_tasks)},
                     output_data={"status": "dispatching"},
-                    agent_name="MultiAgentOrchestrator",
+                    agent_name="AgentOrchestrator",
                 )
             results = self._execute_parallel(
                 plan=plan, run_id=run_id, conversation_id=conversation_id,
@@ -537,7 +614,7 @@ class MultiAgentOrchestrator:
                                  "completed": sum(1 for r in results.values()
                                                   if isinstance(r.get("result", {}), dict)
                                                   and not r.get("result", {}).get("error"))},
-                    agent_name="MultiAgentOrchestrator",
+                    agent_name="AgentOrchestrator",
                     latency_ms=workers_latency,
                     event_time=workers_start,
                 )
@@ -557,13 +634,31 @@ class MultiAgentOrchestrator:
                     phase="GENERATION",
                     input_data={"question": question},
                     output_data={"answer": full_answer},
-                    agent_name="MultiAgentOrchestrator",
+                    agent_name="AgentOrchestrator",
                     model_name="qwen-plus",
                     latency_ms=syn_latency,
                     event_time=syn_start,
                 )
 
+            # 合并所有 worker 的 sources 和 steps（供 Java 落库）
+            all_sources = self._collect_sources(results)
+            all_steps = []
+            for entry in results.values():
+                w_result = entry.get("result", {})
+                if isinstance(w_result, dict):
+                    all_steps.extend(w_result.get("steps", []))
+
+            yield json.dumps({"type": "sources", "content": all_sources})
+            yield json.dumps({"type": "steps", "content": all_steps})
             yield json.dumps({"type": "end", "content": full_answer, "task_type": "knowledge_qa"})
+
+            # 统一保存记忆（原始问题 + 最终合成答案，只写一次）
+            if conversation_id:
+                from types import SimpleNamespace
+                memory_state = SimpleNamespace(
+                    conversation_id=conversation_id, user_id=user_id, run_id=run_id
+                )
+                self.memory_agent.save_memory(memory_state, question, full_answer)
 
         except Exception as e:
             logger.error(f"[{run_id}] Orchestrator stream error: {e}", exc_info=True)
@@ -586,7 +681,8 @@ class MultiAgentOrchestrator:
             "- 综合所有子问题的答案，给出结构化的完整回答\n"
             "- 如果子问题之间有矛盾，请明确指出\n"
             "- 保留引用的来源信息\n"
-            "- 使用与原始问题相同的语言回复"
+            "- 使用与原始问题相同的语言回复\n"
+            "- 直接回答用户问题，不要添加任何关于'答案如何生成'的说明、方法论声明或免责声明"
         )
 
     def _synthesize_stream(self, original_question: str,
@@ -656,4 +752,4 @@ class MultiAgentOrchestrator:
 
 
 # 模块级单例
-multi_agent_orchestrator = MultiAgentOrchestrator()
+agent_orchestrator = AgentOrchestrator()

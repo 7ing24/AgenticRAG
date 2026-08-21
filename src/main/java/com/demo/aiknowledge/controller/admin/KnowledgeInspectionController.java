@@ -22,14 +22,14 @@ public class KnowledgeInspectionController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(defaultValue = "1") Integer minCount,
-            @RequestParam(defaultValue = "3") Integer clusterThreshold) {
-        
+            @RequestParam(defaultValue = "0.85") Double clusterThreshold) {
+
         UnansweredAnalysisRequest request = new UnansweredAnalysisRequest();
         request.setStartDate(startDate);
         request.setEndDate(endDate);
         request.setMinCount(minCount);
         request.setClusterThreshold(clusterThreshold);
-        
+
         UnansweredAnalysisResponse response = knowledgeInspectionService.analyzeUnansweredQuestions(request);
         return Result.success(response);
     }
@@ -45,7 +45,8 @@ public class KnowledgeInspectionController {
         if (request == null) {
             request = new UnansweredAnalysisRequest();
         }
-        UnansweredAnalysisResponse response = knowledgeInspectionService.analyzeUnansweredQuestions(request);
+        // 手动触发：强制重算并更新缓存（阻塞等待，适合主动"立即重新分析"）
+        UnansweredAnalysisResponse response = knowledgeInspectionService.refreshUnanswered(request);
         return Result.success(response);
     }
 
@@ -78,5 +79,15 @@ public class KnowledgeInspectionController {
     public Result<Map<String, Object>> getLibraryStatistics() {
         Map<String, Object> stats = knowledgeInspectionService.getLibraryInspectionStats();
         return Result.success(stats);
+    }
+
+    @PostMapping("/library/run")
+    public Result<LibraryInspectionResponse> runLibraryInspection(@RequestBody(required = false) LibraryInspectionRequest request) {
+        if (request == null) {
+            request = new LibraryInspectionRequest();
+        }
+        // 手动触发：强制重算知识库巡检并更新缓存（阻塞等待）
+        LibraryInspectionResponse response = knowledgeInspectionService.refreshLibrary(request);
+        return Result.success(response);
     }
 }

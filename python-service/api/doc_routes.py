@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from service.parser import DocumentParser
@@ -36,18 +37,18 @@ async def parse_document(request: ParseRequest):
 
         logger.info(f"Parsing document: {request.file_path}")
         # 父子块模式: 先加载原始页（设置 doc_id）→ 再双切分
-        raw_docs = parser.parse(request.file_path, skip_chunk=True)
+        raw_docs = await asyncio.to_thread(parser.parse, request.file_path, skip_chunk=True)
         for doc in raw_docs:
             doc.metadata["doc_id"] = request.doc_id
             doc.metadata["source"] = request.file_path
-        parent_docs, child_docs = parser.parent_child_chunker.split_documents(raw_docs)
+        parent_docs, child_docs = await asyncio.to_thread(parser.parent_child_chunker.split_documents, raw_docs)
 
         logger.info(
             f"Generated {len(parent_docs)} parents + {len(child_docs)} children. "
             f"Adding to vector store..."
         )
         try:
-            vector_store.add_documents(child_docs, parent_documents=parent_docs)
+            await asyncio.to_thread(vector_store.add_documents, child_docs, parent_documents=parent_docs)
         except Exception as ve:
             logger.error(f"Vector store add_documents failed: {type(ve).__name__}: {ve}", exc_info=True)
             raise ve
@@ -84,7 +85,7 @@ async def delete_document(request: ParseRequest):
     try:
         if request.doc_id:
             logger.info(f"Deleting document with doc_id: {request.doc_id}")
-            vector_store.delete_document(request.doc_id)
+            await asyncio.to_thread(vector_store.delete_document, request.doc_id)
 
             process_time = time.time() - start_time
             logger.info(json.dumps({

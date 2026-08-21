@@ -53,13 +53,13 @@ class MemoryStore:
         total_tokens: int,
         filtered_message_ids: List[str],
     ) -> Dict[str, Any]:
-        """原子存储记忆：去重 → 标记消息 → 写 Milvus → 更新画像
+        """原子存储记忆：去重 → 合并画像 → 写 Milvus → 更新画像 → 标记消息
 
-        通过 MySQL summary_id 实现断点续传：
-        - 先标记消息为"提取中"（写入 summary_id）
-        - 再写入 Milvus 和更新画像
-        - 任一失败不影响——标记过的消息下次不会再查出来
-        - 真正需要回滚时把 summary_id 设回 NULL
+        通过 MySQL summary_id 实现断点续传（至少一次语义）：
+        - 提取统一由后台调度器单线程执行，无并发，无需写前标记做互斥
+        - summary_id 在**所有写入成功之后**才回写
+        - 任何一步失败则不标记 → 下次扫描会重新提取该批，不丢记忆数据
+        - 重试的重复风险由 resolve_conflicts（≥0.9 丢弃重复）兜底
         """
         import uuid as _uuid
         memory_manager = self.memory_manager
@@ -84,19 +84,6 @@ class MemoryStore:
         except Exception as e:
             logger.error(f"冲突去重失败: {e}")
             return {"success": False, "reason": f"冲突去重失败: {str(e)}"}
-
-        # 1.5 标记 MySQL 中的消息为已提取（即使后续步骤失败，也不重复提取这批消息）
-        all_message_ids = [m.get("id", "") for m in messages if m.get("id")]
-        update_message_ids = [
-            mid for mid in all_message_ids
-            if str(mid) not in [str(fid) for fid in (filtered_message_ids or [])]
-        ]
-        if update_message_ids:
-            summary_marked = user_memory_client.update_summary_id(
-                update_message_ids, summary_id
-            )
-        else:
-            summary_marked = True  # 全部被过滤，跳过
 
         # 2. 合并用户画像（如果新旧都存在）
         merged_profile = old_profile_text
@@ -147,8 +134,19 @@ class MemoryStore:
                 logger.error(f"用户画像更新失败: {e}")
                 profile_success = False
 
-        # 5. 结果汇总
+        # 5. 全部写入成功后，才标记消息为已提取（至少一次语义）
+        #    任何一步失败都不标记 → 下次扫描重试该批，不丢记忆数据
         success = milvus_success and profile_success
+        if success:
+            all_message_ids = [m.get("id", "") for m in messages if m.get("id")]
+            update_message_ids = [
+                mid for mid in all_message_ids
+                if str(mid) not in [str(fid) for fid in (filtered_message_ids or [])]
+            ]
+            if update_message_ids:
+                user_memory_client.update_summary_id(update_message_ids, summary_id)
+
+        # 6. 结果汇总
 
         if success:
             logger.info(

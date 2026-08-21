@@ -17,6 +17,11 @@ body {
   min-height: 100vh;
 }
 
+.main-content-with-header {
+  height: calc(100vh - 60px);
+  overflow: hidden;
+}
+
 /* Common button styles */
 .btn {
   padding: 10px 20px;

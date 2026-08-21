@@ -519,7 +519,7 @@ class ReActAgent:
                             score = tool_scores[i] if i < len(tool_scores) else doc.get("score", 0) if isinstance(doc, dict) else getattr(doc, "score", 0)
                             trace_chunks.append({
                                 "doc_id": meta.get("doc_id"),
-                                "chunk_index": meta.get("chunk_index") or meta.get("parent_chunk_index", "-"),
+                                "chunk_index": meta.get("chunk_index"),
                                 "page": meta.get("page"),
                                 "score": round(score, 3) if isinstance(score, (int, float)) else score,
                             })

@@ -18,10 +18,10 @@ export default function KnowledgeInspection() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
-    startDate: '',
-    endDate: '',
+    startDate: '2026-01-01',
+    endDate: new Date().toISOString().split('T')[0],
     minCount: 1,
-    clusterThreshold: 3
+    clusterThreshold: 0.85
   });
   const [expandedCluster, setExpandedCluster] = useState(null);
 
@@ -121,458 +121,452 @@ export default function KnowledgeInspection() {
   };
 
   return (
-    <div className="admin-panel">
-      <div className="page-header">
-        <h1>🔍 知识巡检</h1>
-        <p>分析未命中问题，检测重复文档、低质量Chunk、过期知识和无人访问文档</p>
-      </div>
+      <div className="admin-panel">
+        <div className="page-header">
+          <h1>🔍 知识巡检</h1>
+          <p>分析未命中问题，检测重复文档、低质量Chunk、过期知识和无人访问文档</p>
+        </div>
 
-      <div className="tab-bar">
-        <button
-          className={`tab-btn ${activeTab === 'unanswered' ? 'active' : ''}`}
-          onClick={() => setActiveTab('unanswered')}
-        >
-          📊 未命中问题分析
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'library' ? 'active' : ''}`}
-          onClick={() => setActiveTab('library')}
-        >
-          📚 知识库巡检
-        </button>
-      </div>
+        <div className="tab-bar">
+          <button
+              className={`tab-btn ${activeTab === 'unanswered' ? 'active' : ''}`}
+              onClick={() => setActiveTab('unanswered')}
+          >
+            📊 未命中问题分析
+          </button>
+          <button
+              className={`tab-btn ${activeTab === 'library' ? 'active' : ''}`}
+              onClick={() => setActiveTab('library')}
+          >
+            📚 知识库巡检
+          </button>
+        </div>
 
-      {activeTab === 'unanswered' && (
-        <>
-          <div className="search-bar">
-            <div className="search-row">
-              <div className="search-item">
-                <label>开始日期:</label>
-                <input
-                  type="date"
-                  value={filters.startDate}
-                  onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                />
-              </div>
-              <div className="search-item">
-                <label>结束日期:</label>
-                <input
-                  type="date"
-                  value={filters.endDate}
-                  onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                />
-              </div>
-              <div className="search-item">
-                <label>最小出现次数:</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={filters.minCount}
-                  onChange={(e) => setFilters({ ...filters, minCount: parseInt(e.target.value) || 1 })}
-                />
-              </div>
-              <div className="search-item">
-                <label>聚类阈值:</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={filters.clusterThreshold}
-                  onChange={(e) => setFilters({ ...filters, clusterThreshold: parseInt(e.target.value) || 3 })}
-                />
-              </div>
-              <div className="search-actions">
-                <button className="btn btn-primary" onClick={handleSearch}>分析</button>
-                <button className="btn btn-default" onClick={handleExport}>导出</button>
-              </div>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="admin-card">
-              <div className="loading" style={{ textAlign: 'center', padding: '40px' }}>
-                分析中...
-              </div>
-            </div>
-          ) : data ? (
+        {activeTab === 'unanswered' && (
             <>
-              <div className="admin-card">
-                <div className="card-header">
-                  <h2>📊 分析概览</h2>
-                </div>
-                <div className="stats-grid">
-                  <div className="stat-item">
-                    <div className="stat-value">{data.totalUnansweredCount}</div>
-                    <div className="stat-label">未命中问题总数</div>
+              <div className="search-bar">
+                <div className="search-row">
+                  <div className="search-item">
+                    <label>开始日期:</label>
+                    <input
+                        type="date"
+                        value={filters.startDate}
+                        onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                    />
                   </div>
-                  <div className="stat-item">
-                    <div className="stat-value">{data.totalUniqueQuestions}</div>
-                    <div className="stat-label">独立问题数</div>
+                  <div className="search-item">
+                    <label>结束日期:</label>
+                    <input
+                        type="date"
+                        value={filters.endDate}
+                        onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                    />
                   </div>
-                  <div className="stat-item">
-                    <div className="stat-value">{data.clusterCount}</div>
-                    <div className="stat-label">主题聚类数</div>
+                  <div className="search-item">
+                    <label>最小出现次数:</label>
+                    <input
+                        type="number"
+                        min="1"
+                        value={filters.minCount}
+                        onChange={(e) => setFilters(prev => ({ ...prev, minCount: parseInt(e.target.value) || 1 }))}
+                    />
+                  </div>
+                  <div className="search-item">
+                    <label>聚类阈值:</label>
+                    <input
+                        type="number"
+                        min="0.1"
+                        max="1.0"
+                        step="0.05"
+                        placeholder="0.85"
+                        value={filters.clusterThreshold}
+                        onChange={(e) => setFilters(prev => ({ ...prev, clusterThreshold: parseFloat(e.target.value) || 0.85 }))}
+                    />
+                  </div>
+                  <div className="search-actions">
+                    <button className="btn btn-primary" onClick={handleSearch}>分析</button>
+                    <button className="btn btn-default" onClick={handleExport}>导出</button>
                   </div>
                 </div>
               </div>
 
-              <div className="admin-card">
-                <div className="card-header">
-                  <h2>🏷️ 高频未命中主题</h2>
-                </div>
-                {data.clusters && data.clusters.length > 0 ? (
-                  <div className="cluster-list">
-                    {data.clusters.map((cluster, index) => (
-                      <div
-                        key={index}
-                        className="cluster-item"
-                        onClick={() => setExpandedCluster(expandedCluster === index ? null : index)}
-                      >
-                        <div className="cluster-header">
-                          <div className="cluster-info">
-                            <span className="cluster-topic">{cluster.topic}</span>
-                            <span className="cluster-count">出现 {cluster.totalCount} 次</span>
-                          </div>
-                          <div className="cluster-arrow">
-                            {expandedCluster === index ? '▲' : '▼'}
-                          </div>
-                        </div>
-                        {expandedCluster === index && (
-                          <div className="cluster-details">
-                            <div className="cluster-summary">
-                              <strong>主题摘要:</strong> {cluster.topicSummary}
-                            </div>
-                            <div className="cluster-keywords">
-                              <strong>关键词:</strong>
-                              {cluster.suggestedKeywords?.map((kw, i) => (
-                                <span key={i} className="keyword-tag">{kw}</span>
-                              ))}
-                            </div>
-                            <div className="cluster-questions">
-                              <strong>相关问题:</strong>
-                              <ul>
-                                {cluster.questions?.slice(0, 5).map((q, i) => (
-                                  <li key={i}>{q}</li>
-                                ))}
-                                {cluster.questions?.length > 5 && (
-                                  <li className="more-questions">... 还有 {cluster.questions.length - 5} 个问题</li>
-                                )}
-                              </ul>
-                            </div>
-                          </div>
-                        )}
+              {loading ? (
+                  <div className="admin-card">
+                    <div className="loading" style={{ textAlign: 'center', padding: '40px' }}>
+                      分析中...
+                    </div>
+                  </div>
+              ) : data ? (
+                  <>
+                    <div className="admin-card">
+                      <div className="card-header">
+                        <h2>📊 分析概览</h2>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="empty" style={{ textAlign: 'center', padding: '40px' }}>
-                    暂无聚类数据
-                  </div>
-                )}
-              </div>
+                      <div className="stats-grid">
+                        <div className="stat-item">
+                          <div className="stat-value">{data.totalUnansweredCount}</div>
+                          <div className="stat-label">未命中问题总数</div>
+                        </div>
+                        <div className="stat-item">
+                          <div className="stat-value">{data.totalUniqueQuestions}</div>
+                          <div className="stat-label">独立问题数</div>
+                        </div>
+                        <div className="stat-item">
+                          <div className="stat-value">{data.clusterCount}</div>
+                          <div className="stat-label">主题聚类数</div>
+                        </div>
+                      </div>
+                    </div>
 
-              <div className="admin-card">
-                <div className="card-header">
-                  <h2>💡 补库建议</h2>
-                </div>
-                {data.suggestions && data.suggestions.length > 0 ? (
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>优先级</th>
-                        <th>主题</th>
-                        <th>建议类型</th>
-                        <th>问题数量</th>
-                        <th>相关分类</th>
-                        <th>建议内容</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.suggestions.map((suggestion, index) => (
-                        <tr key={index}>
-                          <td>
+                    <div className="admin-card">
+                      <div className="card-header">
+                        <h2>🏷️ 高频未命中主题</h2>
+                      </div>
+                      {data.clusters && data.clusters.length > 0 ? (
+                          <div className="cluster-list">
+                            {data.clusters.map((cluster, index) => (
+                                <div
+                                    key={index}
+                                    className="cluster-item"
+                                    onClick={() => setExpandedCluster(expandedCluster === index ? null : index)}
+                                >
+                                  <div className="cluster-header">
+                                    <div className="cluster-info">
+                                      <span className="cluster-topic">{cluster.topic}</span>
+                                      <span className="cluster-count">出现 {cluster.totalCount} 次</span>
+                                    </div>
+                                    <div className="cluster-arrow">
+                                      {expandedCluster === index ? '▲' : '▼'}
+                                    </div>
+                                  </div>
+                                  {expandedCluster === index && (
+                                      <div className="cluster-details">
+                                        <div className="cluster-summary">
+                                          <strong>主题摘要:</strong> {cluster.topicSummary}
+                                        </div>
+                                        <div className="cluster-keywords">
+                                          <strong>关键词: </strong>
+                                          {cluster.suggestedKeywords?.map((kw, i) => (
+                                              <span key={i} className="keyword-tag">{kw}</span>
+                                          ))}
+                                        </div>
+                                        <div className="cluster-questions">
+                                          <strong>相关问题:</strong>
+                                          <ul>
+                                            {cluster.questions?.slice(0, 5).map((q, i) => (
+                                                <li key={i}>{q}</li>
+                                            ))}
+                                            {cluster.questions?.length > 5 && (
+                                                <li className="more-questions">... 还有 {cluster.questions.length - 5} 个问题</li>
+                                            )}
+                                          </ul>
+                                        </div>
+                                      </div>
+                                  )}
+                                </div>
+                            ))}
+                          </div>
+                      ) : (
+                          <div className="empty" style={{ textAlign: 'center', padding: '40px' }}>
+                            暂无聚类数据
+                          </div>
+                      )}
+                    </div>
+
+                    <div className="admin-card">
+                      <div className="card-header">
+                        <h2>💡 补库建议</h2>
+                      </div>
+                      {data.suggestions && data.suggestions.length > 0 ? (
+                          <div className="table-scroll">
+                            <table className="admin-table">
+                              <thead>
+                              <tr>
+                                <th>优先级</th>
+                                <th>主题</th>
+                                <th>建议类型</th>
+                                <th>问题数量</th>
+                                <th>相关分类</th>
+                                <th>建议内容</th>
+                              </tr>
+                              </thead>
+                              <tbody>
+                              {data.suggestions.map((suggestion, index) => (
+                                  <tr key={index}>
+                                    <td>
                             <span
-                              className="status-badge"
-                              style={{
-                                backgroundColor: priorityColors[suggestion.priority] + '20',
-                                color: priorityColors[suggestion.priority]
-                              }}
+                                className="status-badge"
+                                style={{
+                                  backgroundColor: priorityColors[suggestion.priority] + '20',
+                                  color: priorityColors[suggestion.priority]
+                                }}
                             >
                               {suggestion.priority}
                             </span>
-                          </td>
-                          <td>{suggestion.topic}</td>
-                          <td>{suggestion.suggestionType}</td>
-                          <td>{suggestion.questionCount}</td>
-                          <td>{suggestion.relatedCategory}</td>
-                          <td className="ellipsis" title={suggestion.suggestion}>
-                            {suggestion.suggestion}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div className="empty" style={{ textAlign: 'center', padding: '40px' }}>
-                    暂无补库建议
+                                    </td>
+                                    <td>{suggestion.topic}</td>
+                                    <td>{suggestion.suggestionType}</td>
+                                    <td>{suggestion.questionCount}</td>
+                                    <td>{suggestion.relatedCategory}</td>
+                                    <td className="ellipsis" title={suggestion.suggestion}>
+                                      {suggestion.suggestion}
+                                    </td>
+                                  </tr>
+                              ))}
+                              </tbody>
+                            </table>
+                          </div>
+                      ) : (
+                          <div className="empty" style={{ textAlign: 'center', padding: '40px' }}>
+                            暂无补库建议
+                          </div>
+                      )}
+                    </div>
+                  </>
+              ) : (
+                  <div className="admin-card">
+                    <div className="empty" style={{ textAlign: 'center', padding: '40px' }}>
+                      暂无数据
+                    </div>
                   </div>
-                )}
-              </div>
+              )}
             </>
-          ) : (
-            <div className="admin-card">
-              <div className="empty" style={{ textAlign: 'center', padding: '40px' }}>
-                暂无数据
-              </div>
-            </div>
-          )}
-        </>
-      )}
+        )}
 
-      {activeTab === 'library' && (
-        <>
-          <div className="search-bar">
-            <div className="search-row">
-              <div className="search-item">
-                <label>过期天数:</label>
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="180"
-                  value={filters.outdatedDays || ''}
-                  onChange={(e) => setFilters({ ...filters, outdatedDays: parseInt(e.target.value) || undefined })}
-                />
-              </div>
-              <div className="search-item">
-                <label>无人访问天数:</label>
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="90"
-                  value={filters.unaccessedDays || ''}
-                  onChange={(e) => setFilters({ ...filters, unaccessedDays: parseInt(e.target.value) || undefined })}
-                />
-              </div>
-              <div className="search-item">
-                <label>最小Chunk长度:</label>
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="10"
-                  value={filters.minChunkLength || ''}
-                  onChange={(e) => setFilters({ ...filters, minChunkLength: parseInt(e.target.value) || undefined })}
-                />
-              </div>
-              <div className="search-item">
-                <label>相似度阈值:</label>
-                <input
-                  type="number"
-                  min="0.1"
-                  max="1"
-                  step="0.1"
-                  placeholder="0.8"
-                  value={filters.similarityThreshold || ''}
-                  onChange={(e) => setFilters({ ...filters, similarityThreshold: parseFloat(e.target.value) || undefined })}
-                />
-              </div>
-              <div className="search-actions">
-                <button className="btn btn-primary" onClick={handleSearch}>巡检</button>
-                <button className="btn btn-default" onClick={handleExport}>导出</button>
-              </div>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="admin-card">
-              <div className="loading" style={{ textAlign: 'center', padding: '40px' }}>
-                巡检中...
-              </div>
-            </div>
-          ) : data && data.stats ? (
+        {activeTab === 'library' && (
             <>
-              <div className="admin-card">
-                <div className="card-header">
-                  <h2>📊 巡检概览</h2>
-                </div>
-                <div className="stats-grid">
-                  <div className="stat-item">
-                    <div className="stat-value">{data.stats.totalDocs || 0}</div>
-                    <div className="stat-label">文档总数</div>
+              <div className="search-bar">
+                <div className="search-row">
+                  <div className="search-item">
+                    <label>过期天数:</label>
+                    <input
+                        type="number"
+                        min="1"
+                        placeholder="30"
+                        value={filters.outdatedDays || ''}
+                        onChange={(e) => setFilters(prev => ({ ...prev, outdatedDays: parseInt(e.target.value) || undefined }))}
+                    />
                   </div>
-                  <div className="stat-item">
-                    <div className="stat-value">{data.stats.totalChunks || 0}</div>
-                    <div className="stat-label">Chunk总数</div>
+                  <div className="search-item">
+                    <label>无人访问天数:</label>
+                    <input
+                        type="number"
+                        min="1"
+                        placeholder="7"
+                        value={filters.unaccessedDays || ''}
+                        onChange={(e) => setFilters(prev => ({ ...prev, unaccessedDays: parseInt(e.target.value) || undefined }))}
+                    />
                   </div>
-                  <div className="stat-item">
-                    <div className="stat-value" style={{ color: '#ff4d4f' }}>{data.stats.duplicateDocGroups || 0}</div>
-                    <div className="stat-label">重复文档组</div>
+                  <div className="search-item">
+                    <label>最小Chunk长度:</label>
+                    <input
+                        type="number"
+                        min="1"
+                        placeholder="50"
+                        value={filters.minChunkLength || ''}
+                        onChange={(e) => setFilters(prev => ({ ...prev, minChunkLength: parseInt(e.target.value) || undefined }))}
+                    />
                   </div>
-                </div>
-                <div className="stats-grid" style={{ marginTop: '16px' }}>
-                  <div className="stat-item">
-                    <div className="stat-value" style={{ color: '#faad14' }}>{data.stats.lowQualityChunkCount || 0}</div>
-                    <div className="stat-label">低质量Chunk</div>
-                  </div>
-                  <div className="stat-item">
-                    <div className="stat-value" style={{ color: '#52c41a' }}>{data.stats.outdatedDocCount || 0}</div>
-                    <div className="stat-label">过期文档</div>
-                  </div>
-                  <div className="stat-item">
-                    <div className="stat-value" style={{ color: '#722ed1' }}>{data.stats.unaccessedDocCount || 0}</div>
-                    <div className="stat-label">无人访问文档</div>
+                  <div className="search-actions">
+                    <button className="btn btn-primary" onClick={handleSearch}>巡检</button>
+                    <button className="btn btn-default" onClick={handleExport}>导出</button>
                   </div>
                 </div>
               </div>
 
-              {data.duplicateDocs && data.duplicateDocs.length > 0 && (
-                <div className="admin-card">
-                  <div className="card-header">
-                    <h2>📄 重复文档</h2>
+              {loading ? (
+                  <div className="admin-card">
+                    <div className="loading" style={{ textAlign: 'center', padding: '40px' }}>
+                      巡检中...
+                    </div>
                   </div>
-                  <div className="issue-list">
-                    {data.duplicateDocs.map((group, gIndex) => (
-                      <div key={gIndex} className="issue-group">
-                        <div className="issue-group-header">
-                          <span className="issue-tag duplicate">重复组 {gIndex + 1}</span>
-                          <span className="issue-count">{group.documents?.length || 0} 个文档</span>
-                          <span className="issue-similarity">相似度: {(group.similarity * 100).toFixed(0)}%</span>
+              ) : data && data.stats ? (
+                  <>
+                    <div className="admin-card">
+                      <div className="card-header">
+                        <h2>📊 巡检概览</h2>
+                      </div>
+                      <div className="stats-grid">
+                        <div className="stat-item">
+                          <div className="stat-value">{data.stats.totalDocs || 0}</div>
+                          <div className="stat-label">文档总数</div>
                         </div>
-                        <table className="admin-table">
-                          <thead>
+                        <div className="stat-item">
+                          <div className="stat-value">{data.stats.totalChunks || 0}</div>
+                          <div className="stat-label">Chunk总数</div>
+                        </div>
+                        <div className="stat-item">
+                          <div className="stat-value" style={{ color: '#ff4d4f' }}>{data.stats.duplicateDocGroups || 0}</div>
+                          <div className="stat-label">重复文档组</div>
+                        </div>
+                      </div>
+                      <div className="stats-grid" style={{ marginTop: '16px' }}>
+                        <div className="stat-item">
+                          <div className="stat-value" style={{ color: '#faad14' }}>{data.stats.lowQualityChunkCount || 0}</div>
+                          <div className="stat-label">低质量Chunk</div>
+                        </div>
+                        <div className="stat-item">
+                          <div className="stat-value" style={{ color: '#52c41a' }}>{data.stats.outdatedDocCount || 0}</div>
+                          <div className="stat-label">过期文档</div>
+                        </div>
+                        <div className="stat-item">
+                          <div className="stat-value" style={{ color: '#722ed1' }}>{data.stats.unaccessedDocCount || 0}</div>
+                          <div className="stat-label">无人访问文档</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {data.duplicateDocs && data.duplicateDocs.length > 0 && (
+                        <div className="admin-card">
+                          <div className="card-header">
+                            <h2>📄 重复文档</h2>
+                          </div>
+                          <div className="issue-list">
+                            {data.duplicateDocs.map((group, gIndex) => (
+                                <div key={gIndex} className="issue-group">
+                                  <div className="issue-group-header">
+                                    <span className="issue-tag duplicate">重复组 {gIndex + 1}</span>
+                                    <span className="issue-count">{group.documents?.length || 0} 个文档</span>
+                                    <span className="issue-similarity">相似度: {(group.similarity * 100).toFixed(0)}%</span>
+                                  </div>
+                                  <table className="admin-table">
+                                    <thead>
+                                    <tr>
+                                      <th>文档名称</th>
+                                      <th>分类</th>
+                                      <th>创建时间</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {group.documents?.map((doc, dIndex) => (
+                                        <tr key={dIndex}>
+                                          <td>{doc.docName}</td>
+                                          <td>{doc.categoryName}</td>
+                                          <td>{formatDate(doc.createTime)}</td>
+                                        </tr>
+                                    ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                            ))}
+                          </div>
+                        </div>
+                    )}
+
+                    {data.lowQualityChunks && data.lowQualityChunks.length > 0 && (
+                        <div className="admin-card">
+                          <div className="card-header">
+                            <h2>⚠️ 低质量Chunk</h2>
+                          </div>
+                          <div className="table-scroll">
+                            <table className="admin-table">
+                              <thead>
+                              <tr>
+                                <th>文档</th>
+                                <th>Chunk索引</th>
+                                <th>问题类型</th>
+                                <th>描述</th>
+                              </tr>
+                              </thead>
+                              <tbody>
+                              {data.lowQualityChunks.slice(0, 20).map((chunk, index) => (
+                                  <tr key={index}>
+                                    <td>{chunk.docName}</td>
+                                    <td>#{chunk.chunkIndex}</td>
+                                    <td><span className="status-badge warning">{chunk.issueType}</span></td>
+                                    <td className="ellipsis" title={chunk.issueDescription}>{chunk.issueDescription}</td>
+                                  </tr>
+                              ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          {data.lowQualityChunks.length > 20 && (
+                              <div className="more-hint">还有 {data.lowQualityChunks.length - 20} 条...</div>
+                          )}
+                        </div>
+                    )}
+
+                    {data.outdatedDocs && data.outdatedDocs.length > 0 && (
+                        <div className="admin-card">
+                          <div className="card-header">
+                            <h2>📅 过期文档</h2>
+                          </div>
+                          <table className="admin-table">
+                            <thead>
                             <tr>
                               <th>文档名称</th>
                               <th>分类</th>
                               <th>创建时间</th>
+                              <th>距今天数</th>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {group.documents?.map((doc, dIndex) => (
-                              <tr key={dIndex}>
-                                <td>{doc.docName}</td>
-                                <td>{doc.categoryName}</td>
-                                <td>{formatDate(doc.createTime)}</td>
-                              </tr>
+                            </thead>
+                            <tbody>
+                            {data.outdatedDocs.slice(0, 20).map((doc, index) => (
+                                <tr key={index}>
+                                  <td>{doc.docName}</td>
+                                  <td>{doc.categoryName}</td>
+                                  <td>{formatDate(doc.createTime)}</td>
+                                  <td><span className="status-badge error">{doc.daySinceUpdate}天</span></td>
+                                </tr>
                             ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                            </tbody>
+                          </table>
+                          {data.outdatedDocs.length > 20 && (
+                              <div className="more-hint">还有 {data.outdatedDocs.length - 20} 条...</div>
+                          )}
+                        </div>
+                    )}
 
-              {data.lowQualityChunks && data.lowQualityChunks.length > 0 && (
-                <div className="admin-card">
-                  <div className="card-header">
-                    <h2>⚠️ 低质量Chunk</h2>
-                  </div>
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>文档</th>
-                        <th>Chunk索引</th>
-                        <th>问题类型</th>
-                        <th>描述</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.lowQualityChunks.slice(0, 20).map((chunk, index) => (
-                        <tr key={index}>
-                          <td>{chunk.docName}</td>
-                          <td>#{chunk.chunkIndex}</td>
-                          <td><span className="status-badge warning">{chunk.issueType}</span></td>
-                          <td className="ellipsis" title={chunk.issueDescription}>{chunk.issueDescription}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {data.lowQualityChunks.length > 20 && (
-                    <div className="more-hint">还有 {data.lowQualityChunks.length - 20} 条...</div>
-                  )}
-                </div>
-              )}
+                    {data.unaccessedDocs && data.unaccessedDocs.length > 0 && (
+                        <div className="admin-card">
+                          <div className="card-header">
+                            <h2>👁️ 无人访问文档</h2>
+                          </div>
+                          <table className="admin-table">
+                            <thead>
+                            <tr>
+                              <th>文档名称</th>
+                              <th>分类</th>
+                              <th>访问次数</th>
+                              <th>距今未访问</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {data.unaccessedDocs.slice(0, 20).map((doc, index) => (
+                                <tr key={index}>
+                                  <td>{doc.docName}</td>
+                                  <td>{doc.categoryName}</td>
+                                  <td>{doc.accessCount}</td>
+                                  <td><span className="status-badge purple">{doc.daySinceAccess}天</span></td>
+                                </tr>
+                            ))}
+                            </tbody>
+                          </table>
+                          {data.unaccessedDocs.length > 20 && (
+                              <div className="more-hint">还有 {data.unaccessedDocs.length - 20} 条...</div>
+                          )}
+                        </div>
+                    )}
 
-              {data.outdatedDocs && data.outdatedDocs.length > 0 && (
-                <div className="admin-card">
-                  <div className="card-header">
-                    <h2>📅 过期文档</h2>
+                    {(!data.duplicateDocs?.length && !data.lowQualityChunks?.length && !data.outdatedDocs?.length && !data.unaccessedDocs?.length) && (
+                        <div className="admin-card">
+                          <div className="empty" style={{ textAlign: 'center', padding: '40px' }}>
+                            🎉 知识库状态良好，未发现问题！
+                          </div>
+                        </div>
+                    )}
+                  </>
+              ) : (
+                  <div className="admin-card">
+                    <div className="empty" style={{ textAlign: 'center', padding: '40px' }}>
+                      暂无数据
+                    </div>
                   </div>
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>文档名称</th>
-                        <th>分类</th>
-                        <th>创建时间</th>
-                        <th>距今天数</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.outdatedDocs.slice(0, 20).map((doc, index) => (
-                        <tr key={index}>
-                          <td>{doc.docName}</td>
-                          <td>{doc.categoryName}</td>
-                          <td>{formatDate(doc.createTime)}</td>
-                          <td><span className="status-badge error">{doc.daySinceUpdate}天</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {data.outdatedDocs.length > 20 && (
-                    <div className="more-hint">还有 {data.outdatedDocs.length - 20} 条...</div>
-                  )}
-                </div>
-              )}
-
-              {data.unaccessedDocs && data.unaccessedDocs.length > 0 && (
-                <div className="admin-card">
-                  <div className="card-header">
-                    <h2>👁️ 无人访问文档</h2>
-                  </div>
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>文档名称</th>
-                        <th>分类</th>
-                        <th>访问次数</th>
-                        <th>距今未访问</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.unaccessedDocs.slice(0, 20).map((doc, index) => (
-                        <tr key={index}>
-                          <td>{doc.docName}</td>
-                          <td>{doc.categoryName}</td>
-                          <td>{doc.accessCount}</td>
-                          <td><span className="status-badge purple">{doc.daySinceAccess}天</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {data.unaccessedDocs.length > 20 && (
-                    <div className="more-hint">还有 {data.unaccessedDocs.length - 20} 条...</div>
-                  )}
-                </div>
-              )}
-
-              {(!data.duplicateDocs?.length && !data.lowQualityChunks?.length && !data.outdatedDocs?.length && !data.unaccessedDocs?.length) && (
-                <div className="admin-card">
-                  <div className="empty" style={{ textAlign: 'center', padding: '40px' }}>
-                    🎉 知识库状态良好，未发现问题！
-                  </div>
-                </div>
               )}
             </>
-          ) : (
-            <div className="admin-card">
-              <div className="empty" style={{ textAlign: 'center', padding: '40px' }}>
-                暂无数据
-              </div>
-            </div>
-          )}
-        </>
-      )}
+        )}
 
-      <style>{`
+        <style>{`
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -731,9 +725,19 @@ export default function KnowledgeInspection() {
         }
 
         .ellipsis {
-          max-width: 200px;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .table-scroll {
+          overflow-x: auto;
+        }
+
+        .table-scroll .admin-table {
+          min-width: max-content;
+        }
+
+        .table-scroll .admin-table th,
+        .table-scroll .admin-table td {
           white-space: nowrap;
         }
 
@@ -811,6 +815,6 @@ export default function KnowledgeInspection() {
           font-size: 13px;
         }
       `}</style>
-    </div>
+      </div>
   );
 }

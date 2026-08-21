@@ -119,7 +119,8 @@ public class ChatController {
         long cacheLatency = (System.nanoTime() - cacheStart) / 1_000_000;
         final boolean cacheHit = cachedResponse != null
                 && cachedResponse.getAnswer() != null
-                && !cachedResponse.getAnswer().contains("AI服务");
+                && !cachedResponse.getAnswer().contains("AI服务")
+                && !cachedResponse.getAnswer().contains("抱歉");
 
         log.info("Cache {} for stream question: {} ({}ms)",
                 cacheHit ? "HIT" : "MISS",
@@ -167,7 +168,7 @@ public class ChatController {
                 try {
                     chatService.completeStreamingMessage(
                             userId, conversationId, content,
-                            cachedAnswer, cachedTaskType, null, traceId);
+                            cachedAnswer, cachedTaskType, null, traceId, null);
                     agentTraceService.recordEvent("REQUEST_FINISHED", "HTTP", null,
                             Map.of("answerLength", cachedAnswer.length(), "taskType", cachedTaskType, "cached", true));
                 } finally {
@@ -182,7 +183,8 @@ public class ChatController {
             AiResponse semanticCached = cacheService.get(
                     CacheConfig.CacheConstants.CACHE_AI_ANSWER, semanticKey, AiResponse.class);
             if (semanticCached != null && semanticCached.getAnswer() != null
-                    && !semanticCached.getAnswer().contains("AI服务")) {
+                    && !semanticCached.getAnswer().contains("AI服务")
+                    && !semanticCached.getAnswer().contains("抱歉")) {
                 String semAnswer = semanticCached.getAnswer();
                 String semTaskType = semanticCached.getTaskType();
                 log.info("<<< [Stream] Semantic cache HIT: traceId={}, key='{}', answerLen={}",
@@ -208,7 +210,7 @@ public class ChatController {
                     try {
                         chatService.completeStreamingMessage(
                                 userId, conversationId, content,
-                                semAnswer, semTaskType, null, traceId);
+                                semAnswer, semTaskType, null, traceId, null);
                         agentTraceService.recordEvent("REQUEST_FINISHED", "HTTP", null,
                                 Map.of("answerLength", semAnswer.length(), "taskType", semTaskType, "cached", true));
                     } finally {
@@ -245,6 +247,7 @@ public class ChatController {
         final String[] taskType = {null};
         final List<Map<String, Object>> sources = new ArrayList<>();
         final List<Map<String, Object>> pythonTraces = new ArrayList<>();
+        final List<Map<String, Object>> agentSteps = new ArrayList<>();
         final long[] pyStart = {0};
         final boolean[] firstToken = {true};
 
@@ -310,6 +313,10 @@ public class ChatController {
                             List<Map<String, Object>> pts = (List<Map<String, Object>>) event.get("traces");
                             pythonTraces.addAll(pts);
                             log.info("<<< [Stream] Python trace events received: traceId={}, count={}", traceId, pts.size());
+                        } else if ("steps".equals(type) && event.get("content") instanceof List) {
+                            @SuppressWarnings("unchecked")
+                            List<Map<String, Object>> stps = (List<Map<String, Object>>) event.get("content");
+                            agentSteps.addAll(stps);
                         }
                     } catch (Exception ignored) {}
                 })
@@ -337,7 +344,8 @@ public class ChatController {
                         if (finalAnswer != null && !finalAnswer.isEmpty()) {
                             chatService.completeStreamingMessage(
                                     userId, conversationId, content,
-                                    finalAnswer, finalTaskType, sourcesJson, traceId);
+                                    finalAnswer, finalTaskType, sourcesJson, traceId,
+                                    agentSteps.isEmpty() ? null : agentSteps);
 
                             agentTraceService.recordEvent("REQUEST_FINISHED", "HTTP", null,
                                     Map.of("answerLength", finalAnswer.length(), "taskType", finalTaskType));

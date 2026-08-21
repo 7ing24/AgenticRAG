@@ -16,6 +16,31 @@ class InspectionAgent:
             "stale": "过期知识检测",
             "unpopular": "无人访问文档检测",
         }
+        self._llm_service = None
+
+    @property
+    def llm_service(self):
+        """延迟加载 LLM 服务"""
+        if self._llm_service is None:
+            try:
+                from core.llm import LLMService
+                self._llm_service = LLMService()
+            except Exception as e:
+                logger.warning(f"[InspectionAgent] LLM service unavailable: {e}")
+                self._llm_service = False
+        return self._llm_service if self._llm_service is not False else None
+
+    def _llm_analyze(self, prompt: str, fallback_answer: str) -> str:
+        """用 LLM 生成巡检分析，失败时降级到模板"""
+        try:
+            llm = self.llm_service
+            if llm:
+                result = llm.generate(prompt)
+                if result and result.strip():
+                    return result.strip()
+        except Exception as e:
+            logger.warning(f"[InspectionAgent] LLM analysis failed, using fallback: {e}")
+        return fallback_answer
 
     def inspect(self, inspection_type: str, conversation_id: Optional[str] = None,
                user_id: Optional[str] = None, context: str = "",
@@ -108,13 +133,14 @@ class InspectionAgent:
     def _check_duplicate_docs(self) -> Dict[str, Any]:
         """检测重复文档"""
         try:
-            # 查询可能有重复的文档（相同标题或相似内容）
+            # 查询重复文档（文档名相同）
             query = """
                 SELECT d1.id as doc1_id, d1.doc_name as doc1_title,
                        d2.id as doc2_id, d2.doc_name as doc2_title,
                        d1.create_time as created_at
                 FROM knowledge_doc d1
                 JOIN knowledge_doc d2 ON d1.doc_name = d2.doc_name AND d1.id < d2.id
+                WHERE d1.status = 'COMPLETED' AND d2.status = 'COMPLETED'
                 LIMIT 20
             """
             duplicates = mysql_client.fetch_all(query) or []
@@ -138,16 +164,27 @@ class InspectionAgent:
                     "doc2_title": dup.get("doc2_title"),
                 })
 
-            answer = f"""⚠️ 发现 {len(duplicates)} 对可能重复的文档：
+            fallback_answer = f"""⚠️ 发现 {len(duplicates)} 对可能重复的文档：
 
 """
             for i, dup in enumerate(duplicate_list[:5], 1):
-                answer += f"{i}. 《{dup['doc1_title']}》 与 《{dup['doc2_title']}》\n"
-
+                fallback_answer += f"{i}. 《{dup['doc1_title']}》 与 《{dup['doc2_title']}》\n"
             if len(duplicate_list) > 5:
-                answer += f"\n... 还有 {len(duplicate_list) - 5} 对重复文档未显示"
+                fallback_answer += f"\n... 还有 {len(duplicate_list) - 5} 对重复文档未显示"
+            fallback_answer += "\n\n建议：请管理员核实这些文档是否真的重复，决定是否合并或删除。"
 
-            answer += "\n\n建议：请管理员核实这些文档是否真的重复，决定是否合并或删除。"
+            prompt = f"""你是知识库巡检专家。以下是 SQL 检测到的重复文档（文档名完全相同的配对）：
+
+{json.dumps(duplicate_list, ensure_ascii=False)}
+
+请生成一份简洁的重复文档巡检报告，包含：
+1. 重复文档总数和清单
+2. 重复文档可能造成的问题
+3. 具体的处理建议（合并/删除/保留）
+
+直接给出报告内容，不要添加任何说明性开头。"""
+
+            answer = self._llm_analyze(prompt, fallback_answer)
 
             return {
                 "answer": answer,
@@ -171,13 +208,15 @@ class InspectionAgent:
     def _check_low_quality_chunks(self) -> Dict[str, Any]:
         """检测低质量知识片段"""
         try:
-            # 查询可能低质量的片段（内容过短或过长）
+            # 查询低质量片段（过短 <50、过长 >5000、空内容）
             query = """
                 SELECT id, doc_id, chunk_text, LENGTH(chunk_text) as content_length
                 FROM knowledge_chunk
-                WHERE LENGTH(chunk_text) < 50 OR LENGTH(chunk_text) > 5000
+                WHERE LENGTH(chunk_text) < 50
+                   OR LENGTH(chunk_text) > 5000
+                   OR chunk_text IS NULL
+                   OR TRIM(chunk_text) = ''
                 ORDER BY content_length ASC
-                LIMIT 20
             """
             low_quality = mysql_client.fetch_all(query) or []
 
@@ -202,7 +241,7 @@ class InspectionAgent:
             too_short = sum(1 for c in chunk_list if c["content_length"] < 50)
             too_long = sum(1 for c in chunk_list if c["content_length"] > 5000)
 
-            answer = f"""⚠️ 发现 {len(low_quality)} 个可能低质量的知识片段：
+            fallback_answer = f"""⚠️ 发现 {len(low_quality)} 个可能低质量的知识片段：
 
 📊 统计：
 - 内容过短（<50字）：{too_short} 个
@@ -211,14 +250,25 @@ class InspectionAgent:
 """
             for i, chunk in enumerate(chunk_list[:5], 1):
                 if chunk["content_length"] < 50:
-                    answer += f"{i}. 片段ID {chunk['chunk_id']}：内容过短（{chunk['content_length']}字）\n"
+                    fallback_answer += f"{i}. 片段ID {chunk['chunk_id']}：内容过短（{chunk['content_length']}字）\n"
                 else:
-                    answer += f"{i}. 片段ID {chunk['chunk_id']}：内容过长（{chunk['content_length']}字）\n"
-
+                    fallback_answer += f"{i}. 片段ID {chunk['chunk_id']}：内容过长（{chunk['content_length']}字）\n"
             if len(chunk_list) > 5:
-                answer += f"\n... 还有 {len(chunk_list) - 5} 个片段未显示"
+                fallback_answer += f"\n... 还有 {len(chunk_list) - 5} 个片段未显示"
+            fallback_answer += "\n\n建议：请管理员审核这些片段，过短的考虑合并，过长的考虑拆分。"
 
-            answer += "\n\n建议：请管理员审核这些片段，过短的考虑合并，过长的考虑拆分。"
+            prompt = f"""你是知识库巡检专家。以下是 SQL 检测到的低质量知识片段（内容过短<50字 或 过长>5000字）：
+
+{json.dumps(chunk_list, ensure_ascii=False)}
+
+其中过短 {too_short} 个、过长 {too_long} 个。请生成一份简洁的低质量片段巡检报告，包含：
+1. 低质量片段统计
+2. 低质量片段对检索效果的影响
+3. 具体的处理建议（合并/拆分）
+
+直接给出报告内容，不要添加任何说明性开头。"""
+
+            answer = self._llm_analyze(prompt, fallback_answer)
 
             return {
                 "answer": answer,
@@ -246,7 +296,8 @@ class InspectionAgent:
             query = """
                 SELECT id, doc_name as title, create_time as updated_at, create_time as created_at
                 FROM knowledge_doc
-                WHERE create_time < DATE_SUB(NOW(), INTERVAL 30 DAY)
+                WHERE status = 'COMPLETED'
+                  AND create_time < DATE_SUB(NOW(), INTERVAL 30 DAY)
                 ORDER BY create_time ASC
                 LIMIT 20
             """
@@ -270,16 +321,27 @@ class InspectionAgent:
                     "updated_at": str(doc.get("updated_at")),
                 })
 
-            answer = f"""⚠️ 发现 {len(stale_docs)} 个可能过期的知识文档（30天以上未更新）：
+            fallback_answer = f"""⚠️ 发现 {len(stale_docs)} 个可能过期的知识文档（30天以上未更新）：
 
 """
             for i, doc in enumerate(doc_list[:5], 1):
-                answer += f"{i}. 《{doc['title']}》 - 最后更新：{doc['updated_at']}\n"
-
+                fallback_answer += f"{i}. 《{doc['title']}》 - 最后更新：{doc['updated_at']}\n"
             if len(doc_list) > 5:
-                answer += f"\n... 还有 {len(doc_list) - 5} 个文档未显示"
+                fallback_answer += f"\n... 还有 {len(doc_list) - 5} 个文档未显示"
+            fallback_answer += "\n\n建议：请管理员审核这些文档，确认内容是否仍然有效，必要时进行更新。"
 
-            answer += "\n\n建议：请管理员审核这些文档，确认内容是否仍然有效，必要时进行更新。"
+            prompt = f"""你是知识库巡检专家。以下是 SQL 检测到的过期知识文档（30天以上未更新）：
+
+{json.dumps(doc_list, ensure_ascii=False)}
+
+请生成一份简洁的过期知识巡检报告，包含：
+1. 过期文档总数和清单
+2. 过期知识可能造成的风险
+3. 具体的处理建议（更新/归档/删除）
+
+直接给出报告内容，不要添加任何说明性开头。"""
+
+            answer = self._llm_analyze(prompt, fallback_answer)
 
             return {
                 "answer": answer,
@@ -303,12 +365,13 @@ class InspectionAgent:
     def _check_unpopular_docs(self) -> Dict[str, Any]:
         """检测无人访问的文档"""
         try:
-            # 查询从创建至今没有被访问过的文档
+            # 查询近7天无人访问的文档
             query = """
                 SELECT d.id, d.doc_name as title, d.create_time as created_at,
                        (SELECT COUNT(*) FROM doc_view_log WHERE doc_id = d.id) as view_count
                 FROM knowledge_doc d
-                WHERE d.create_time < DATE_SUB(NOW(), INTERVAL 7 DAY)
+                WHERE d.status = 'COMPLETED'
+                  AND d.create_time < DATE_SUB(NOW(), INTERVAL 7 DAY)
                 HAVING view_count = 0
                 ORDER BY d.create_time ASC
                 LIMIT 20
@@ -334,16 +397,27 @@ class InspectionAgent:
                     "view_count": doc.get("view_count", 0),
                 })
 
-            answer = f"""⚠️ 发现 {len(unpopular)} 个近7天无人访问的文档：
+            fallback_answer = f"""⚠️ 发现 {len(unpopular)} 个近7天无人访问的文档：
 
 """
             for i, doc in enumerate(doc_list[:5], 1):
-                answer += f"{i}. 《{doc['title']}》 - 创建于：{doc['created_at']}\n"
-
+                fallback_answer += f"{i}. 《{doc['title']}》 - 创建于：{doc['created_at']}\n"
             if len(doc_list) > 5:
-                answer += f"\n... 还有 {len(doc_list) - 5} 个文档未显示"
+                fallback_answer += f"\n... 还有 {len(doc_list) - 5} 个文档未显示"
+            fallback_answer += "\n\n建议：请管理员审核这些文档，确认是否需要更新内容或从知识库移除。"
 
-            answer += "\n\n建议：请管理员审核这些文档，确认是否需要更新内容或从知识库移除。"
+            prompt = f"""你是知识库巡检专家。以下是 SQL 检测到的近7天无人访问的文档：
+
+{json.dumps(doc_list, ensure_ascii=False)}
+
+请生成一份简洁的冷门文档巡检报告，包含：
+1. 无人访问文档总数和清单
+2. 这些文档无人访问可能的原因
+3. 具体的处理建议（更新内容/优化标题/移除）
+
+直接给出报告内容，不要添加任何说明性开头。"""
+
+            answer = self._llm_analyze(prompt, fallback_answer)
 
             return {
                 "answer": answer,
@@ -374,34 +448,47 @@ class InspectionAgent:
             unpopular_result = self._check_unpopular_docs()
 
             # 汇总问题数量
-            total_issues = (
-                duplicate_result.get("data", {}).get("count", 0) +
-                low_quality_result.get("data", {}).get("count", 0) +
-                stale_result.get("data", {}).get("count", 0) +
-                unpopular_result.get("data", {}).get("count", 0)
-            )
+            summary_data = {
+                "duplicate_count": duplicate_result.get("data", {}).get("count", 0),
+                "low_quality_count": low_quality_result.get("data", {}).get("count", 0),
+                "stale_count": stale_result.get("data", {}).get("count", 0),
+                "unpopular_count": unpopular_result.get("data", {}).get("count", 0),
+            }
+            total_issues = sum(summary_data.values())
 
-            answer = f"""🔍 知识库完整巡检报告
+            fallback_answer = f"""🔍 知识库完整巡检报告
 
 ━━━━━━━━━━━━━━━━━━
 
 📋 巡检项目概览：
 
-1️⃣ 重复文档检测：{duplicate_result.get("data", {}).get("count", 0)} 个问题
-2️⃣ 低质量片段检测：{low_quality_result.get("data", {}).get("count", 0)} 个问题
-3️⃣ 过期知识检测：{stale_result.get("data", {}).get("count", 0)} 个问题
-4️⃣ 无人访问文档：{unpopular_result.get("data", {}).get("count", 0)} 个问题
+1️⃣ 重复文档检测：{summary_data['duplicate_count']} 个问题
+2️⃣ 低质量片段检测：{summary_data['low_quality_count']} 个问题
+3️⃣ 过期知识检测：{summary_data['stale_count']} 个问题
+4️⃣ 无人访问文档：{summary_data['unpopular_count']} 个问题
 
 ━━━━━━━━━━━━━━━━━━
 
 📊 问题总计：{total_issues} 个
-
 """
 
             if total_issues == 0:
-                answer += "🎉 恭喜！知识库质量良好，未发现明显问题。"
+                fallback_answer += "🎉 恭喜！知识库质量良好，未发现明显问题。"
             else:
-                answer += "⚠️ 建议及时处理以上问题，以保持知识库质量。\n\n如需详细查看某一类问题，请单独执行该类巡检。"
+                fallback_answer += "⚠️ 建议及时处理以上问题，以保持知识库质量。"
+
+            prompt = f"""你是知识库巡检专家。以下是知识库巡检的汇总统计：
+
+{json.dumps(summary_data, ensure_ascii=False)}
+
+问题总计 {total_issues} 个。请生成一份综合的知识库巡检报告，包含：
+1. 各类问题的统计概览
+2. 最严重的问题类型分析
+3. 按优先级排序的处理建议
+
+直接给出报告内容，不要添加任何说明性开头。"""
+
+            answer = self._llm_analyze(prompt, fallback_answer)
 
             return {
                 "answer": answer,
@@ -409,13 +496,7 @@ class InspectionAgent:
                 "has_sources": False,
                 "task_type": "knowledge_inspection",
                 "inspection_type": "full",
-                "data": {
-                    "duplicate_count": duplicate_result.get("data", {}).get("count", 0),
-                    "low_quality_count": low_quality_result.get("data", {}).get("count", 0),
-                    "stale_count": stale_result.get("data", {}).get("count", 0),
-                    "unpopular_count": unpopular_result.get("data", {}).get("count", 0),
-                    "total_issues": total_issues
-                }
+                "data": {**summary_data, "total_issues": total_issues}
             }
         except Exception as e:
             logger.error(f"[InspectionAgent] Full inspection error: {str(e)}")

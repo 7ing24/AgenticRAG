@@ -96,27 +96,27 @@ export default function Chat() {
       const sources = JSON.parse(sourcesJson);
       if (!Array.isArray(sources) || sources.length === 0) return null;
       return (
-        <div className="message-sources">
-          <h4>参考来源:</h4>
-          <ul>
-            {sources.map((s, i) => {
-              const { icon, name } = getFileInfo(s.doc || s.doc_name);
-              return (
-                <li key={i}>
-                  {s.source && (s.source.startsWith('http://') || s.source.startsWith('https://')) ? (
-                      <span className="source-link" onClick={() => window.open(s.source, '_blank')}>
+          <div className="message-sources">
+            <h4>参考来源:</h4>
+            <ul>
+              {sources.map((s, i) => {
+                const { icon, name } = getFileInfo(s.doc || s.doc_name);
+                return (
+                    <li key={i}>
+                      {s.source && (s.source.startsWith('http://') || s.source.startsWith('https://')) ? (
+                          <span className="source-link" onClick={() => window.open(s.source, '_blank')}>
                         {icon} {name}
                       </span>
-                  ) : (
-                      <span className="source-link" onClick={() => window.open(`/knowledge?docId=${s.doc_id || s.docId}&page=${s.page}`, '_blank')}>
+                      ) : (
+                          <span className="source-link" onClick={() => window.open(`/knowledge?docId=${s.doc_id || s.docId}&page=${s.page}`, '_blank')}>
                         {icon} {name}
                       </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+                      )}
+                    </li>
+                );
+              })}
+            </ul>
+          </div>
       );
     } catch (e) {
       console.error("Parse sources failed", e);
@@ -127,11 +127,11 @@ export default function Chat() {
   const getTaskTypeBadge = (taskType) => {
     const info = TASK_TYPE_INFO[taskType] || TASK_TYPE_INFO.unknown;
     return (
-      <span
-        className="task-type-badge"
-        style={{ backgroundColor: info.color + '20', color: info.color }}
-        title={`任务类型: ${info.label}`}
-      >
+        <span
+            className="task-type-badge"
+            style={{ backgroundColor: info.color + '20', color: info.color }}
+            title={`任务类型: ${info.label}`}
+        >
         {info.icon} {info.label}
       </span>
     );
@@ -314,81 +314,81 @@ export default function Chat() {
       let finalSources = null;
 
       chatAPI.sendMessageStream(
-        {
-          userId,
-          conversationId: currentConversation.id,
-          content: aiRequestContent
-        },
-        // onMessage - handle each SSE event
-        (event) => {
-          switch (event.type) {
-            case 'routed':
-              setProcessingStep('generating');
-              break;
-            case 'start':
-              setProcessingStep('generating');
-              break;
-            case 'token':
-              accumulatedContent += event.content;
-              setMessages(prev => prev.map(msg =>
-                msg.id === thinkingMessageId
-                  ? { ...msg, content: accumulatedContent }
-                  : msg
-              ));
-              break;
-            case 'end':
-              finalTaskType = event.task_type || null;
-              if (event.content) {
-                accumulatedContent = event.content;
-              }
-              break;
-            case 'sources':
-              try {
-                finalSources = typeof event.content === 'string'
-                  ? event.content
-                  : JSON.stringify(event.content);
-              } catch (e) {
-                finalSources = event.content;
-              }
-              break;
-            case 'error':
-              console.error('Stream error:', event.content);
-              break;
-            default:
-              break;
-          }
-        },
-        // onError
-        (error) => {
-          console.error('发送消息失败:', error);
-          setMessages(prev => prev.map(msg =>
-            msg.id === thinkingMessageId
-              ? { ...msg, content: msg.content || '抱歉，我暂时无法回答这个问题，请稍后再试。', isStreaming: false }
-              : msg
-          ));
-          setLoading(false);
-          setProcessingStep(null);
-          setAbortController(null);
-        },
-        // onComplete
-        () => {
-          setMessages(prev => prev.map(msg =>
-            msg.id === thinkingMessageId
-              ? {
-                  ...msg,
-                  content: accumulatedContent,
-                  taskType: finalTaskType,
-                  sources: finalSources,
-                  isStreaming: false
+          {
+            userId,
+            conversationId: currentConversation.id,
+            content: aiRequestContent
+          },
+          // onMessage - handle each SSE event
+          (event) => {
+            switch (event.type) {
+              case 'routed':
+                setProcessingStep('generating');
+                break;
+              case 'start':
+                setProcessingStep('generating');
+                break;
+              case 'token':
+                accumulatedContent += event.content;
+                setMessages(prev => prev.map(msg =>
+                    msg.id === thinkingMessageId
+                        ? { ...msg, content: accumulatedContent }
+                        : msg
+                ));
+                break;
+              case 'end':
+                finalTaskType = event.task_type || null;
+                if (event.content) {
+                  accumulatedContent = event.content;
                 }
-              : msg
-          ));
-          setLoading(false);
-          setProcessingStep(null);
-          setAbortController(null);
-          loadConversations();
-        },
-        controller.signal
+                break;
+              case 'sources':
+                try {
+                  finalSources = typeof event.content === 'string'
+                      ? event.content
+                      : JSON.stringify(event.content);
+                } catch (e) {
+                  finalSources = event.content;
+                }
+                break;
+              case 'error':
+                console.error('Stream error:', event.content);
+                break;
+              default:
+                break;
+            }
+          },
+          // onError
+          (error) => {
+            console.error('发送消息失败:', error);
+            setMessages(prev => prev.map(msg =>
+                msg.id === thinkingMessageId
+                    ? { ...msg, content: msg.content || '抱歉，我暂时无法回答这个问题，请稍后再试。', isStreaming: false }
+                    : msg
+            ));
+            setLoading(false);
+            setProcessingStep(null);
+            setAbortController(null);
+          },
+          // onComplete
+          () => {
+            setMessages(prev => prev.map(msg =>
+                msg.id === thinkingMessageId
+                    ? {
+                      ...msg,
+                      content: accumulatedContent,
+                      taskType: finalTaskType,
+                      sources: finalSources,
+                      isStreaming: false
+                    }
+                    : msg
+            ));
+            setLoading(false);
+            setProcessingStep(null);
+            setAbortController(null);
+            loadConversations();
+          },
+          controller.signal
       );
 
     } catch (err) {
@@ -422,9 +422,9 @@ export default function Chat() {
       const response = await chatAPI.submitFeedback(messageId, type);
 
       setMessages(prev => prev.map(msg =>
-        msg.id === messageId
-          ? { ...msg, feedbackType: type }
-          : msg
+          msg.id === messageId
+              ? { ...msg, feedbackType: type }
+              : msg
       ));
 
       console.log(`Feedback ${type} recorded for message ${messageId}`);
@@ -494,270 +494,270 @@ export default function Chat() {
   };
 
   return (
-    <div className="chat-layout">
-      <div className="chat-sidebar">
-        <div className="sidebar-header">
-          <div className="sidebar-logo" onClick={() => navigate('/')}>
-            <h2>🤖 AI Knowledge</h2>
-          </div>
-          <button className="new-chat-btn" onClick={handleCreateConversation}>
-            <span className="new-chat-icon">+</span> 开启新对话
-          </button>
-        </div>
-
-        <div className="conversation-list">
-          {conversations.map(conv => (
-            <div
-              key={conv.id}
-              className={`conversation-item ${currentConversation?.id === conv.id ? 'active' : ''} ${conv.isPinned ? 'pinned' : ''}`}
-              onClick={() => setCurrentConversation(conv)}
-            >
-              {editingId === conv.id ? (
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  onBlur={() => handleRenameSave(conv.id)}
-                  onKeyDown={(e) => handleRenameKeyDown(e, conv.id)}
-                  autoFocus
-                  className="rename-input"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              ) : (
-                <span className="conversation-title">
-                  {conv.title || '新对话'}
-                </span>
-              )}
-
-              <button
-                className="menu-btn"
-                onClick={(e) => handleMenuClick(conv.id, e)}
-              >
-                •••
-              </button>
-
-              {menuOpenId === conv.id && (
-                <div className="context-menu" ref={menuRef}>
-                  <div className="menu-item" onClick={(e) => handleRenameStart(conv, e)}>
-                    ✏️ 重命名
-                  </div>
-                  <div className="menu-item" onClick={(e) => handlePin(conv, e)}>
-                    {conv.isPinned ? '🚫 取消置顶' : '📌 置顶'}
-                  </div>
-                  <div className="menu-item delete" onClick={(e) => handleDelete(conv.id, e)}>
-                    🗑️ 删除
-                  </div>
-                </div>
-              )}
+      <div className="chat-layout">
+        <div className="chat-sidebar">
+          <div className="sidebar-header">
+            <div className="sidebar-logo" onClick={() => navigate('/')}>
+              <h2>🤖 AI Knowledge</h2>
             </div>
-          ))}
-        </div>
-
-        <div className="sidebar-footer">
-          <div className="user-profile" onClick={handleLogout} title="点击退出登录">
-            <div className="user-avatar">👤</div>
-            <span>退出登录</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="chat-main">
-        {currentConversation ? (
-          <>
-            <div className="chat-header">
-              <div className="chat-header-left">
-                <h3>{currentConversation.title || '新对话'}</h3>
-              </div>
-            </div>
-
-            <div className="messages-container">
-              {messages.length === 0 ? (
-                <div className="welcome-screen">
-                  <div className="welcome-avatar">🤖</div>
-                  <h1>今天有什么可以帮到你？</h1>
-                  <p className="welcome-hint">我可以帮你回答知识问题、进行知识巡检、管理助手等</p>
-                </div>
-              ) : (
-                messages.map((msg, index) => (
-                  <div key={msg.id || index} className={`message-row ${msg.role}`}>
-                    <div className="message-content-wrapper">
-                      <div className="message-avatar">
-                        {msg.role === 'user' ? '👤' : '🤖'}
-                      </div>
-                      <div className="message-body">
-                        {/* ✅ 修复后的逻辑：如果是加载中且还没有文字内容，显示 Loading 动画；一旦有内容，就输出内容 */}
-                        {msg.role === 'assistant' && msg.isStreaming && processingStep && !msg.content ? (
-                            <div className="processing-indicator">
-                              <div className="processing-icon">{getProcessingMessage()?.icon}</div>
-                              <div className="processing-text">{getProcessingMessage()?.text}</div>
-                              <div className="processing-dots">
-                                <span className="dot"></span>
-                                <span className="dot"></span>
-                                <span className="dot"></span>
-                              </div>
-                            </div>
-                        ) : (
-                            <>
-                              {msg.role === 'assistant' && msg.taskType && (
-                                  <div className="message-task-type">
-                                    {getTaskTypeBadge(msg.taskType)}
-                                  </div>
-                              )}
-
-                              {/* 实时渲染逐字输出的内容，并在流式传输未结束时附带一个打字光标（可选） */}
-                              <div className="message-text">
-                                {msg.content}
-                                {msg.isStreaming && <span className="streaming-cursor"></span>}
-                              </div>
-
-                              {msg.imageUrl && (
-                                  <div className="message-image">
-                                    <img
-                                        src={msg.imageUrl}
-                                        alt="用户上传的图片"
-                                        onClick={() => handleImageClick(msg.imageUrl)}
-                                    />
-                                  </div>
-                              )}
-                              {msg.role === 'assistant' && msg.sources && renderSources(msg.sources)}
-                            </>
-                        )}
-                      </div>
-                      {msg.role === 'assistant' && !msg.isStreaming && !msg.processingStep && (
-                        <div className="message-feedback">
-                          <button
-                            className={`feedback-btn like ${msg.feedbackType === 'like' ? 'active' : ''}`}
-                            onClick={() => handleFeedback(msg.id, 'like')}
-                            title="点赞"
-                          >
-                            👍
-                          </button>
-                          <button
-                            className={`feedback-btn dislike ${msg.feedbackType === 'dislike' ? 'active' : ''}`}
-                            onClick={() => handleFeedback(msg.id, 'dislike')}
-                            title="点踩"
-                          >
-                            👎
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            <div className="input-container">
-              <div className="input-wrapper">
-                {uploadedImage && (
-                  <div className="uploaded-image-preview">
-                    <div className="image-info">
-                      <span className="image-name">{uploadedImage.name}</span>
-                      <span className="image-size">{Math.round(uploadedImage.size / 1024)}KB</span>
-                    </div>
-                    <button
-                      type="button"
-                      className="remove-image-btn"
-                      onClick={handleRemoveImage}
-                      title="移除图片"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                )}
-
-                <form className="chat-input-area" onSubmit={handleSendMessage}>
-                  <textarea
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage(e);
-                      }
-                    }}
-                    placeholder={uploadedImage ? "输入关于图片的问题..." : "给 AI 发送消息..."}
-                    rows={1}
-                  />
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    style={{ display: 'none' }}
-                  />
-                  <div className="input-buttons">
-                    <button
-                      type="button"
-                      className="upload-btn"
-                      onClick={handleImageUploadClick}
-                      disabled={uploadingImage || uploadedImage}
-                      title="上传图片"
-                    >
-                      📷
-                    </button>
-                    {loading && (
-                      <button
-                        type="button"
-                        className="stop-btn"
-                        onClick={handleStopGeneration}
-                        title="停止生成"
-                      >
-                        ⏹️
-                      </button>
-                    )}
-                    <button type="submit" className="send-btn" disabled={!inputMessage.trim() && !uploadedImage}>
-                      ➤
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="welcome-screen">
-            <div className="welcome-avatar">🤖</div>
-            <h1>欢迎使用 AI 知识系统</h1>
-            <p>基于 RAG 技术，为您提供精准的企业知识问答服务</p>
-            <button className="start-btn" onClick={handleCreateConversation}>
-              开始新对话
+            <button className="new-chat-btn" onClick={handleCreateConversation}>
+              <span className="new-chat-icon">+</span> 开启新对话
             </button>
           </div>
+
+          <div className="conversation-list">
+            {conversations.map(conv => (
+                <div
+                    key={conv.id}
+                    className={`conversation-item ${currentConversation?.id === conv.id ? 'active' : ''} ${conv.isPinned ? 'pinned' : ''}`}
+                    onClick={() => setCurrentConversation(conv)}
+                >
+                  {editingId === conv.id ? (
+                      <input
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          onBlur={() => handleRenameSave(conv.id)}
+                          onKeyDown={(e) => handleRenameKeyDown(e, conv.id)}
+                          autoFocus
+                          className="rename-input"
+                          onClick={(e) => e.stopPropagation()}
+                      />
+                  ) : (
+                      <span className="conversation-title">
+                  {conv.title || '新对话'}
+                </span>
+                  )}
+
+                  <button
+                      className="menu-btn"
+                      onClick={(e) => handleMenuClick(conv.id, e)}
+                  >
+                    •••
+                  </button>
+
+                  {menuOpenId === conv.id && (
+                      <div className="context-menu" ref={menuRef}>
+                        <div className="menu-item" onClick={(e) => handleRenameStart(conv, e)}>
+                          ✏️ 重命名
+                        </div>
+                        <div className="menu-item" onClick={(e) => handlePin(conv, e)}>
+                          {conv.isPinned ? '🚫 取消置顶' : '📌 置顶'}
+                        </div>
+                        <div className="menu-item delete" onClick={(e) => handleDelete(conv.id, e)}>
+                          🗑️ 删除
+                        </div>
+                      </div>
+                  )}
+                </div>
+            ))}
+          </div>
+
+          <div className="sidebar-footer">
+            <div className="user-profile" onClick={handleLogout} title="点击退出登录">
+              <div className="user-avatar">👤</div>
+              <span>退出登录</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="chat-main">
+          {currentConversation ? (
+              <>
+                <div className="chat-header">
+                  <div className="chat-header-left">
+                    <h3>{currentConversation.title || '新对话'}</h3>
+                  </div>
+                </div>
+
+                <div className="messages-container">
+                  {messages.length === 0 ? (
+                      <div className="welcome-screen">
+                        <div className="welcome-avatar">🤖</div>
+                        <h1>今天有什么可以帮到你？</h1>
+                        <p className="welcome-hint">我可以帮你回答知识问题、进行知识巡检、管理助手等</p>
+                      </div>
+                  ) : (
+                      messages.map((msg, index) => (
+                          <div key={msg.id || index} className={`message-row ${msg.role}`}>
+                            <div className="message-content-wrapper">
+                              <div className="message-avatar">
+                                {msg.role === 'user' ? '👤' : '🤖'}
+                              </div>
+                              <div className="message-body">
+                                {/* ✅ 修复后的逻辑：如果是加载中且还没有文字内容，显示 Loading 动画；一旦有内容，就输出内容 */}
+                                {msg.role === 'assistant' && msg.isStreaming && processingStep && !msg.content ? (
+                                    <div className="processing-indicator">
+                                      <div className="processing-icon">{getProcessingMessage()?.icon}</div>
+                                      <div className="processing-text">{getProcessingMessage()?.text}</div>
+                                      <div className="processing-dots">
+                                        <span className="dot"></span>
+                                        <span className="dot"></span>
+                                        <span className="dot"></span>
+                                      </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                      {msg.role === 'assistant' && msg.taskType && (
+                                          <div className="message-task-type">
+                                            {getTaskTypeBadge(msg.taskType)}
+                                          </div>
+                                      )}
+
+                                      {/* 实时渲染逐字输出的内容，并在流式传输未结束时附带一个打字光标（可选） */}
+                                      <div className="message-text">
+                                        {msg.content}
+                                        {msg.isStreaming && <span className="streaming-cursor"></span>}
+                                      </div>
+
+                                      {msg.imageUrl && (
+                                          <div className="message-image">
+                                            <img
+                                                src={msg.imageUrl}
+                                                alt="用户上传的图片"
+                                                onClick={() => handleImageClick(msg.imageUrl)}
+                                            />
+                                          </div>
+                                      )}
+                                      {msg.role === 'assistant' && msg.sources && renderSources(msg.sources)}
+                                    </>
+                                )}
+                              </div>
+                              {msg.role === 'assistant' && !msg.isStreaming && !msg.processingStep && (
+                                  <div className="message-feedback">
+                                    <button
+                                        className={`feedback-btn like ${msg.feedbackType === 'like' ? 'active' : ''}`}
+                                        onClick={() => handleFeedback(msg.id, 'like')}
+                                        title="点赞"
+                                    >
+                                      👍
+                                    </button>
+                                    <button
+                                        className={`feedback-btn dislike ${msg.feedbackType === 'dislike' ? 'active' : ''}`}
+                                        onClick={() => handleFeedback(msg.id, 'dislike')}
+                                        title="点踩"
+                                    >
+                                      👎
+                                    </button>
+                                  </div>
+                              )}
+                            </div>
+                          </div>
+                      ))
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                <div className="input-container">
+                  <div className="input-wrapper">
+                    {uploadedImage && (
+                        <div className="uploaded-image-preview">
+                          <div className="image-info">
+                            <span className="image-name">{uploadedImage.name}</span>
+                            <span className="image-size">{Math.round(uploadedImage.size / 1024)}KB</span>
+                          </div>
+                          <button
+                              type="button"
+                              className="remove-image-btn"
+                              onClick={handleRemoveImage}
+                              title="移除图片"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                    )}
+
+                    <form className="chat-input-area" onSubmit={handleSendMessage}>
+                  <textarea
+                      value={inputMessage}
+                      onChange={(e) => setInputMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage(e);
+                        }
+                      }}
+                      placeholder={uploadedImage ? "输入关于图片的问题..." : "给 AI 发送消息..."}
+                      rows={1}
+                  />
+                      <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          style={{ display: 'none' }}
+                      />
+                      <div className="input-buttons">
+                        <button
+                            type="button"
+                            className="upload-btn"
+                            onClick={handleImageUploadClick}
+                            disabled={uploadingImage || uploadedImage}
+                            title="上传图片"
+                        >
+                          📷
+                        </button>
+                        {loading && (
+                            <button
+                                type="button"
+                                className="stop-btn"
+                                onClick={handleStopGeneration}
+                                title="停止生成"
+                            >
+                              ⏹️
+                            </button>
+                        )}
+                        <button type="submit" className="send-btn" disabled={!inputMessage.trim() && !uploadedImage}>
+                          ➤
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </>
+          ) : (
+              <div className="welcome-screen">
+                <div className="welcome-avatar">🤖</div>
+                <h1>欢迎使用 AI 知识系统</h1>
+                <p>基于 RAG 技术，为您提供精准的企业知识问答服务</p>
+                <button className="start-btn" onClick={handleCreateConversation}>
+                  开始新对话
+                </button>
+              </div>
+          )}
+        </div>
+
+        {showDeleteConfirm && (
+            <div className="modal-overlay">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h3>确认删除</h3>
+                </div>
+                <div className="modal-body">
+                  <p>确定删除此对话吗？</p>
+                </div>
+                <div className="modal-footer">
+                  <button className="modal-btn cancel" onClick={handleDeleteCancel}>
+                    取消
+                  </button>
+                  <button className="modal-btn confirm" onClick={handleDeleteConfirm}>
+                    确定
+                  </button>
+                </div>
+              </div>
+            </div>
+        )}
+
+        {previewImage && (
+            <div className="image-preview-overlay" onClick={handleClosePreview}>
+              <div className="image-preview-content" onClick={(e) => e.stopPropagation()}>
+                <img src={previewImage} alt="预览图片" />
+              </div>
+              <button className="image-preview-close" onClick={handleClosePreview}>
+                ×
+              </button>
+            </div>
         )}
       </div>
-
-      {showDeleteConfirm && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>确认删除</h3>
-            </div>
-            <div className="modal-body">
-              <p>确定删除此对话吗？</p>
-            </div>
-            <div className="modal-footer">
-              <button className="modal-btn cancel" onClick={handleDeleteCancel}>
-                取消
-              </button>
-              <button className="modal-btn confirm" onClick={handleDeleteConfirm}>
-                确定
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {previewImage && (
-        <div className="image-preview-overlay" onClick={handleClosePreview}>
-          <div className="image-preview-content" onClick={(e) => e.stopPropagation()}>
-            <img src={previewImage} alt="预览图片" />
-          </div>
-          <button className="image-preview-close" onClick={handleClosePreview}>
-            ×
-          </button>
-        </div>
-      )}
-    </div>
   );
 }

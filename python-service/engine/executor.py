@@ -304,7 +304,8 @@ class Executor:
                     {
                         "conversation_id": state.conversation_id,
                         "role": "user",
-                        "content": question
+                        "content": question,
+                        "user_id": state.user_id,
                     },
                     run_id=state.run_id
                 )
@@ -314,7 +315,8 @@ class Executor:
                     {
                         "conversation_id": state.conversation_id,
                         "role": "assistant",
-                        "content": answer
+                        "content": answer,
+                        "user_id": state.user_id,
                     },
                     run_id=state.run_id
                 )

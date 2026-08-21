@@ -4,12 +4,14 @@ import requests
 import tempfile
 import logging
 from typing import List, Optional
-from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader, UnstructuredMarkdownLoader
+from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from PIL import Image
 import pytesseract
 from service.text_splitter import AdaptiveChunker, create_chunker
+from service.table_extractor import extract_pdf, extract_docx, extract_html
+from service.cleaner import clean_documents
 from core.config import config
 
 # pdf2image 可选依赖，用于扫描件 PDF 的 OCR 兜底
@@ -32,11 +34,11 @@ def setup_tesseract():
     # 从环境变量读取Tesseract路径
     env_tesseract_path = os.getenv("TESSERACT_PATH")
     possible_paths = []
-    
+
     # 如果环境变量设置了路径，优先使用
     if env_tesseract_path:
         possible_paths.append(env_tesseract_path)
-    
+
     # 添加默认路径
     possible_paths.extend([
         r'C:/Program Files/Tesseract-OCR/tesseract.exe',  # 默认安装路径
@@ -281,13 +283,13 @@ class DocumentParser:
         """
         # 检测是否为 URL(支持带或不带协议头)
         is_url = file_path.startswith(('http://', 'https://')) or \
-                 (not os.path.exists(file_path) and 
+                 (not os.path.exists(file_path) and
                   ('clouddn.com' in file_path or 'aliyuncs.com' in file_path or '/' in file_path))
         temp_file = None
 
         try:
             target_path = file_path
-            
+
             # 如果是 URL，先下载到临时文件
             if is_url:
                 try:
@@ -295,10 +297,10 @@ class DocumentParser:
                     download_url = file_path
                     if not download_url.startswith(('http://', 'https://')):
                         download_url = 'https://' + download_url
-                    
+
                     response = requests.get(download_url, stream=True, timeout=30)
                     response.raise_for_status()
-                    
+
                     # 推断扩展名，优先从 URL 获取，如果没有则尝试从 Content-Type 或 Content-Disposition 获取
                     # 简单起见，这里假设 URL 包含扩展名
                     ext = os.path.splitext(file_path)[1].lower()
@@ -338,29 +340,41 @@ class DocumentParser:
                     raise FileNotFoundError(f"File not found: {file_path}")
 
             ext = os.path.splitext(target_path)[1].lower()
-            
+
             if ext == '.pdf':
-                loader = PyPDFLoader(target_path)
-                documents = loader.load()
-                # 扫描件 PDF 兜底：PyPDFLoader 对图片型 PDF 返回空文本
+                if config.ENABLE_TABLE_EXTRACTION:
+                    documents = extract_pdf(target_path)
+                else:
+                    from langchain_community.document_loaders import PyPDFLoader
+                    documents = PyPDFLoader(target_path).load()
+                # 扫描件 PDF 兜底：对图片型 PDF（无文本层）走 OCR
                 if self._is_scanned_pdf(documents):
                     logger.info(f"Detected scanned PDF, falling back to OCR: {target_path}")
                     ocr_docs = self._ocr_pdf(target_path)
                     if ocr_docs:
                         documents = ocr_docs
             elif ext == '.docx':
-                loader = Docx2txtLoader(target_path)
-                documents = loader.load()
+                if config.ENABLE_TABLE_EXTRACTION:
+                    documents = extract_docx(target_path)
+                else:
+                    from langchain_community.document_loaders import Docx2txtLoader
+                    documents = Docx2txtLoader(target_path).load()
             elif ext == '.txt':
                 loader = TextLoader(target_path, encoding='utf-8')
                 documents = loader.load()
             elif ext == '.md':
                 loader = TextLoader(target_path, encoding='utf-8')
                 documents = loader.load()
+            elif ext in ['.html', '.htm']:
+                documents = extract_html(target_path)
             elif ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.tif']:
                 documents = self._ocr_image(target_path)
             else:
                 raise ValueError(f"Unsupported file type: {ext}")
+
+            # 清洗（加载后、切分前统一执行）
+            if config.ENABLE_CLEANING:
+                documents = clean_documents(documents)
 
             # 使用自适应切分器进行文档切分
             if skip_chunk:

@@ -253,15 +253,8 @@ class EvalDatasetBuilder:
             return self._sample_from_vector_store(n)
 
     def _sample_from_vector_store(self, n: int) -> List[LCDocument]:
-        """降级: 从 FAISS vector store 采样"""
-        try:
-            from core.vector_store import vector_store
-            if not vector_store.vector_store or not hasattr(vector_store.vector_store, 'docstore'):
-                return []
-            all_docs = list(vector_store.vector_store.docstore._dict.values())
-            sampled = random.sample(all_docs, min(n, len(all_docs)))
-            return [LCDocument(page_content=d.page_content, metadata=d.metadata)
-                    for d in sampled]
+        """降级: 从 Milvus 采样（通过 MySQL 获取更可靠）"""
+        return []
         except Exception as e:
             logger.error(f"Vector store sampling failed: {e}")
             return []

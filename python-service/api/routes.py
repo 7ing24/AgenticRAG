@@ -517,53 +517,9 @@ async def get_vector_store_stats():
 @router.post("/vector-store/migrate")
 async def migrate_to_milvus():
     """
-    将FAISS数据迁移到Milvus
+    FAISS 已移除，此端点保留仅为兼容性
     """
-    start_time = time.time()
-    try:
-        if not vector_store.use_milvus:
-            raise HTTPException(status_code=400, detail="当前未使用Milvus，无法迁移")
-
-        success = vector_store.migrate_faiss_to_milvus()
-
-        process_time = time.time() - start_time
-        logger.info(
-            json.dumps({
-                "method": "POST",
-                "path": "/api/vector-store/migrate",
-                "status_code": 200,
-                "process_time": process_time
-            })
-        )
-
-        if success:
-            return {"status": "success", "message": "数据迁移成功"}
-        else:
-            return {"status": "partial", "message": "迁移完成但可能有部分数据未迁移"}
-
-    except HTTPException as e:
-        process_time = time.time() - start_time
-        logger.info(
-            json.dumps({
-                "method": "POST",
-                "path": "/api/vector-store/migrate",
-                "status_code": e.status_code,
-                "process_time": process_time
-            })
-        )
-        raise
-    except Exception as e:
-        process_time = time.time() - start_time
-        logger.error(f"Error migrating to Milvus: {str(e)}")
-        logger.info(
-            json.dumps({
-                "method": "POST",
-                "path": "/api/vector-store/migrate",
-                "status_code": 500,
-                "process_time": process_time
-            })
-        )
-        raise HTTPException(status_code=500, detail="数据迁移失败")
+    raise HTTPException(status_code=410, detail="FAISS 已移除，无需迁移")
 
 @router.delete("/vector-store/collection")
 async def delete_vector_collection():

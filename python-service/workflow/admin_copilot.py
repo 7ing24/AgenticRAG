@@ -28,6 +28,32 @@ class AdminCopilotAgent:
             "agent_success_rate": "Agent成功率分析",
             "tool_call_failures": "工具调用失败排行",
         }
+        self._llm_service = None
+
+    @property
+    def llm_service(self):
+        """延迟加载 LLM 服务"""
+        if self._llm_service is None:
+            try:
+                from core.llm import LLMService
+                self._llm_service = LLMService()
+            except Exception as e:
+                logger.warning(f"[AdminCopilotAgent] LLM service unavailable: {e}")
+                self._llm_service = False
+        return self._llm_service if self._llm_service is not False else None
+
+    # 有效的操作类型（对应 _execute_operation 的分支）
+    VALID_OPERATIONS = [
+        ("stats", "系统统计（文档数、问答次数、用户数、未命中问题数等）"),
+        ("knowledge_gap", "知识缺口分析（用户提问但系统未回答的问题）"),
+        ("hot_questions", "热门问题排行（高频问题 TOP 榜）"),
+        ("knowledge_inspection", "知识巡检（重复文档、低质量片段、过期知识、冷门文档）"),
+        ("full_ops_report", "完整运营报告（综合知识缺口、问答趋势、用户活跃度）"),
+        ("user_activity", "用户活跃度分析（活跃用户统计）"),
+        ("knowledge_growth", "知识库增长趋势（文档和片段的新增情况）"),
+        ("agent_success_rate", "Agent 成功率分析"),
+        ("tool_call_failures", "工具调用失败排行"),
+    ]
 
     def handle(self, question: str, conversation_id: Optional[str] = None,
                user_id: Optional[str] = None, context: str = "",
@@ -57,7 +83,7 @@ class AdminCopilotAgent:
                 conversation_id=conversation_id, user_id=user_id,
                 original_input=question, run_id="admin_memory"
             )
-            context = self.memory_agent.load_memory(memory_state, max_rounds=5).get("text", "")
+            context = self.memory_agent.load_memory(memory_state, max_rounds=5, include_l1=False).get("text", "")
 
         try:
             if collector:
@@ -110,16 +136,10 @@ class AdminCopilotAgent:
                 conversation_id=conversation_id, user_id=user_id,
                 original_input=question, run_id="admin_stream_memory"
             )
-            context = self.memory_agent.load_memory(memory_state, max_rounds=5).get("text", "")
+            context = self.memory_agent.load_memory(memory_state, max_rounds=5, include_l1=False).get("text", "")
 
         try:
             operation = self._parse_operation(question, context)
-
-            if operation in ["knowledge_gap", "full_ops_report"]:
-                yield from self.ops_agent.analyze_stream(
-                    "knowledge_gap" if operation == "knowledge_gap" else "full_report"
-                )
-                return
 
             result = self.handle(question, conversation_id, user_id, context, **kwargs)
             answer = result.get("answer", "")
@@ -134,9 +154,7 @@ class AdminCopilotAgent:
             yield json.dumps({"type": "error", "content": str(e)})
 
     def _parse_operation(self, question: str, context: str = "") -> str:
-        """解析操作类型，对跟进类请求回溯上下文"""
-        lower_question = question.lower()
-
+        """解析操作类型：LLM 优先，关键词 fallback"""
         # 如果是跟进请求，从上下文推断上一轮操作
         if any(phrase in question for phrase in ["重新回答", "再列", "换格式", "每行", "重新列", "重列", "再回答", "换个方式"]):
             prev_op = self._infer_operation_from_context(context)
@@ -144,24 +162,64 @@ class AdminCopilotAgent:
                 logger.info(f"[AdminCopilotAgent] Follow-up detected, inferred operation: {prev_op}")
                 return prev_op
 
+        # 1. LLM 优先判断
+        operation = self._classify_operation_with_llm(question)
+        if operation:
+            return operation
+
+        # 2. 关键词 fallback
+        return self._keyword_parse(question)
+
+    def _classify_operation_with_llm(self, question: str) -> Optional[str]:
+        """LLM 判断操作类型，失败返回 None"""
+        try:
+            llm = self.llm_service
+            if not llm:
+                return None
+
+            op_list = "\n".join([f"- {op}: {desc}" for op, desc in self.VALID_OPERATIONS])
+            prompt = f"""判断以下管理操作请求属于哪类操作。
+
+用户请求：{question}
+
+可选操作类型：
+{op_list}
+
+只回复操作类型的英文标识（如 stats、hot_questions），不要其他内容。"""
+
+            result = llm.generate(prompt)
+            if result:
+                result = result.strip().lower()
+                for op, _ in self.VALID_OPERATIONS:
+                    if op in result:
+                        logger.info(f"[AdminCopilotAgent] LLM classified operation: {op}")
+                        return op
+        except Exception as e:
+            logger.warning(f"[AdminCopilotAgent] LLM classification failed: {e}")
+        return None
+
+    def _keyword_parse(self, question: str) -> str:
+        """关键词 fallback（具体词优先于宽泛词）"""
+        lower_question = question.lower()
+
+        if any(kw in lower_question for kw in ["热门问题", "问题排行", "top问题", "常见问题"]):
+            return "hot_questions"
         if any(kw in lower_question for kw in ["知识缺口", "缺口", "未命中", "知识缺口分析"]):
             return "knowledge_gap"
         if any(kw in lower_question for kw in ["运营报告", "完整报告", "全报告", "运营分析"]):
             return "full_ops_report"
         if any(kw in lower_question for kw in ["用户", "活跃度", "活跃用户"]):
             return "user_activity"
-        if any(kw in lower_question for kw in ["统计", "报表", "数据", "分析", "多少", "数量"]):
-            return "stats"
-        if any(kw in lower_question for kw in ["知识", "文档", "巡检", "检查", "质量"]):
-            return "knowledge_inspection"
-        if any(kw in lower_question for kw in ["热门问题", "问题排行", "top问题", "常见问题"]):
-            return "hot_questions"
         if any(kw in lower_question for kw in ["知识库增长", "文档增长", "增长趋势", "新增文档"]):
             return "knowledge_growth"
         if any(kw in lower_question for kw in ["成功率", "失败率", "agent成功", "运行成功"]):
             return "agent_success_rate"
         if any(kw in lower_question for kw in ["工具调用", "工具失败", "工具错误", "工具排行"]):
             return "tool_call_failures"
+        if any(kw in lower_question for kw in ["知识", "文档", "巡检", "检查", "质量"]):
+            return "knowledge_inspection"
+        if any(kw in lower_question for kw in ["统计", "报表", "数据", "分析", "多少", "数量"]):
+            return "stats"
 
         return "stats"
 
@@ -293,7 +351,7 @@ class AdminCopilotAgent:
 
     def _knowledge_inspection(self) -> Dict[str, Any]:
         """知识巡检 - 调用InspectionAgent"""
-        from service.inspection import InspectionAgent
+        from agent.inspection_agent import InspectionAgent
         inspection_agent = InspectionAgent()
         return inspection_agent.inspect("full")
 

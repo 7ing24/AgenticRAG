@@ -1,29 +1,30 @@
 import os
 import json
+import threading
 import requests
-from typing import AsyncGenerator, Generator, Optional, Dict, Any
+from typing import AsyncGenerator, Generator, Optional, Dict, Any, List
 from langchain_community.llms import Tongyi
-# from langchain_community.llms import Ollama  # 本地模型（已注释，改用 Tongyi）
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.callbacks import BaseCallbackHandler
 from PIL import Image
 import pytesseract
 
-# 使用统一配置管理模块
 from core.config import config
-
-# LLM Fallback 引擎
 from core.llm_fallback import (
-    fallback_handler, LLMServiceError, CircuitBreakerOpenError, TokenCallback as FallbackTokenCallback
+    fallback_handler,
+    LLMServiceError,
+    CircuitBreakerOpenError,
+    TokenCallback as FallbackTokenCallback,
 )
 
-# 配置Tesseract OCR路径（空值时由 parser.py 自动检测）
 if config.TESSERACT_PATH:
     pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_PATH
 
+
 class _TokenUsage:
     """Token 用量辅助类 — 用于流式调用后记录 token 数"""
+
     def __init__(self, input_tokens, output_tokens):
         self.input_tokens = input_tokens
         self.output_tokens = output_tokens
@@ -38,35 +39,22 @@ class _TokenUsage:
 
 
 class LLMService:
+    MAX_OUTPUT_TOKENS = 2048
+    REACT_STOP = ["\nThought:", "\nObservation:"]
+
     def __init__(self):
-        self._last_token_callback = None
-        # ============================================================
-        # 阿里云通义千问（默认，需设置 DASHSCOPE_API_KEY）
-        # ============================================================
+        self._local = threading.local()
         api_key = config.DASHSCOPE_API_KEY
         if not api_key:
-            config.logger.warning("DASHSCOPE_API_KEY not found. LLM features will not work properly.")
+            config.logger.warning(
+                "DASHSCOPE_API_KEY not found. LLM features will not work properly."
+            )
             self.llm = None
         else:
             self.llm = Tongyi(
-                model_name="qwen-plus",
-                api_key=api_key,
-                streaming=True
+                model_name=config.DASHSCOPE_MODEL, api_key=api_key, streaming=True
             )
 
-        # ============================================================
-        # Ollama 本地模型（免费，已注释）
-        # ============================================================
-        # ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        # ollama_model = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
-        # self.llm = Ollama(
-        #     model=ollama_model,
-        #     base_url=ollama_base_url,
-        # )
-        # config.logger.info(f"LLM initialized: Ollama ({ollama_model}) at {ollama_base_url}")
-
-        # 优化后的 Prompt 模板
-        # 支持对话上下文和知识库上下文
         self.prompt = PromptTemplate.from_template(
             """
             你是一个专业的AI知识库助手。请根据提供的知识库信息回答用户问题。
@@ -93,94 +81,97 @@ class LLMService:
             """
         )
 
-        # 标题生成模板
         self.summary_prompt = PromptTemplate.from_template(
             """
             请为以下用户问题生成一个简短的标题（Summary）。
-            
+
             用户问题：
             {question}
-            
+
             要求：
             1. 标题应概括问题的主要内容。
             2. 长度控制在10个字以内。
             3. 不需要任何前缀或后缀，直接返回标题文本。
-            
+
             标题：
             """
         )
 
-    """
-     * 获取 LLM 的回答
-     * @param question 用户问题
-     * @param context_docs 上下文文档列表
-     * @param conversation_context 对话上下文（可选）
-     * @return LLM 的回答
-     * """
-    def get_answer(self, question: str, context_docs: list, conversation_context: str = "") -> str:
+    def get_answer(
+        self,
+        question: str,
+        context_docs: list,
+        conversation_context: str = "",
+    ) -> str:
         import time
+
         start_time = time.time()
-        
+
         if not self.llm:
-            config.logger.info(f"LLM get_answer completed in {time.time() - start_time:.4f}s (no API key)")
+            config.logger.info(
+                f"LLM get_answer completed in {time.time() - start_time:.4f}s (no API key)"
+            )
             return fallback_handler.registry.get("no_api_key")
 
-        # 处理包含图片的问题
         image_process_start = time.time()
         processed_question = self.process_question_with_images(question)
         image_process_time = time.time() - image_process_start
-        config.logger.info(f"Image processing completed in {image_process_time:.4f}s")
+        config.logger.info(
+            f"Image processing completed in {image_process_time:.4f}s"
+        )
 
-        # 处理知识库上下文
         if not context_docs:
             knowledge_context = "（无相关知识库信息）"
         else:
-            knowledge_context = "\n\n".join([
-                doc.page_content if hasattr(doc, 'page_content') else str(doc)
-                for doc in context_docs
-            ])
+            knowledge_context = "\n\n".join(
+                [
+                    (
+                        doc.page_content
+                        if hasattr(doc, "page_content")
+                        else str(doc)
+                    )
+                    for doc in context_docs
+                ]
+            )
 
-        # 处理对话上下文 - 兼容 dict 和 str
         if isinstance(conversation_context, dict):
             conversation_context = conversation_context.get("text", "")
 
-        # 过滤掉错误信息
         cleaned_context = self.clean_conversation_context(conversation_context)
         if not cleaned_context or cleaned_context.strip() == "":
             cleaned_context = "（无对话历史）"
 
-        # 用模板格式化 prompt
         prompt_text = self.prompt.format(
             conversation_context=cleaned_context,
             knowledge_context=knowledge_context,
-            question=processed_question
+            question=processed_question,
         )
 
         try:
             llm_start = time.time()
             result, token_cb = self._dashscope_generate(prompt_text)
-            self._last_token_callback = token_cb
+            self.set_token_usage(token_cb)
             config.logger.info(
                 f"[TokenUsage][answer] input:{token_cb.input_tokens} "
                 f"output:{token_cb.output_tokens} total:{token_cb.total_tokens}"
             )
             llm_time = time.time() - llm_start
             config.logger.info(f"LLM invocation completed in {llm_time:.4f}s")
-            config.logger.info(f"LLM get_answer completed in {time.time() - start_time:.4f}s")
+            config.logger.info(
+                f"LLM get_answer completed in {time.time() - start_time:.4f}s"
+            )
             return result
         except Exception as e:
             config.logger.error(f"LLM Error: {e}")
-            config.logger.info(f"LLM get_answer completed in {time.time() - start_time:.4f}s (error)")
+            config.logger.info(
+                f"LLM get_answer completed in {time.time() - start_time:.4f}s (error)"
+            )
             return fallback_handler.registry.get("generation")
 
     def clean_conversation_context(self, context: str) -> str:
-        """
-        清理对话上下文，移除错误信息，防止污染后续回答
-        """
         if not context:
             return ""
-        
-        # 需要过滤的错误关键词
+
         error_keywords = [
             "AI服务暂时不可用",
             "服务不可用",
@@ -189,210 +180,217 @@ class LLMService:
             "网络错误",
             "超时",
             "API密钥",
-            "配置错误"
+            "配置错误",
         ]
-        
-        # 按行分割
+
         lines = context.split("\n")
-        # 过滤包含错误关键词的行
         cleaned_lines = [
-            line for line in lines 
+            line
+            for line in lines
             if not any(keyword in line for keyword in error_keywords)
         ]
-        
         return "\n".join(cleaned_lines)
 
-    """
-     * 流式获取 LLM 的回答
-     * @param question 用户问题
-     * @param context_docs 上下文文档列表
-     * @param conversation_context 对话上下文（可选）
-     * @return 流式生成器，逐个token返回
-     * """
-    def get_answer_stream(self, question: str, context_docs: list, conversation_context: str = "") -> Generator[str, None, None]:
+    def get_answer_stream(
+        self,
+        question: str,
+        context_docs: list,
+        conversation_context: str = "",
+    ) -> Generator[str, None, None]:
         import time
+
         start_time = time.time()
-        
+
         if not self.llm:
-            config.logger.info(f"LLM get_answer_stream completed in {time.time() - start_time:.4f}s (no API key)")
-            yield json.dumps({"type": "error", "content": fallback_handler.registry.get("no_api_key")})
+            config.logger.info(
+                f"LLM get_answer_stream completed in {time.time() - start_time:.4f}s (no API key)"
+            )
+            yield json.dumps(
+                {
+                    "type": "error",
+                    "content": fallback_handler.registry.get("no_api_key"),
+                }
+            )
             return
 
-        # 处理包含图片的问题
         image_process_start = time.time()
         processed_question = self.process_question_with_images(question)
         image_process_time = time.time() - image_process_start
-        config.logger.info(f"Image processing completed in {image_process_time:.4f}s")
+        config.logger.info(
+            f"Image processing completed in {image_process_time:.4f}s"
+        )
 
-        # 处理知识库上下文
         if not context_docs:
             knowledge_context = "（无相关知识库信息）"
         else:
-            knowledge_context = "\n\n".join([
-                doc.page_content if hasattr(doc, 'page_content') else str(doc)
-                for doc in context_docs
-            ])
+            knowledge_context = "\n\n".join(
+                [
+                    (
+                        doc.page_content
+                        if hasattr(doc, "page_content")
+                        else str(doc)
+                    )
+                    for doc in context_docs
+                ]
+            )
 
-        # 处理对话上下文 - 兼容 dict 和 str
         if isinstance(conversation_context, dict):
             conversation_context = conversation_context.get("text", "")
 
-        # 过滤掉错误信息
         cleaned_context = self.clean_conversation_context(conversation_context)
         if not cleaned_context or cleaned_context.strip() == "":
             cleaned_context = "（无对话历史）"
 
-        # 构建处理链
-        chain = (
-            self.prompt
-            | self.llm
-            | StrOutputParser()
-        )
+        chain = self.prompt | self.llm | StrOutputParser()
 
-        # 计算 prompt 文本用于 token 计数
         prompt_text = self.prompt.format(
             conversation_context=cleaned_context,
             knowledge_context=knowledge_context,
-            question=processed_question
+            question=processed_question,
         )
         input_tokens = self.llm.get_num_tokens(prompt_text) if self.llm else 0
 
         try:
-            # 发送开始信号
             yield json.dumps({"type": "start", "content": ""})
 
-            # 流式调用
             llm_start = time.time()
             full_response = ""
-            for chunk in chain.stream({
-                "conversation_context": cleaned_context,
-                "knowledge_context": knowledge_context,
-                "question": processed_question
-            }):
+            for chunk in chain.stream(
+                {
+                    "conversation_context": cleaned_context,
+                    "knowledge_context": knowledge_context,
+                    "question": processed_question,
+                }
+            ):
                 full_response += chunk
                 yield json.dumps({"type": "token", "content": chunk})
             llm_time = time.time() - llm_start
-            config.logger.info(f"LLM stream invocation completed in {llm_time:.4f}s")
+            config.logger.info(
+                f"LLM stream invocation completed in {llm_time:.4f}s"
+            )
 
-            # 用 get_num_tokens 计算 token 用量（比 callback 可靠）
-            output_tokens = self.llm.get_num_tokens(full_response) if self.llm else 0
-            self._last_token_callback = _TokenUsage(input_tokens, output_tokens)
+            output_tokens = (
+                self.llm.get_num_tokens(full_response) if self.llm else 0
+            )
+            self.set_token_usage(_TokenUsage(input_tokens, output_tokens))
 
-            # 发送结束信号
             yield json.dumps({"type": "end", "content": full_response})
-            config.logger.info(f"LLM get_answer_stream completed in {time.time() - start_time:.4f}s")
+            config.logger.info(
+                f"LLM get_answer_stream completed in {time.time() - start_time:.4f}s"
+            )
 
         except Exception as e:
             config.logger.error(f"LLM Stream Error: {e}")
-            config.logger.info(f"LLM get_answer_stream completed in {time.time() - start_time:.4f}s (error)")
-            yield json.dumps({"type": "error", "content": fallback_handler.registry.get("generation")})
+            config.logger.info(
+                f"LLM get_answer_stream completed in {time.time() - start_time:.4f}s (error)"
+            )
+            yield json.dumps(
+                {
+                    "type": "error",
+                    "content": fallback_handler.registry.get("generation"),
+                }
+            )
 
     def generate_title(self, question: str) -> str:
         import time
+
         start_time = time.time()
-        
+
         if not self.llm:
-            config.logger.info(f"LLM generate_title completed in {time.time() - start_time:.4f}s (no API key)")
+            config.logger.info(
+                f"LLM generate_title completed in {time.time() - start_time:.4f}s (no API key)"
+            )
             return fallback_handler.registry.get("title")
 
-        chain = (
-            self.summary_prompt
-            | self.llm
-            | StrOutputParser()
-        )
-        
+        chain = self.summary_prompt | self.llm | StrOutputParser()
+
         try:
             llm_start = time.time()
             title = chain.invoke({"question": question})
             llm_time = time.time() - llm_start
-            # 清理可能的额外空白或引号
             result = title.strip().strip('"').strip("'")
-            config.logger.info(f"LLM title generation completed in {llm_time:.4f}s")
-            config.logger.info(f"LLM generate_title completed in {time.time() - start_time:.4f}s")
+            config.logger.info(
+                f"LLM title generation completed in {llm_time:.4f}s"
+            )
+            config.logger.info(
+                f"LLM generate_title completed in {time.time() - start_time:.4f}s"
+            )
             return result
         except Exception as e:
             config.logger.error(f"LLM Title Generation Error: {e}")
-            config.logger.info(f"LLM generate_title completed in {time.time() - start_time:.4f}s (error)")
+            config.logger.info(
+                f"LLM generate_title completed in {time.time() - start_time:.4f}s (error)"
+            )
             return fallback_handler.registry.get("title")
 
     def extract_text_from_image(self, image_url: str) -> str:
-        """
-        从图片URL中提取文字
-        """
         try:
-            # 处理相对路径，转换为完整URL
-            if image_url.startswith('/api/'):
-                # 使用后端服务地址
+            if image_url.startswith("/api/"):
                 image_url = f"http://localhost:8080{image_url}"
-            
+
             config.logger.info(f"Downloading image from: {image_url}")
-            
-            # 下载图片
+
             response = requests.get(image_url, timeout=10)
             response.raise_for_status()
-            
-            # 保存到临时文件
+
             temp_path = os.path.join(config.TEMP_DIR, "temp_image.png")
             with open(temp_path, "wb") as f:
                 f.write(response.content)
-            
-            config.logger.info(f"Image saved to temp file, size: {len(response.content)} bytes")
-            
-            # 使用OCR提取文字
+
+            config.logger.info(
+                f"Image saved to temp file, size: {len(response.content)} bytes"
+            )
+
             image = Image.open(temp_path)
-            text = pytesseract.image_to_string(image, lang='chi_sim+eng')
-            
-            config.logger.info(f"OCR result: {text[:100]}...")  # 打印前100个字符
-            
-            # 清理临时文件
+            text = pytesseract.image_to_string(image, lang="chi_sim+eng")
+
+            config.logger.info(f"OCR result: {text[:100]}...")
+
             if os.path.exists(temp_path):
                 os.remove(temp_path)
-            
+
             return text.strip() if text.strip() else "图片中未识别到文字"
         except Exception as e:
             config.logger.error(f"Error extracting text from image: {e}")
             return f"无法从图片中提取文字: {str(e)}"
 
     def process_question_with_images(self, question: str) -> str:
-        """
-        处理包含图片URL的问题，提取图片中的文字并添加到问题中
-        """
         import re
-        # 查找图片URL（支持完整URL和相对路径）
-        image_urls = re.findall(r'图片URL: (/api/[^\n]+)', question)
-        
+
+        image_urls = re.findall(r"图片URL: (/api/[^\n]+)", question)
         config.logger.info(f"Found image URLs: {image_urls}")
-        
+
         if image_urls:
             processed_question = question
             for image_url in image_urls:
-                # 提取图片中的文字
                 image_text = self.extract_text_from_image(image_url)
-                # 将图片文字添加到问题中
                 processed_question += f"\n\n图片内容: {image_text}"
             return processed_question
         else:
             return question
 
     def _dashscope_generate(self, prompt_text: str):
-        """直接调 DashScope API，带重试 + 熔断保护
-
-        Returns: (text, TokenCallback)
-        """
+        """直接调 DashScope API，带重试 + 熔断保护"""
         import dashscope
 
         api_key = config.DASHSCOPE_API_KEY
-        model = getattr(config, 'DASHSCOPE_MODEL', 'qwen-plus')
+        model = getattr(config, "DASHSCOPE_MODEL", "qwen-plus")
 
         if not api_key:
-            return fallback_handler.registry.get("no_api_key"), FallbackTokenCallback()
+            return (
+                fallback_handler.registry.get("no_api_key"),
+                FallbackTokenCallback(),
+            )
 
         def _call():
             resp = dashscope.Generation.call(
                 model=model,
                 prompt=prompt_text,
                 api_key=api_key,
-                result_format='message',
+                result_format="message",
+                max_tokens=self.MAX_OUTPUT_TOKENS,
+                temperature=0.2,
+                repetition_penalty=1.15,
             )
             cb = TokenCallback()
             if resp.status_code == 200 and resp.output and resp.output.choices:
@@ -403,40 +401,236 @@ class LLMService:
                     cb.total_tokens = resp.usage.total_tokens
                 return text, cb
             else:
-                code = getattr(resp, 'status_code', 'unknown')
-                msg = getattr(resp, 'message', '')
-                raise LLMServiceError(f"DashScope API error: status={code} message={msg}")
+                code = getattr(resp, "status_code", "unknown")
+                msg = getattr(resp, "message", "")
+                raise LLMServiceError(
+                    f"DashScope API error: status={code} message={msg}"
+                )
 
         try:
             return fallback_handler.invoke(_call, scene="generation")
         except CircuitBreakerOpenError:
-            return fallback_handler.registry.get("circuit_open"), FallbackTokenCallback()
+            return (
+                fallback_handler.registry.get("circuit_open"),
+                FallbackTokenCallback(),
+            )
         except LLMServiceError:
-            return fallback_handler.registry.get("generation"), FallbackTokenCallback()
+            return (
+                fallback_handler.registry.get("generation"),
+                FallbackTokenCallback(),
+            )
+
+    def chat_generate(self, messages: List[Dict[str, str]]) -> str:
+        """按角色消息生成（支持 system 角色），返回文本并记录 token 用量。"""
+        import time
+
+        start_time = time.time()
+
+        if not self.llm:
+            config.logger.info(
+                f"LLM chat_generate completed in {time.time() - start_time:.4f}s (no API key)"
+            )
+            return fallback_handler.registry.get("no_api_key")
+
+        try:
+            result, token_cb = self._dashscope_chat_generate(messages)
+            self.set_token_usage(token_cb)
+            config.logger.info(
+                f"LLM chat_generate completed in {time.time() - start_time:.4f}s"
+            )
+            return result
+        except Exception as e:
+            config.logger.error(f"LLM chat_generate Error: {e}")
+            return fallback_handler.registry.get("generation")
+
+    def _dashscope_chat_generate(self, messages: List[Dict[str, str]]):
+        """直接调 DashScope messages API，带重试 + 熔断保护"""
+        import dashscope
+
+        api_key = config.DASHSCOPE_API_KEY
+        model = getattr(config, "DASHSCOPE_MODEL", "qwen-plus")
+
+        if not api_key:
+            return (
+                fallback_handler.registry.get("no_api_key"),
+                FallbackTokenCallback(),
+            )
+
+        def _call():
+            resp = dashscope.Generation.call(
+                model=model,
+                messages=messages,
+                api_key=api_key,
+                result_format="message",
+                max_tokens=self.MAX_OUTPUT_TOKENS,
+                temperature=0.2,
+                repetition_penalty=1.15,
+                stop=self.REACT_STOP,
+            )
+            cb = TokenCallback()
+            if resp.status_code == 200 and resp.output and resp.output.choices:
+                text = resp.output.choices[0].message.content
+                if resp.usage:
+                    cb.input_tokens = resp.usage.input_tokens
+                    cb.output_tokens = resp.usage.output_tokens
+                    cb.total_tokens = resp.usage.total_tokens
+                return text, cb
+            else:
+                code = getattr(resp, "status_code", "unknown")
+                msg = getattr(resp, "message", "")
+                raise LLMServiceError(
+                    f"DashScope API error: status={code} message={msg}"
+                )
+
+        try:
+            return fallback_handler.invoke(_call, scene="generation")
+        except CircuitBreakerOpenError:
+            return (
+                fallback_handler.registry.get("circuit_open"),
+                FallbackTokenCallback(),
+            )
+        except LLMServiceError:
+            return (
+                fallback_handler.registry.get("generation"),
+                FallbackTokenCallback(),
+            )
+
+    def chat_stream(
+        self, messages: List[Dict[str, str]]
+    ) -> Generator[str, None, None]:
+        """按角色消息流式生成，逐 token yield；结束前记录 token 用量。"""
+        if not self.llm:
+            yield fallback_handler.registry.get("no_api_key")
+            return
+
+        import dashscope
+
+        api_key = config.DASHSCOPE_API_KEY
+        model = getattr(config, "DASHSCOPE_MODEL", "qwen-plus")
+        token_usage = None
+
+        responses = dashscope.Generation.call(
+            model=model,
+            messages=messages,
+            api_key=api_key,
+            result_format="message",
+            stream=True,
+            incremental_output=True,
+            max_tokens=self.MAX_OUTPUT_TOKENS,
+            temperature=0.2,
+            repetition_penalty=1.15,
+            stop=self.REACT_STOP,
+        )
+        for resp in responses:
+            if resp.status_code == 200 and resp.output and resp.output.choices:
+                piece = resp.output.choices[0].message.content
+                if resp.usage:
+                    token_usage = resp.usage
+                if piece:
+                    yield piece
+            else:
+                code = getattr(resp, "status_code", "unknown")
+                msg = getattr(resp, "message", "")
+                raise LLMServiceError(
+                    f"DashScope stream error: status={code} message={msg}"
+                )
+
+        if token_usage is not None:
+            input_tokens = (
+                getattr(token_usage, "input_tokens", 0)
+                or getattr(token_usage, "prompt_tokens", 0)
+                or 0
+            )
+            output_tokens = (
+                getattr(token_usage, "output_tokens", 0)
+                or getattr(token_usage, "completion_tokens", 0)
+                or 0
+            )
+            self.set_token_usage(_TokenUsage(input_tokens, output_tokens))
+
+    def generate_stream(
+        self, prompt: str
+    ) -> Generator[str, None, None]:
+        """按单条 prompt 流式生成，逐 token yield；结束前记录 token 用量。
+
+        与 chat_stream 的区别：不追加 REACT_STOP 截断（合成/摘要类场景需要完整输出）。
+        """
+        if not self.llm:
+            yield fallback_handler.registry.get("no_api_key")
+            return
+
+        import dashscope
+
+        api_key = config.DASHSCOPE_API_KEY
+        model = getattr(config, "DASHSCOPE_MODEL", "qwen-plus")
+        token_usage = None
+
+        responses = dashscope.Generation.call(
+            model=model,
+            prompt=prompt,
+            api_key=api_key,
+            result_format="message",
+            stream=True,
+            incremental_output=True,
+            max_tokens=self.MAX_OUTPUT_TOKENS,
+            temperature=0.2,
+            repetition_penalty=1.15,
+        )
+        for resp in responses:
+            if resp.status_code == 200 and resp.output and resp.output.choices:
+                piece = resp.output.choices[0].message.content
+                if resp.usage:
+                    token_usage = resp.usage
+                if piece:
+                    yield piece
+            else:
+                code = getattr(resp, "status_code", "unknown")
+                msg = getattr(resp, "message", "")
+                raise LLMServiceError(
+                    f"DashScope stream error: status={code} message={msg}"
+                )
+
+        if token_usage is not None:
+            input_tokens = (
+                getattr(token_usage, "input_tokens", 0)
+                or getattr(token_usage, "prompt_tokens", 0)
+                or 0
+            )
+            output_tokens = (
+                getattr(token_usage, "output_tokens", 0)
+                or getattr(token_usage, "completion_tokens", 0)
+                or 0
+            )
+            self.set_token_usage(_TokenUsage(input_tokens, output_tokens))
+
+    def set_token_usage(self, token_cb):
+        self._local.last_token_callback = token_cb
 
     def get_last_token_usage(self) -> Dict[str, Optional[int]]:
-        """返回最近一次 LLM 调用的 token 用量"""
-        if self._last_token_callback:
-            return self._last_token_callback.to_dict()
+        token_cb = getattr(self._local, "last_token_callback", None)
+        if token_cb:
+            return token_cb.to_dict()
         return {}
 
-    def generate(self, prompt: str, temperature: float = 0.7, max_tokens: int = 150) -> str:
-        """
-        简单的文本生成方法（用于闲聊等场景）
-        """
+    def generate(
+        self, prompt: str, temperature: float = 0.7, max_tokens: int = 150
+    ) -> str:
         import time
-        start_time = time.time()
-        
-        if not self.llm:
-            config.logger.info(f"LLM generate completed in {time.time() - start_time:.4f}s (no API key)")
-            return fallback_handler.registry.get("no_api_key")
-        
-        try:
-            # 使用简单的 prompt
-            result, token_cb = self._dashscope_generate(prompt)
-            self._last_token_callback = token_cb
 
-            config.logger.info(f"LLM generate completed in {time.time() - start_time:.4f}s")
+        start_time = time.time()
+
+        if not self.llm:
+            config.logger.info(
+                f"LLM generate completed in {time.time() - start_time:.4f}s (no API key)"
+            )
+            return fallback_handler.registry.get("no_api_key")
+
+        try:
+            result, token_cb = self._dashscope_generate(prompt)
+            self.set_token_usage(token_cb)
+            config.logger.info(
+                f"LLM generate completed in {time.time() - start_time:.4f}s"
+            )
             return result
         except Exception as e:
             config.logger.error(f"LLM generate Error: {e}")
@@ -444,29 +638,40 @@ class LLMService:
 
 
 class TokenCallback(BaseCallbackHandler):
-    """捕获 LLM 调用的 token 用量"""
+
     def __init__(self):
         self.input_tokens = None
         self.output_tokens = None
         self.total_tokens = None
 
     def on_llm_end(self, response, **kwargs):
-        # 尝试从 llm_output 中提取
-        if hasattr(response, 'llm_output') and response.llm_output:
-            usage = response.llm_output.get('token_usage', {})
-            self.input_tokens = usage.get('prompt_tokens') or usage.get('input_tokens')
-            self.output_tokens = usage.get('completion_tokens') or usage.get('output_tokens')
-            self.total_tokens = usage.get('total_tokens')
-        # 也尝试从 generation_info 中提取
+        if hasattr(response, "llm_output") and response.llm_output:
+            usage = response.llm_output.get("token_usage", {})
+            self.input_tokens = usage.get("prompt_tokens") or usage.get(
+                "input_tokens"
+            )
+            self.output_tokens = usage.get("completion_tokens") or usage.get(
+                "output_tokens"
+            )
+            self.total_tokens = usage.get("total_tokens")
+
         for gen_list in response.generations:
             for gen in gen_list:
                 info = gen.generation_info or {}
-                um = info.get('usage_metadata', {})
+                um = info.get("usage_metadata", {})
                 if um:
-                    self.input_tokens = self.input_tokens or um.get('input_tokens')
-                    self.output_tokens = self.output_tokens or um.get('output_tokens')
-                    self.total_tokens = self.total_tokens or um.get('total_tokens')
+                    self.input_tokens = self.input_tokens or um.get(
+                        "input_tokens"
+                    )
+                    self.output_tokens = self.output_tokens or um.get(
+                        "output_tokens"
+                    )
+                    self.total_tokens = self.total_tokens or um.get(
+                        "total_tokens"
+                    )
+
         import logging
+
         logging.getLogger(__name__).info(
             f"[TokenCallback] tokens captured — input:{self.input_tokens} output:{self.output_tokens} total:{self.total_tokens}"
         )
@@ -478,8 +683,6 @@ class TokenCallback(BaseCallbackHandler):
             "total_tokens": self.total_tokens,
         }
 
-# 创建单例实例
-llm_service = LLMService()
 
-# 导出（保持兼容性）
+llm_service = LLMService()
 llm = llm_service

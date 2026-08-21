@@ -153,7 +153,7 @@ export default function KnowledgeManagement() {
               id="admin-file-input"
               type="file"
               onChange={handleFileSelect}
-              accept=".txt,.pdf,.doc,.docx,.md"
+              accept=".txt,.pdf,.docx,.md,.html,.htm,.png,.jpg,.jpeg,.gif,.bmp,.tiff,.tif"
             />
           </div>
           <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
@@ -169,7 +169,7 @@ export default function KnowledgeManagement() {
         </div>
 
         <p style={{ fontSize: '12px', color: '#999', margin: '8px 0 0 0' }}>
-          支持格式: .txt, .pdf, .doc, .docx, .md
+          支持格式: .txt, .pdf, .docx, .md, .html, 图片(.png/.jpg/.gif/.bmp/.tiff)
         </p>
       </div>
 

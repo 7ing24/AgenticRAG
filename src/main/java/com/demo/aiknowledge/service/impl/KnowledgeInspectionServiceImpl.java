@@ -5,7 +5,14 @@ import com.demo.aiknowledge.entity.*;
 import com.demo.aiknowledge.mapper.*;
 import com.demo.aiknowledge.service.KnowledgeInspectionService;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
@@ -18,6 +25,7 @@ import java.util.stream.Collectors;
 import java.util.Comparator;
 
 @Service
+@Slf4j
 public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionService {
 
     @Resource
@@ -35,32 +43,38 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
     @Resource
     private DocViewLogMapper docViewLogMapper;
 
+    @Resource
+    private RestTemplate restTemplate;
+
+    @Value("${ai.service.url}")
+    private String aiServiceUrl;
+
     private static final Pattern CHINESE_PATTERN = Pattern.compile("[\\u4e00-\\u9fa5]+");
     private static final Pattern KEYWORD_PATTERN = Pattern.compile("[\\u4e00-\\u9fa5]{2,}|[a-zA-Z]+");
-    private static final int DEFAULT_MIN_CHUNK_LENGTH = 10;
-    private static final int DEFAULT_OUTDATED_DAYS = 180;
-    private static final int DEFAULT_UNACCESSED_DAYS = 90;
-    private static final double DEFAULT_SIMILARITY_THRESHOLD = 0.8;
+    private static final int DEFAULT_MIN_CHUNK_LENGTH = 50;
+    private static final int DEFAULT_MAX_CHUNK_LENGTH = 5000;
+    private static final int DEFAULT_OUTDATED_DAYS = 30;
+    private static final int DEFAULT_UNACCESSED_DAYS = 7;
 
     @Override
     public UnansweredAnalysisResponse analyzeUnansweredQuestions(UnansweredAnalysisRequest request) {
         List<QaUnanswered> allRecords = qaUnansweredMapper.selectAll();
-        
+
         if (request.getStartDate() != null || request.getEndDate() != null) {
-            LocalDateTime start = request.getStartDate() != null ? 
-                request.getStartDate().atStartOfDay() : null;
-            LocalDateTime end = request.getEndDate() != null ? 
-                request.getEndDate().atTime(LocalTime.MAX) : null;
+            LocalDateTime start = request.getStartDate() != null ?
+                    request.getStartDate().atStartOfDay() : null;
+            LocalDateTime end = request.getEndDate() != null ?
+                    request.getEndDate().atTime(LocalTime.MAX) : null;
             allRecords = filterByTimeRange(allRecords, start, end);
         }
 
         if (request.getMinCount() != null && request.getMinCount() > 1) {
             allRecords = allRecords.stream()
-                .filter(r -> r.getCount() >= request.getMinCount())
-                .collect(Collectors.toList());
+                    .filter(r -> r.getCount() >= request.getMinCount())
+                    .collect(Collectors.toList());
         }
 
-        List<UnansweredCluster> clusters = clusterQuestions(allRecords, request.getClusterThreshold());
+        List<UnansweredCluster> clusters = semanticClusterOrFallback(allRecords, request.getClusterThreshold());
         List<KnowledgeGapSuggestion> suggestions = generateSuggestions(clusters);
         List<QaUnansweredExport> exportData = convertToExportData(allRecords);
 
@@ -75,30 +89,104 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
         return response;
     }
 
+    private List<UnansweredCluster> semanticClusterOrFallback(List<QaUnanswered> records, double threshold) {
+        try {
+            List<Map<String, Object>> semanticClusters = callSemanticCluster(records, threshold);
+            if (semanticClusters != null && !semanticClusters.isEmpty()) {
+                return convertSemanticClusters(semanticClusters);
+            }
+        } catch (Exception e) {
+            log.warn("Semantic clustering failed, fallback to character clustering: {}", e.getMessage());
+        }
+        return clusterQuestions(records, threshold);
+    }
+
+    private List<Map<String, Object>> callSemanticCluster(List<QaUnanswered> records, double threshold) {
+        List<Map<String, Object>> questions = records.stream()
+                .map(r -> {
+                    Map<String, Object> q = new HashMap<>();
+                    q.put("question", r.getQuestion());
+                    q.put("count", r.getCount());
+                    return q;
+                })
+                .collect(Collectors.toList());
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("questions", questions);
+        requestBody.put("threshold", threshold);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        ResponseEntity<Map> response = restTemplate.postForEntity(
+                aiServiceUrl + "/knowledge-gap/semantic-cluster", entity, Map.class);
+
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            Object clustersObj = response.getBody().get("clusters");
+            if (clustersObj instanceof List) {
+                return (List<Map<String, Object>>) clustersObj;
+            }
+        }
+        return null;
+    }
+
+    private List<UnansweredCluster> convertSemanticClusters(List<Map<String, Object>> semanticClusters) {
+        return semanticClusters.stream()
+                .map(sc -> {
+                    UnansweredCluster cluster = new UnansweredCluster();
+                    cluster.setTopic(String.valueOf(sc.getOrDefault("topic", "未分类")));
+                    String summary = sc.get("summary") != null
+                            ? String.valueOf(sc.get("summary"))
+                            : cluster.getTopic();
+                    cluster.setTopicSummary(summary);
+                    cluster.setTotalCount(((Number) sc.getOrDefault("total_count", 0)).intValue());
+                    Object questionsObj = sc.get("questions");
+                    if (questionsObj instanceof List) {
+                        cluster.setQuestions((List<String>) questionsObj);
+                    } else {
+                        cluster.setQuestions(new ArrayList<>());
+                    }
+                    Object keywordsObj = sc.get("keywords");
+                    List<String> keywords = new ArrayList<>();
+                    if (keywordsObj instanceof List) {
+                        for (Object kw : (List<?>) keywordsObj) {
+                            keywords.add(String.valueOf(kw));
+                        }
+                    }
+                    cluster.setSuggestedKeywords(keywords);
+                    return cluster;
+                })
+                .collect(Collectors.toList());
+    }
+
     @Override
     public Map<String, Object> getUnansweredStatistics() {
         List<QaUnanswered> allRecords = qaUnansweredMapper.selectAll();
-        
+
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalUnansweredCount", allRecords.stream().mapToInt(QaUnanswered::getCount).sum());
         stats.put("totalUniqueQuestions", allRecords.size());
         stats.put("topQuestions", allRecords.stream()
-            .sorted((a, b) -> Integer.compare(b.getCount(), a.getCount()))
-            .limit(10)
-            .map(r -> Map.of("question", r.getQuestion(), "count", r.getCount()))
-            .collect(Collectors.toList()));
-        
+                .sorted((a, b) -> Integer.compare(b.getCount(), a.getCount()))
+                .limit(10)
+                .map(r -> Map.of("question", r.getQuestion(), "count", r.getCount()))
+                .collect(Collectors.toList()));
+
         return stats;
     }
 
     private List<QaUnanswered> filterByTimeRange(List<QaUnanswered> records, LocalDateTime start, LocalDateTime end) {
         return records.stream().filter(r -> {
             LocalDateTime createTime = r.getCreateTime();
+            if (createTime == null) {
+                return false;  // createTime 为 null 无法判断，过滤掉
+            }
             return (start == null || !createTime.isBefore(start)) && (end == null || !createTime.isAfter(end));
         }).collect(Collectors.toList());
     }
 
-    private List<UnansweredCluster> clusterQuestions(List<QaUnanswered> records, int threshold) {
+    private List<UnansweredCluster> clusterQuestions(List<QaUnanswered> records, double threshold) {
         if (records.isEmpty()) return Collections.emptyList();
 
         Map<String, List<QaUnanswered>> clusters = new HashMap<>();
@@ -108,7 +196,7 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
             if (processed.contains(record)) continue;
 
             String seedQuestion = record.getQuestion();
-            
+
             List<QaUnanswered> cluster = new ArrayList<>();
             cluster.add(record);
             processed.add(record);
@@ -128,36 +216,35 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
         }
 
         return clusters.entrySet().stream()
-            .map(entry -> {
-                UnansweredCluster cluster = new UnansweredCluster();
-                cluster.setTopic(entry.getKey());
-                cluster.setTopicSummary(summarizeTopic(entry.getValue()));
-                cluster.setTotalCount(entry.getValue().stream().mapToInt(QaUnanswered::getCount).sum());
-                cluster.setQuestions(entry.getValue().stream()
-                    .map(QaUnanswered::getQuestion)
-                    .collect(Collectors.toList()));
-                cluster.setSuggestedKeywords(extractKeywords(entry.getValue()));
-                return cluster;
-            })
-            .sorted((a, b) -> Integer.compare(b.getTotalCount(), a.getTotalCount()))
-            .collect(Collectors.toList());
+                .map(entry -> {
+                    UnansweredCluster cluster = new UnansweredCluster();
+                    cluster.setTopic(entry.getKey());
+                    cluster.setTopicSummary(summarizeTopic(entry.getValue()));
+                    cluster.setTotalCount(entry.getValue().stream().mapToInt(QaUnanswered::getCount).sum());
+                    cluster.setQuestions(entry.getValue().stream()
+                            .map(QaUnanswered::getQuestion)
+                            .collect(Collectors.toList()));
+                    cluster.setSuggestedKeywords(extractKeywords(entry.getValue()));
+                    return cluster;
+                })
+                .sorted((a, b) -> Integer.compare(b.getTotalCount(), a.getTotalCount()))
+                .collect(Collectors.toList());
     }
 
-    private boolean isSimilar(String q1, String q2, int threshold) {
+    private boolean isSimilar(String q1, String q2, double threshold) {
         String clean1 = cleanQuestion(q1);
         String clean2 = cleanQuestion(q2);
-        
+
         int commonChars = countCommonCharacters(clean1, clean2);
         int maxLen = Math.max(clean1.length(), clean2.length());
-        
-        return maxLen > 0 && (double) commonChars / maxLen >= (threshold / 10.0);
+
+        return maxLen > 0 && (double) commonChars / maxLen >= threshold;
     }
 
     private String cleanQuestion(String question) {
         if (question == null) return "";
         return question.toLowerCase()
-            .replaceAll("[\\s\\p{Punct}]", "")
-            .replaceAll("[a-zA-Z0-9]", "");
+                .replaceAll("[\\s\\p{Punct}]", "");
     }
 
     private int countCommonCharacters(String s1, String s2) {
@@ -165,27 +252,9 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
         return (int) s2.chars().filter(c -> chars1.contains((char) c)).count();
     }
 
-    private String extractTopic(String question) {
-        if (question == null || question.isEmpty()) return "其他";
-        
-        Matcher matcher = CHINESE_PATTERN.matcher(question);
-        List<String> chineseParts = new ArrayList<>();
-        while (matcher.find()) {
-            chineseParts.add(matcher.group());
-        }
-        
-        if (chineseParts.isEmpty()) return "其他";
-        
-        String longest = chineseParts.stream()
-            .max(Comparator.comparingInt(String::length))
-            .orElse("其他");
-        
-        return longest.length() > 4 ? longest.substring(0, 4) : longest;
-    }
-
     private String generateClusterTopic(List<QaUnanswered> cluster) {
         Map<String, Integer> wordCount = new HashMap<>();
-        
+
         for (QaUnanswered record : cluster) {
             Matcher matcher = KEYWORD_PATTERN.matcher(record.getQuestion());
             while (matcher.find()) {
@@ -193,21 +262,21 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
                 wordCount.put(word, wordCount.getOrDefault(word, 0) + record.getCount());
             }
         }
-        
+
         return wordCount.entrySet().stream()
-            .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
-            .limit(3)
-            .map(Map.Entry::getKey)
-            .collect(Collectors.joining("、"));
+                .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+                .limit(3)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.joining("、"));
     }
 
     private String summarizeTopic(List<QaUnanswered> cluster) {
         if (cluster.isEmpty()) return "";
-        
+
         QaUnanswered top = cluster.stream()
-            .max(Comparator.comparingInt(QaUnanswered::getCount))
-            .orElse(cluster.get(0));
-        
+                .max(Comparator.comparingInt(QaUnanswered::getCount))
+                .orElse(cluster.get(0));
+
         String question = top.getQuestion();
         if (question.length() <= 20) return question;
         return question.substring(0, 20) + "...";
@@ -215,7 +284,7 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
 
     private List<String> extractKeywords(List<QaUnanswered> cluster) {
         Map<String, Integer> wordCount = new HashMap<>();
-        
+
         for (QaUnanswered record : cluster) {
             Matcher matcher = KEYWORD_PATTERN.matcher(record.getQuestion());
             while (matcher.find()) {
@@ -225,19 +294,19 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
                 }
             }
         }
-        
+
         return wordCount.entrySet().stream()
-            .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
-            .limit(5)
-            .map(Map.Entry::getKey)
-            .collect(Collectors.toList());
+                .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+                .limit(5)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
     }
 
     private List<KnowledgeGapSuggestion> generateSuggestions(List<UnansweredCluster> clusters) {
         List<KnowledgeCategory> categories = knowledgeCategoryMapper.selectList(null);
         List<String> existingCategories = categories.stream()
-            .map(KnowledgeCategory::getName)
-            .collect(Collectors.toList());
+                .map(KnowledgeCategory::getName)
+                .collect(Collectors.toList());
 
         List<KnowledgeGapSuggestion> suggestions = new ArrayList<>();
 
@@ -246,10 +315,10 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
             suggestion.setTopic(cluster.getTopic());
             suggestion.setQuestionCount(cluster.getTotalCount());
             suggestion.setSuggestedKeywords(cluster.getSuggestedKeywords());
-            
+
             String category = matchCategory(cluster, existingCategories);
             suggestion.setRelatedCategory(category);
-            
+
             if (cluster.getTotalCount() >= 10) {
                 suggestion.setPriority("高");
                 suggestion.setSuggestionType("紧急补库");
@@ -268,11 +337,11 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
         }
 
         return suggestions.stream()
-            .sorted((a, b) -> {
-                int priorityOrder = getPriorityOrder(b.getPriority()) - getPriorityOrder(a.getPriority());
-                return priorityOrder != 0 ? priorityOrder : Integer.compare(b.getQuestionCount(), a.getQuestionCount());
-            })
-            .collect(Collectors.toList());
+                .sorted((a, b) -> {
+                    int priorityOrder = getPriorityOrder(b.getPriority()) - getPriorityOrder(a.getPriority());
+                    return priorityOrder != 0 ? priorityOrder : Integer.compare(b.getQuestionCount(), a.getQuestionCount());
+                })
+                .collect(Collectors.toList());
     }
 
     private String matchCategory(UnansweredCluster cluster, List<String> categories) {
@@ -297,16 +366,16 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
 
     private List<QaUnansweredExport> convertToExportData(List<QaUnanswered> records) {
         return records.stream()
-            .map(r -> {
-                QaUnansweredExport export = new QaUnansweredExport();
-                export.setQuestion(r.getQuestion());
-                export.setCount(r.getCount());
-                export.setFirstOccurrence(r.getCreateTime());
-                export.setLastOccurrence(r.getUpdateTime());
-                return export;
-            })
-            .sorted((a, b) -> Integer.compare(b.getCount(), a.getCount()))
-            .collect(Collectors.toList());
+                .map(r -> {
+                    QaUnansweredExport export = new QaUnansweredExport();
+                    export.setQuestion(r.getQuestion());
+                    export.setCount(r.getCount());
+                    export.setFirstOccurrence(r.getCreateTime());
+                    export.setLastOccurrence(r.getUpdateTime());
+                    return export;
+                })
+                .sorted((a, b) -> Integer.compare(b.getCount(), a.getCount()))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -316,14 +385,13 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
         int minChunkLength = request.getMinChunkLength() != null ? request.getMinChunkLength() : DEFAULT_MIN_CHUNK_LENGTH;
         int outdatedDays = request.getOutdatedDays() != null ? request.getOutdatedDays() : DEFAULT_OUTDATED_DAYS;
         int unaccessedDays = request.getUnaccessedDays() != null ? request.getUnaccessedDays() : DEFAULT_UNACCESSED_DAYS;
-        double similarityThreshold = request.getSimilarityThreshold() != null ? request.getSimilarityThreshold() : DEFAULT_SIMILARITY_THRESHOLD;
 
         List<KnowledgeDoc> allDocs = knowledgeDocMapper.selectList(null);
         List<KnowledgeChunk> allChunks = knowledgeChunkMapper.selectList(null);
         List<DocViewLog> allViewLogs = docViewLogMapper.selectList(null);
         List<KnowledgeCategory> categories = knowledgeCategoryMapper.selectList(null);
         Map<Long, String> categoryMap = categories.stream()
-            .collect(Collectors.toMap(KnowledgeCategory::getId, KnowledgeCategory::getName));
+                .collect(Collectors.toMap(KnowledgeCategory::getId, KnowledgeCategory::getName));
 
         LibraryInspectionResponse.LibraryInspectionStats stats = new LibraryInspectionResponse.LibraryInspectionStats();
         stats.setTotalDocs(allDocs.size());
@@ -333,7 +401,7 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
 
         List<LibraryInspectionResponse.DuplicateDocGroup> duplicateGroups = new ArrayList<>();
         if (request.getEnableDuplicateCheck() == null || request.getEnableDuplicateCheck()) {
-            duplicateGroups = detectDuplicateDocs(allDocs, categoryMap, similarityThreshold);
+            duplicateGroups = detectDuplicateDocs(allDocs, categoryMap);
             stats.setDuplicateDocGroups(duplicateGroups.size());
             stats.setDuplicateDocCount(duplicateGroups.stream().mapToInt(g -> g.getDocuments().size()).sum());
         } else {
@@ -423,15 +491,25 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
 
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
         int recentAccessCount = (int) allViewLogs.stream()
-            .filter(log -> log.getCreateTime().isAfter(thirtyDaysAgo))
-            .count();
+                .filter(log -> log.getCreateTime().isAfter(thirtyDaysAgo))
+                .count();
         stats.put("recentAccessCount", recentAccessCount);
 
         return stats;
     }
 
+    @Override
+    public UnansweredAnalysisResponse refreshUnanswered(UnansweredAnalysisRequest request) {
+        return analyzeUnansweredQuestions(request);
+    }
+
+    @Override
+    public LibraryInspectionResponse refreshLibrary(LibraryInspectionRequest request) {
+        return inspectLibrary(request);
+    }
+
     private List<LibraryInspectionResponse.DuplicateDocGroup> detectDuplicateDocs(
-            List<KnowledgeDoc> docs, Map<Long, String> categoryMap, double threshold) {
+            List<KnowledgeDoc> docs, Map<Long, String> categoryMap) {
         List<LibraryInspectionResponse.DuplicateDocGroup> groups = new ArrayList<>();
         Set<Long> processedIds = new HashSet<>();
         int groupId = 1;
@@ -448,8 +526,10 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
                 if (processedIds.contains(other.getId())) continue;
                 if (!"COMPLETED".equals(other.getStatus())) continue;
 
-                double similarity = calculateDocSimilarity(doc, other);
-                if (similarity >= threshold) {
+                // 文档名完全相同判定为重复（与 Python 侧一致）
+                String name1 = doc.getDocName() != null ? doc.getDocName().trim() : "";
+                String name2 = other.getDocName() != null ? other.getDocName().trim() : "";
+                if (!name1.isEmpty() && name1.equals(name2)) {
                     similarDocs.add(other);
                     processedIds.add(other.getId());
                 }
@@ -458,20 +538,20 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
             if (similarDocs.size() > 1) {
                 LibraryInspectionResponse.DuplicateDocGroup group = new LibraryInspectionResponse.DuplicateDocGroup();
                 group.setGroupId((long) groupId++);
-                group.setSimilarity(calculateInternalSimilarity(similarDocs));
-                group.setReason("文档名称或内容高度相似");
+                group.setSimilarity(1.0);
+                group.setReason("文档名称相同");
 
                 List<LibraryInspectionResponse.DuplicateDoc> groupDocs = similarDocs.stream()
-                    .map(d -> {
-                        LibraryInspectionResponse.DuplicateDoc dd = new LibraryInspectionResponse.DuplicateDoc();
-                        dd.setId(d.getId());
-                        dd.setDocName(d.getDocName());
-                        dd.setCategoryId(d.getCategoryId());
-                        dd.setCategoryName(categoryMap.getOrDefault(d.getCategoryId(), "未分类"));
-                        dd.setCreateTime(d.getCreateTime());
-                        return dd;
-                    })
-                    .collect(Collectors.toList());
+                        .map(d -> {
+                            LibraryInspectionResponse.DuplicateDoc dd = new LibraryInspectionResponse.DuplicateDoc();
+                            dd.setId(d.getId());
+                            dd.setDocName(d.getDocName());
+                            dd.setCategoryId(d.getCategoryId());
+                            dd.setCategoryName(categoryMap.getOrDefault(d.getCategoryId(), "未分类"));
+                            dd.setCreateTime(d.getCreateTime());
+                            return dd;
+                        })
+                        .collect(Collectors.toList());
                 group.setDocuments(groupDocs);
                 groups.add(group);
             }
@@ -480,76 +560,43 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
         return groups;
     }
 
-    private double calculateDocSimilarity(KnowledgeDoc doc1, KnowledgeDoc doc2) {
-        String name1 = doc1.getDocName() != null ? doc1.getDocName().toLowerCase() : "";
-        String name2 = doc2.getDocName() != null ? doc2.getDocName().toLowerCase() : "";
-
-        if (name1.equals(name2)) return 1.0;
-
-        String clean1 = name1.replaceAll("[\\s\\-_()（）]", "");
-        String clean2 = name2.replaceAll("[\\s\\-_()（）]", "");
-
-        if (clean1.equals(clean2)) return 0.95;
-
-        int commonChars = 0;
-        Set<Character> chars1 = clean1.chars().mapToObj(c -> (char) c).collect(Collectors.toSet());
-        for (char c : clean2.toCharArray()) {
-            if (chars1.contains(c)) commonChars++;
-        }
-        int maxLen = Math.max(clean1.length(), clean2.length());
-        return maxLen > 0 ? (double) commonChars / maxLen : 0;
-    }
-
-    private double calculateInternalSimilarity(List<KnowledgeDoc> docs) {
-        if (docs.size() < 2) return 1.0;
-        double totalSimilarity = 0;
-        int count = 0;
-        for (int i = 0; i < docs.size(); i++) {
-            for (int j = i + 1; j < docs.size(); j++) {
-                totalSimilarity += calculateDocSimilarity(docs.get(i), docs.get(j));
-                count++;
-            }
-        }
-        return count > 0 ? totalSimilarity / count : 0;
-    }
-
     private List<LibraryInspectionResponse.LowQualityChunk> detectLowQualityChunks(
             List<KnowledgeChunk> chunks, List<KnowledgeDoc> docs,
             Map<Long, String> categoryMap, int minLength) {
         Map<Long, String> docNameMap = docs.stream()
-            .collect(Collectors.toMap(KnowledgeDoc::getId, KnowledgeDoc::getDocName));
+                .collect(Collectors.toMap(KnowledgeDoc::getId, KnowledgeDoc::getDocName));
 
         return chunks.stream()
-            .filter(chunk -> {
-                String text = chunk.getChunkText();
-                if (text == null || text.trim().isEmpty()) return true;
-                if (text.trim().length() < minLength) return true;
-                String noSpace = text.replaceAll("\\s", "");
-                if (noSpace.length() < minLength) return true;
-                return false;
-            })
-            .map(chunk -> {
-                LibraryInspectionResponse.LowQualityChunk lqc = new LibraryInspectionResponse.LowQualityChunk();
-                lqc.setId(chunk.getId());
-                lqc.setDocId(chunk.getDocId());
-                lqc.setDocName(docNameMap.getOrDefault(chunk.getDocId(), "未知文档"));
-                lqc.setChunkText(chunk.getChunkText());
-                lqc.setChunkIndex(chunk.getChunkIndex());
+                .filter(chunk -> {
+                    String text = chunk.getChunkText();
+                    if (text == null || text.trim().isEmpty()) return true;
+                    int length = text.trim().length();
+                    if (length < minLength) return true;
+                    if (length > DEFAULT_MAX_CHUNK_LENGTH) return true;
+                    return false;
+                })
+                .map(chunk -> {
+                    LibraryInspectionResponse.LowQualityChunk lqc = new LibraryInspectionResponse.LowQualityChunk();
+                    lqc.setId(chunk.getId());
+                    lqc.setDocId(chunk.getDocId());
+                    lqc.setDocName(docNameMap.getOrDefault(chunk.getDocId(), "未知文档"));
+                    lqc.setChunkText(chunk.getChunkText());
+                    lqc.setChunkIndex(chunk.getChunkIndex());
 
-                String text = chunk.getChunkText();
-                if (text == null || text.trim().isEmpty()) {
-                    lqc.setIssueType("空内容");
-                    lqc.setIssueDescription("Chunk内容为空");
-                } else if (text.trim().length() < minLength) {
-                    lqc.setIssueType("内容过短");
-                    lqc.setIssueDescription("内容长度仅" + text.trim().length() + "字符，少于" + minLength + "字符");
-                } else {
-                    lqc.setIssueType("空格过多");
-                    lqc.setIssueDescription("有效内容过少");
-                }
-                return lqc;
-            })
-            .collect(Collectors.toList());
+                    String text = chunk.getChunkText();
+                    if (text == null || text.trim().isEmpty()) {
+                        lqc.setIssueType("空内容");
+                        lqc.setIssueDescription("Chunk内容为空");
+                    } else if (text.trim().length() < minLength) {
+                        lqc.setIssueType("内容过短");
+                        lqc.setIssueDescription("内容长度仅" + text.trim().length() + "字符，少于" + minLength + "字符");
+                    } else {
+                        lqc.setIssueType("内容过长");
+                        lqc.setIssueDescription("内容长度" + text.trim().length() + "字符，超过" + DEFAULT_MAX_CHUNK_LENGTH + "字符");
+                    }
+                    return lqc;
+                })
+                .collect(Collectors.toList());
     }
 
     private List<LibraryInspectionResponse.OutdatedDoc> detectOutdatedDocs(
@@ -557,20 +604,20 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
         LocalDateTime threshold = LocalDateTime.now().minusDays(days);
 
         return docs.stream()
-            .filter(doc -> "COMPLETED".equals(doc.getStatus()))
-            .filter(doc -> doc.getCreateTime() != null && doc.getCreateTime().isBefore(threshold))
-            .map(doc -> {
-                LibraryInspectionResponse.OutdatedDoc odd = new LibraryInspectionResponse.OutdatedDoc();
-                odd.setId(doc.getId());
-                odd.setDocName(doc.getDocName());
-                odd.setCategoryName(categoryMap.getOrDefault(doc.getCategoryId(), "未分类"));
-                odd.setCreateTime(doc.getCreateTime());
-                odd.setUpdateTime(doc.getCreateTime());
-                odd.setDaySinceUpdate((int) ChronoUnit.DAYS.between(doc.getCreateTime(), LocalDateTime.now()));
-                return odd;
-            })
-            .sorted(Comparator.comparingInt(LibraryInspectionResponse.OutdatedDoc::getDaySinceUpdate).reversed())
-            .collect(Collectors.toList());
+                .filter(doc -> "COMPLETED".equals(doc.getStatus()))
+                .filter(doc -> doc.getCreateTime() != null && doc.getCreateTime().isBefore(threshold))
+                .map(doc -> {
+                    LibraryInspectionResponse.OutdatedDoc odd = new LibraryInspectionResponse.OutdatedDoc();
+                    odd.setId(doc.getId());
+                    odd.setDocName(doc.getDocName());
+                    odd.setCategoryName(categoryMap.getOrDefault(doc.getCategoryId(), "未分类"));
+                    odd.setCreateTime(doc.getCreateTime());
+                    odd.setUpdateTime(doc.getCreateTime());
+                    odd.setDaySinceUpdate((int) ChronoUnit.DAYS.between(doc.getCreateTime(), LocalDateTime.now()));
+                    return odd;
+                })
+                .sorted(Comparator.comparingInt(LibraryInspectionResponse.OutdatedDoc::getDaySinceUpdate).reversed())
+                .collect(Collectors.toList());
     }
 
     private List<LibraryInspectionResponse.UnaccessedDoc> detectUnaccessedDocs(
@@ -579,7 +626,7 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
         LocalDateTime threshold = LocalDateTime.now().minusDays(days);
 
         Map<Long, List<DocViewLog>> docViewsMap = viewLogs.stream()
-            .collect(Collectors.groupingBy(DocViewLog::getDocId));
+                .collect(Collectors.groupingBy(DocViewLog::getDocId));
 
         Map<Long, LocalDateTime> lastAccessMap = new HashMap<>();
         Map<Long, Integer> accessCountMap = new HashMap<>();
@@ -589,29 +636,29 @@ public class KnowledgeInspectionServiceImpl implements KnowledgeInspectionServic
         }
 
         return docs.stream()
-            .filter(doc -> "COMPLETED".equals(doc.getStatus()))
-            .filter(doc -> {
-                LocalDateTime lastAccess = lastAccessMap.get(doc.getId());
-                return lastAccess == null || lastAccess.isBefore(threshold);
-            })
-            .map(doc -> {
-                LibraryInspectionResponse.UnaccessedDoc uad = new LibraryInspectionResponse.UnaccessedDoc();
-                uad.setId(doc.getId());
-                uad.setDocName(doc.getDocName());
-                uad.setCategoryName(categoryMap.getOrDefault(doc.getCategoryId(), "未分类"));
-                uad.setCreateTime(doc.getCreateTime());
-                uad.setLastAccessTime(lastAccessMap.get(doc.getId()));
-                uad.setAccessCount(accessCountMap.getOrDefault(doc.getId(), 0));
+                .filter(doc -> "COMPLETED".equals(doc.getStatus()))
+                .filter(doc -> {
+                    LocalDateTime lastAccess = lastAccessMap.get(doc.getId());
+                    return lastAccess == null || lastAccess.isBefore(threshold);
+                })
+                .map(doc -> {
+                    LibraryInspectionResponse.UnaccessedDoc uad = new LibraryInspectionResponse.UnaccessedDoc();
+                    uad.setId(doc.getId());
+                    uad.setDocName(doc.getDocName());
+                    uad.setCategoryName(categoryMap.getOrDefault(doc.getCategoryId(), "未分类"));
+                    uad.setCreateTime(doc.getCreateTime());
+                    uad.setLastAccessTime(lastAccessMap.get(doc.getId()));
+                    uad.setAccessCount(accessCountMap.getOrDefault(doc.getId(), 0));
 
-                LocalDateTime lastAccess = lastAccessMap.get(doc.getId());
-                if (lastAccess != null) {
-                    uad.setDaySinceAccess((int) ChronoUnit.DAYS.between(lastAccess, LocalDateTime.now()));
-                } else {
-                    uad.setDaySinceAccess((int) ChronoUnit.DAYS.between(doc.getCreateTime(), LocalDateTime.now()));
-                }
-                return uad;
-            })
-            .sorted(Comparator.comparingInt(LibraryInspectionResponse.UnaccessedDoc::getDaySinceAccess).reversed())
-            .collect(Collectors.toList());
+                    LocalDateTime lastAccess = lastAccessMap.get(doc.getId());
+                    if (lastAccess != null) {
+                        uad.setDaySinceAccess((int) ChronoUnit.DAYS.between(lastAccess, LocalDateTime.now()));
+                    } else {
+                        uad.setDaySinceAccess((int) ChronoUnit.DAYS.between(doc.getCreateTime(), LocalDateTime.now()));
+                    }
+                    return uad;
+                })
+                .sorted(Comparator.comparingInt(LibraryInspectionResponse.UnaccessedDoc::getDaySinceAccess).reversed())
+                .collect(Collectors.toList());
     }
 }

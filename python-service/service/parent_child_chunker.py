@@ -1,7 +1,7 @@
 """父子块双切分器
 
 父块：语义切分（按话题边界自然分组，块内上下文连贯）
-子块：机械细切（小粒度保证检索精准）
+子块：递归切分（小粒度保证检索精准）
 子块 embed 进 Milvus 做检索，父块存 MySQL 做 LLM 上下文。
 """
 
@@ -17,7 +17,7 @@ class ParentChildChunker:
     """父子块切分器
 
     父块: 语义切分 → 存入 MySQL，检索时作为 LLM 上下文
-    子块: 机械细切 → embed 存入 Milvus，做精准语义检索
+    子块: 递归切分 → embed 存入 Milvus，做精准语义检索
     """
 
     def __init__(self, embeddings, child_chunk_size: int = 300,

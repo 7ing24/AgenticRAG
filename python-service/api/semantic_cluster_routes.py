@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import List, Optional
@@ -24,5 +25,5 @@ async def semantic_cluster_questions(request: ClusterRequest):
     from service.semantic_cluster import semantic_cluster
 
     questions = [{"question": q.question, "count": q.count} for q in request.questions]
-    clusters = semantic_cluster.cluster(questions, threshold=request.threshold)
+    clusters = await asyncio.to_thread(semantic_cluster.cluster, questions, request.threshold)
     return {"clusters": clusters}

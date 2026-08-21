@@ -3,19 +3,13 @@ from tools.base import Tool, ToolSchema, SchemaProperty, ToolMetadata
 from core.config import config
 from core.redis_client import redis_client
 from core.llm import LLMService
+from core.text_utils import estimate_tokens
 
-# 压缩阈值：当前上下文 token 数 > 此值触发压缩
-COMPRESS_TOKEN_THRESHOLD = 3000
-KEEP_RECENT_MSG = 10  # 保留最近 N 条消息不压缩
-
-
-def _estimate_tokens(text: str) -> int:
-    """估算文本 token 数（中英文混合）"""
-    if not text:
-        return 0
-    chinese = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
-    other = len(text) - chinese
-    return int(chinese / 1.5 + other / 4.0) + 1
+# 压缩阈值：实际喂给大模型的上下文（摘要 + 会话列表）token 数 > 此值触发压缩。
+# 压缩后摘要并入、列表被物理裁剪，输入总量回落，阈值重新武装——之后输入要再次
+# 超过 COMPRESS_TOKEN_THRESHOLD 才会再次触发（相当于"每攒约 10000 token 的新输入就压一次"）。
+COMPRESS_TOKEN_THRESHOLD = 10000
+KEEP_RECENT_MSG = 20  # 保留最近 10 轮完整对话（每轮 1 user + 1 assistant，共 20 条消息）不压缩
 
 
 class WorkingMemoryReadTool(Tool):
@@ -89,7 +83,6 @@ class WorkingMemoryReadTool(Tool):
 
     def execute(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
         conversation_id = parameters.get("conversation_id")
-        limit = int(parameters.get("limit", 10))
 
         config.logger.info(f"Reading conversation memory for ID: {conversation_id}")
 
@@ -102,58 +95,58 @@ class WorkingMemoryReadTool(Tool):
             }
 
         all_messages = redis_client.get_all_messages(conversation_id)
+        cached_summary = redis_client.get_summary(conversation_id)
+
         full_text = "\n".join(
             f"{m.get('role', 'unknown')}: {m.get('content', '')}"
             for m in all_messages
         )
-        full_tokens = _estimate_tokens(full_text)
+        list_tokens = estimate_tokens(full_text)
+        # 实际喂给大模型的是「摘要 + 会话列表」，因此阈值判断也要以实际输入为准
+        summary_tokens = estimate_tokens(cached_summary) if cached_summary else 0
+        input_tokens = summary_tokens + list_tokens
 
-        # ── 未超过 token 阈值：不压缩，返回全部消息 ──
-        if full_tokens <= COMPRESS_TOKEN_THRESHOLD:
+        # ── 未超过 token 阈值，或消息不足一个窗口：不压缩 ──
+        # 若已有摘要，则「摘要 + 全部原始消息」一起作为上下文返回，否则返回全部原始消息
+        if input_tokens <= COMPRESS_TOKEN_THRESHOLD or len(all_messages) <= KEEP_RECENT_MSG:
+            if cached_summary:
+                return {
+                    "messages": [{"role": "system", "content": f"[历史对话摘要] {cached_summary}"}] + all_messages,
+                    "conversation_id": conversation_id,
+                    "total_count": total_count, "compressed": False,
+                    "token_count": input_tokens,
+                }
             return {
                 "messages": all_messages, "conversation_id": conversation_id,
                 "total_count": total_count, "compressed": False,
-                "token_count": full_tokens,
+                "token_count": list_tokens,
             }
 
-        # ── 超过 token 阈值：需要压缩 ──
-        cached_summary = redis_client.get_summary(conversation_id)
-        compressed_count = redis_client.get_compressed_count(conversation_id)
+        # ── 超过 token 阈值：压缩窗口之外的消息，并物理裁剪列表 ──
+        # 裁剪后列表 token 总量回落、阈值重新武装——之后输入要再次超过阈值才会压缩。
+        early = all_messages[:-KEEP_RECENT_MSG]
+        recent = all_messages[-KEEP_RECENT_MSG:]
 
-        if compressed_count == 0:
-            # ── 首次压缩 ──
-            early = all_messages[:-KEEP_RECENT_MSG]
-            summary = self._compress(early, conversation_id)
-            redis_client.set_summary(conversation_id, summary)
-            redis_client.set_compressed_count(conversation_id, len(early))
+        if cached_summary:
+            # 旧摘要 + 本次新增消息 → 滚动新摘要
+            summary = self._recompress(cached_summary, early, conversation_id)
             config.logger.info(
-                f"[{conversation_id}] First compress: "
-                f"{len(early)} msgs → summary (full={full_tokens}t)"
+                f"[{conversation_id}] Recompress: old_summary + "
+                f"{len(early)} msgs → new (input={input_tokens}t)"
             )
         else:
-            # ── 检查是否需要增量重压缩 ──
-            middle = all_messages[compressed_count:-KEEP_RECENT_MSG]
-            if len(middle) == 0:
-                # 没有新消息需要合并，复用旧摘要
-                summary = cached_summary
-                config.logger.info(
-                    f"[{conversation_id}] Reuse cached summary "
-                    f"(compressed={compressed_count} msgs)"
-                )
-            else:
-                # 旧摘要 + 中间新增消息 → 新摘要
-                summary = self._recompress(cached_summary, middle, conversation_id)
-                new_count = compressed_count + len(middle)
-                redis_client.set_summary(conversation_id, summary)
-                redis_client.set_compressed_count(conversation_id, new_count)
-                config.logger.info(
-                    f"[{conversation_id}] Recompress: "
-                    f"old_summary + {len(middle)} msgs → new "
-                    f"({compressed_count} → {new_count} compressed)"
-                )
+            summary = self._compress(early, conversation_id)
+            config.logger.info(
+                f"[{conversation_id}] First compress: "
+                f"{len(early)} msgs → summary (input={input_tokens}t)"
+            )
+
+        # 摘要成为被裁剪消息的唯一记录，TTL 与消息列表一致（24h），避免先于消息过期
+        redis_client.set_summary(conversation_id, summary, expire=86400)
+        # 物理裁剪：Redis 列表只保留最近 KEEP_RECENT_MSG 条，token 总量打回
+        redis_client.trim_messages(conversation_id, KEEP_RECENT_MSG)
 
         # ── 构建返回 ──
-        recent = redis_client.get_messages(conversation_id, KEEP_RECENT_MSG)
         context = f"[历史对话摘要] {summary}\n"
         context += "\n".join(
             f"{m.get('role', 'unknown')}: {m.get('content', '')}" for m in recent
@@ -163,9 +156,9 @@ class WorkingMemoryReadTool(Tool):
                 {"role": "system", "content": f"[历史对话摘要] {summary}"}
             ] + recent,
             "conversation_id": conversation_id,
-            "total_count": total_count,
+            "total_count": len(recent),
             "compressed": True,
-            "token_count": _estimate_tokens(context),
+            "token_count": estimate_tokens(context),
         }
 
     def _compress(self, messages: List[Dict], conversation_id: str) -> str:
@@ -209,8 +202,8 @@ class WorkingMemoryReadTool(Tool):
             summary = self.llm_service.generate(prompt)
             config.logger.info(
                 f"{label} {conversation_id}: "
-                f"input ~{_estimate_tokens(input_text)}t → "
-                f"summary ~{_estimate_tokens(summary)}t"
+                f"input ~{estimate_tokens(input_text)}t → "
+                f"summary ~{estimate_tokens(summary)}t"
             )
             return summary
         except Exception as e:
@@ -232,29 +225,29 @@ class LongTermMemoryReadTool(Tool):
             properties={
                 "query": SchemaProperty(
                     type="string",
-                    description="检索查询（用户当前问题或其改写）",
+                    description="检索查询：用户当前问题，若过于口语化或模糊可做适当改写",
                     required=True
                 ),
                 "user_id": SchemaProperty(
                     type="number",
-                    description="用户ID",
-                    required=True
+                    description="由系统自动注入，禁止传入",
+                    required=False
                 ),
                 "semantic_k": SchemaProperty(
                     type="number",
-                    description="语义记忆召回数量（0-5）",
+                    description="语义记忆（稳定事实/偏好/概念）召回数量，0=不需要。事实问答3-5，操作问题2-3，历史回忆1-2",
                     required=False,
                     default=3
                 ),
                 "episodic_k": SchemaProperty(
                     type="number",
-                    description="情景记忆召回数量（0-5）",
+                    description="情景记忆（历史事件/对话）召回数量，0=不需要。重复提问/回忆3-5，事实问答2-3，操作问题1-2",
                     required=False,
                     default=2
                 ),
                 "procedural_k": SchemaProperty(
                     type="number",
-                    description="程序记忆召回数量（0-5）",
+                    description="程序记忆（可复用步骤/方法）召回数量，0=不需要。操作问题3-5，事实问答2-3，历史回忆1-2",
                     required=False,
                     default=2
                 ),
@@ -282,12 +275,12 @@ class LongTermMemoryReadTool(Tool):
             timeout_ms=15000,
             max_retries=1,
             permission="user",
-            description="检索L1长期分层记忆（语义/情景/程序）"
+            description="检索用户长期记忆（语义/情景/程序），用于个性化回答与历史连贯性。调用时机：用户提到之前/上次/刚才等回忆性词汇、重复提问、询问个人偏好/习惯/操作步骤。用户ID由系统自动注入，禁止传入"
         )
 
         super().__init__(
             name="long_term_memory_read",
-            description="从长期分层记忆中检索语义、情景、程序记忆",
+            description="检索用户长期记忆（语义/情景/程序），用于个性化回答与历史连贯性。调用时机：用户提到之前/上次/刚才等回忆性词汇、重复提问、询问个人偏好/习惯/操作步骤。用户ID由系统自动注入，禁止传入",
             input_schema=input_schema,
             output_schema=output_schema,
             metadata=metadata

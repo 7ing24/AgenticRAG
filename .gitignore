@@ -57,3 +57,15 @@ temp/
 
 # 向量索引目录
 faiss_index/
+bm25_index/
+
+# Eval data (report artifacts, keep only scripts)
+python-service/eval/data/report_*.json
+python-service/eval/data/synthetic_qa_bk.json
+
+# Uploads (already matched by uploads/ but ensure nested paths)
+aiknowledge/uploads/
+
+mailmap
+test_memory.py
+项目架构说明书.md

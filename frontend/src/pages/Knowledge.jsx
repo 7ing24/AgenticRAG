@@ -120,7 +120,7 @@ export default function Knowledge() {
             id="file-input"
             type="file"
             onChange={handleFileSelect}
-            accept=".txt,.pdf,.doc,.docx,.md"
+            accept=".txt,.pdf,.docx,.md,.html,.htm,.png,.jpg,.jpeg,.gif,.bmp,.tiff,.tif"
           />
           <button
             className="btn btn-primary"
@@ -130,7 +130,7 @@ export default function Knowledge() {
             {uploading ? '上传中...' : '上传'}
           </button>
         </div>
-        <p className="upload-hint">支持 .txt, .pdf, .doc, .docx, .md 格式</p>
+        <p className="upload-hint">支持 .txt, .pdf、.docx、.md、.html、图片(.png/.jpg/.gif/.bmp/.tiff) 格式</p>
       </div>
 
       {/* Document list */}

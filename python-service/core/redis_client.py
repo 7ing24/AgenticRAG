@@ -2,6 +2,7 @@ import redis
 import json
 import time
 import logging
+from typing import Optional
 from core.config import config
 
 logger = logging.getLogger(__name__)
@@ -56,8 +57,8 @@ class RedisClient:
         key = f"conversation:{conversation_id}:messages"
         return self.client.llen(key)
 
-    def _trim_conversation(self, conversation_id: str, keep_recent: int = 10):
-        """裁剪会话，只保留最近 N 条消息"""
+    def trim_messages(self, conversation_id: str, keep_recent: int):
+        """裁剪会话消息列表，只保留最近 N 条（L0 压缩后物理打回列表长度）"""
         key = f"conversation:{conversation_id}:messages"
         total = self.client.llen(key)
         if total > keep_recent:
@@ -89,16 +90,30 @@ class RedisClient:
         self.client.setex(summary_key, expire, summary)
         logger.debug(f"Set summary for conversation {conversation_id}")
 
-    def get_compressed_count(self, conversation_id: str) -> int:
-        """获取已被压缩的消息数（用于增量重压缩判断）"""
-        key = f"conversation:{conversation_id}:compressed_count"
-        val = self.client.get(key)
-        return int(val) if val else 0
+    # =========================================================================
+    # 通用字符串缓存（供 L2 用户画像等读多写少的数据使用）
+    # =========================================================================
 
-    def set_compressed_count(self, conversation_id: str, count: int, expire: int = 3600):
-        """设置已被压缩的消息数"""
-        key = f"conversation:{conversation_id}:compressed_count"
-        self.client.setex(key, expire, str(count))
+    def get_cache(self, key: str) -> Optional[str]:
+        """读取字符串缓存
+
+        Returns:
+            命中返回字符串；未命中或异常返回 None（与"空字符串"区分）
+        """
+        try:
+            return self.client.get(key)
+        except Exception as e:
+            logger.warning(f"Redis GET 缓存失败 key={key}: {e}")
+            return None
+
+    def set_cache(self, key: str, value: str, ttl: int = 86400) -> bool:
+        """写入字符串缓存并设置 TTL"""
+        try:
+            self.client.setex(key, ttl, value)
+            return True
+        except Exception as e:
+            logger.warning(f"Redis SET 缓存失败 key={key}: {e}")
+            return False
 
 # 创建全局实例
 redis_client = RedisClient()
