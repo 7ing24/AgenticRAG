@@ -115,15 +115,13 @@ export const chatAPI = {
   getConversations: (userId) =>
       api.get(`/chat/conversations?userId=${userId}`),
   sendMessage: (data, config) => api.post('/chat/messages', data, config),
-  sendMessageStream: async (data, onMessage, onError, onComplete) => {
+  sendMessageStream: async (data, onMessage, onError, onComplete, signal) => {
     try {
-      // 获取JWT token
       const token = getCookie('accessToken');
       const headers = {
         'Content-Type': 'application/json',
       };
 
-      // 添加Authorization header
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
@@ -133,6 +131,7 @@ export const chatAPI = {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(data),
+        signal: signal
       });
 
       console.log('Streaming response status:', response.status, response.statusText);
@@ -147,7 +146,7 @@ export const chatAPI = {
       }
 
       const reader = response.body.getReader();
-      const decoder = new TextDecoder();
+      const decoder = new TextDecoder('utf-8');
       let buffer = '';
 
       while (true) {
@@ -158,16 +157,31 @@ export const chatAPI = {
         }
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || '';
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const jsonStr = line.substring(6).trim();
+        // 按照 SSE 消息块（双换行）进行切割
+        const blocks = buffer.split(/\r?\n\r?\n/);
+        buffer = blocks.pop() || '';
+
+        for (const block of blocks) {
+          if (!block.trim()) continue;
+
+          const lines = block.split(/\r?\n/);
+          let dataBuffer = [];
+
+          for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (trimmedLine.startsWith('data:')) {
+              // 提取 data: 之后的内容并收集
+              dataBuffer.push(trimmedLine.replace(/^data:\s*/, ''));
+            }
+          }
+
+          if (dataBuffer.length > 0) {
+            const jsonStr = dataBuffer.join('\n').trim();
             if (jsonStr) {
               try {
-                const response = JSON.parse(jsonStr);
-                onMessage(response);
+                const parsed = JSON.parse(jsonStr);
+                if (onMessage) onMessage(parsed);
               } catch (error) {
                 console.error('Failed to parse SSE message:', error, jsonStr);
               }
@@ -176,6 +190,11 @@ export const chatAPI = {
         }
       }
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('Stream aborted by user');
+        if (onComplete) onComplete();
+        return;
+      }
       if (onError) onError(error);
     }
   },

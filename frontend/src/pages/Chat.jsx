@@ -319,25 +319,26 @@ export default function Chat() {
             conversationId: currentConversation.id,
             content: aiRequestContent
           },
-          // onMessage - handle each SSE event
+          // onMessage
           (event) => {
             switch (event.type) {
               case 'routed':
-                setProcessingStep('generating');
-                break;
               case 'start':
+              case 'step_started':
                 setProcessingStep('generating');
                 break;
               case 'token':
-                accumulatedContent += event.content;
+                // 收到 token 时，清理 loading 提示步骤，开始逐字展示
+                setProcessingStep(null);
+                accumulatedContent += event.content || '';
                 setMessages(prev => prev.map(msg =>
                     msg.id === thinkingMessageId
-                        ? { ...msg, content: accumulatedContent }
+                        ? { ...msg, content: accumulatedContent, isStreaming: true }
                         : msg
                 ));
                 break;
               case 'end':
-                finalTaskType = event.task_type || null;
+                finalTaskType = event.task_type || finalTaskType;
                 if (event.content) {
                   accumulatedContent = event.content;
                 }
@@ -386,9 +387,13 @@ export default function Chat() {
             setLoading(false);
             setProcessingStep(null);
             setAbortController(null);
-            loadConversations();
+
+            // ✅ 静默更新左侧会话列表，不重新触发消息刷新
+            chatAPI.getConversations(userId).then(res => {
+              setConversations(res.data || []);
+            }).catch(console.error);
           },
-          controller.signal
+          controller.signal // ✅ 传入 controller.signal 作为第 5 个参数
       );
 
     } catch (err) {

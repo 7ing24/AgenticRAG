@@ -60,7 +60,7 @@ const adminChatAPI = {
       }
 
       const reader = response.body.getReader();
-      const decoder = new TextDecoder();
+      const decoder = new TextDecoder('utf-8');
       let buffer = '';
 
       while (true) {
@@ -71,16 +71,25 @@ const adminChatAPI = {
         }
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || '';
+        const blocks = buffer.split(/\r?\n\r?\n/);
+        buffer = blocks.pop() || '';
 
-        for (const line of lines) {
-          if (line.startsWith('data:')) {
-            const jsonStr = line.substring(5).trim();
+        for (const block of blocks) {
+          if (!block.trim()) continue;
+          const lines = block.split(/\r?\n/);
+          let dataBuffer = [];
+          for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (trimmedLine.startsWith('data:')) {
+              dataBuffer.push(trimmedLine.replace(/^data:\s*/, ''));
+            }
+          }
+          if (dataBuffer.length > 0) {
+            const jsonStr = dataBuffer.join('\n').trim();
             if (jsonStr) {
               try {
-                const event = JSON.parse(jsonStr);
-                onMessage(event);
+                const parsed = JSON.parse(jsonStr);
+                if (onMessage) onMessage(parsed);
               } catch (error) {
                 console.error('Failed to parse SSE message:', error, jsonStr);
               }
@@ -89,6 +98,11 @@ const adminChatAPI = {
         }
       }
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('Stream aborted by user');
+        if (onComplete) onComplete();
+        return;
+      }
       if (onError) onError(error);
     }
   },
@@ -393,21 +407,21 @@ export default function AdminChat() {
           (event) => {
             switch (event.type) {
               case 'routed':
-                setProcessingStep('generating');
-                break;
               case 'start':
+              case 'step_started':
                 setProcessingStep('generating');
                 break;
               case 'token':
-                accumulatedContent += event.content;
+                setProcessingStep(null);
+                accumulatedContent += event.content || '';
                 setMessages(prev => prev.map(msg =>
                     msg.id === thinkingMessageId
-                        ? { ...msg, content: accumulatedContent }
+                        ? { ...msg, content: accumulatedContent, isStreaming: true }
                         : msg
                 ));
                 break;
               case 'end':
-                finalTaskType = event.task_type || null;
+                finalTaskType = event.task_type || finalTaskType;
                 if (event.content) {
                   accumulatedContent = event.content;
                 }
@@ -456,7 +470,10 @@ export default function AdminChat() {
             setLoading(false);
             setProcessingStep(null);
             setAbortController(null);
-            loadConversations();
+
+            adminChatAPI.getConversations(adminId).then(res => {
+              setConversations(res.data.data || []);
+            }).catch(console.error);
           },
           controller.signal
       );
