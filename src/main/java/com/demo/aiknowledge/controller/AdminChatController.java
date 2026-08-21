@@ -132,6 +132,7 @@ public class AdminChatController {
         final String[] taskType = {null};
         final List<Map<String, Object>> sources = new ArrayList<>();
         final List<Map<String, Object>> pythonTraces = new ArrayList<>();
+        final List<Map<String, Object>> agentSteps = new ArrayList<>();
         final long[] pyStart = {0};
         final boolean[] firstToken = {true};
         final AgentTraceService.TraceScope[] scopeHolder = {null};
@@ -186,6 +187,8 @@ public class AdminChatController {
                             List<Map<String, Object>> pts = (List<Map<String, Object>>) event.get("traces");
                             pythonTraces.addAll(pts);
                             log.info("<<< [Admin Stream] Python trace events received: traceId={}, count={}", traceId, pts.size());
+                        } else if ("step_started".equals(type) || "step_finished".equals(type)) {
+                            agentSteps.add(event);
                         }
                     } catch (Exception ignored) {}
                 })
@@ -209,7 +212,7 @@ public class AdminChatController {
 
                         adminChatService.completeStreamingMessage(
                                 adminId, conversationId, content,
-                                finalAnswer, finalTaskType, sourcesJson, traceId);
+                                finalAnswer, finalTaskType, sourcesJson, traceId, agentSteps);
 
                         // 缓存非错误响应
                         if (finalAnswer != null && !finalAnswer.contains("AI服务") && !finalAnswer.contains("抱歉")) {

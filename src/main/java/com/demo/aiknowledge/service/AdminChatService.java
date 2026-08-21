@@ -3,6 +3,7 @@ package com.demo.aiknowledge.service;
 import com.demo.aiknowledge.entity.AdminConversation;
 import com.demo.aiknowledge.entity.AdminMessage;
 import java.util.List;
+import java.util.Map;
 
 public interface AdminChatService {
     AdminConversation createConversation(Long adminId, String title);
@@ -17,5 +18,6 @@ public interface AdminChatService {
      * 流式回答完成后，持久化 AI 消息等
      */
     AdminMessage completeStreamingMessage(Long adminId, Long conversationId, String question,
-                                          String answer, String taskType, String sourcesJson, String traceId);
+                                          String answer, String taskType, String sourcesJson, String traceId,
+                                          List<Map<String, Object>> steps);
 }

@@ -5,12 +5,16 @@ import com.demo.aiknowledge.config.CacheConfig;
 import com.demo.aiknowledge.dto.AiResponse;
 import com.demo.aiknowledge.entity.AdminConversation;
 import com.demo.aiknowledge.entity.AdminMessage;
+import com.demo.aiknowledge.entity.AgentStep;
+import com.demo.aiknowledge.entity.ToolCall;
 import com.demo.aiknowledge.mapper.AdminConversationMapper;
 import com.demo.aiknowledge.mapper.AdminMessageMapper;
+import com.demo.aiknowledge.mapper.AgentStepMapper;
 import com.demo.aiknowledge.service.AdminChatService;
 import com.demo.aiknowledge.service.AgentTraceService;
 import com.demo.aiknowledge.service.AiService;
 import com.demo.aiknowledge.service.CacheService;
+import com.demo.aiknowledge.service.ToolCallService;
 import com.demo.aiknowledge.utils.CacheUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +40,8 @@ public class AdminChatServiceImpl implements AdminChatService {
     private final AiService aiService;
     private final AgentTraceService agentTraceService;
     private final CacheService cacheService;
+    private final AgentStepMapper agentStepMapper;
+    private final ToolCallService toolCallService;
 
     @Override
     public AdminConversation createConversation(Long adminId, String title) {
@@ -234,7 +240,8 @@ public class AdminChatServiceImpl implements AdminChatService {
     @Override
     @Transactional
     public AdminMessage completeStreamingMessage(Long adminId, Long conversationId, String question,
-                                                  String answer, String taskType, String sourcesJson, String traceId) {
+                                                  String answer, String taskType, String sourcesJson, String traceId,
+                                                  List<Map<String, Object>> steps) {
 
         // 如果已有 trace 上下文（来自 Controller），复用；否则创建新的
         com.demo.aiknowledge.common.AgentTraceContext existingCtx =
@@ -258,6 +265,9 @@ public class AdminChatServiceImpl implements AdminChatService {
             aiMsg.setTaskType(taskType);
             aiMsg.setCreateTime(LocalDateTime.now());
             adminMessageMapper.insert(aiMsg);
+
+            // 保存 Agent 步骤
+            saveAgentSteps(traceId, steps);
 
             agentTraceService.recordEvent("AI_MESSAGE_SAVED", "DB",
                     Map.of("answerLength", answer != null ? answer.length() : 0, "taskType", taskType),
@@ -300,6 +310,56 @@ public class AdminChatServiceImpl implements AdminChatService {
         return message;
     }
 
+
+    /** 落库 AgentStep + ToolCall */
+    private void saveAgentSteps(String runId, List<Map<String, Object>> steps) {
+        if (steps == null || steps.isEmpty()) return;
+        int stepIdx = 0;
+        for (Map<String, Object> stepData : steps) {
+            AgentStep step = new AgentStep();
+            step.setId(java.util.UUID.randomUUID().toString());
+            step.setRunId(runId);
+            step.setStepName(String.valueOf(stepData.getOrDefault("step_name", "unknown")));
+            step.setStepType(String.valueOf(stepData.getOrDefault("step_type", "unknown")));
+            step.setStatus(String.valueOf(stepData.getOrDefault("status", "completed")));
+            if (stepData.containsKey("output")) {
+                String output = String.valueOf(stepData.get("output"));
+                step.setOutput(output.length() > 500 ? output.substring(0, 500) : output);
+            }
+            if (stepData.containsKey("input")) {
+                try {
+                    step.setInput(objectMapper.writeValueAsString(stepData.get("input")));
+                } catch (Exception e) {
+                    step.setInput(String.valueOf(stepData.get("input")));
+                }
+            }
+            if (stepData.containsKey("error_message")) {
+                step.setErrorMessage(String.valueOf(stepData.get("error_message")));
+            }
+            if (stepData.containsKey("tool_call_id")) {
+                step.setToolCallId(String.valueOf(stepData.get("tool_call_id")));
+            }
+            step.setStartTime(LocalDateTime.now());
+            step.setEndTime(LocalDateTime.now());
+            step.setCreatedAt(LocalDateTime.now().plusSeconds(stepIdx++));
+            step.setDurationMs(0L);
+            agentStepMapper.insert(step);
+
+            if ("tool_call".equals(step.getStepType())) {
+                ToolCall toolCall = new ToolCall();
+                toolCall.setToolCallId(step.getToolCallId());
+                toolCall.setRunId(runId);
+                toolCall.setToolName(step.getStepName());
+                toolCall.setInputParams(step.getInput());
+                toolCall.setOutput(step.getOutput());
+                toolCall.setStatus(step.getStatus());
+                toolCall.setErrorMessage(step.getErrorMessage());
+                toolCall.setDurationMs(step.getDurationMs());
+                toolCall.setTimestamp(LocalDateTime.now());
+                toolCallService.saveToolCall(toolCall);
+            }
+        }
+    }
 
     private AiResponse callAdminAgent(String question, Long adminId, Long conversationId, String traceId) {
         try {
