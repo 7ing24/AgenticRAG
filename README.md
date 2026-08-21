@@ -45,85 +45,113 @@
 ## 🏗️ 系统整体架构
 
 ```mermaid
-flowchart TB
-    %% 全局样式定义
-    classDef clientStyle fill:#EEF2F6,stroke:#94A3B8,stroke-width:1px,color:#1E293B;
-    classDef javaStyle fill:#FFF7ED,stroke:#F97316,stroke-width:1.5px,color:#9A3412;
-    classDef pythonStyle fill:#F5F3FF,stroke:#8B5CF6,stroke-width:1.5px,color:#5B21B6;
-    classDef storeStyle fill:#ECFDF5,stroke:#10B981,stroke-width:1.5px,color:#065F46;
-    classDef agentStyle fill:#FDF2F8,stroke:#EC4899,stroke-width:1px,color:#9D174D;
-    classDef pipeStyle fill:#EFF6FF,stroke:#3B82F6,stroke-width:1px,color:#1E40AF;
+flowchart LR
+    %% ================= 全局样式定义 =================
+    classDef clientStyle fill:#EEF2F6,stroke:#64748B,stroke-width:1.5px,color:#0F172A;
+    classDef javaStyle fill:#FFF7ED,stroke:#EA580C,stroke-width:1.5px,color:#7C2D12;
+    classDef agentStyle fill:#FDF2F8,stroke:#DB2777,stroke-width:1.5px,color:#831843;
+    classDef pipeStyle fill:#EFF6FF,stroke:#2563EB,stroke-width:1.5px,color:#1E3A8A;
+    classDef memStyle fill:#F5F3FF,stroke:#7C3AED,stroke-width:1.5px,color:#4C1D95;
+    classDef storeStyle fill:#ECFDF5,stroke:#059669,stroke-width:1.5px,color:#064E3B;
 
-    subgraph ClientLayer ["🖥️ 表现层 (React + SSE)"]
-        UI_User["用户端 · 实时流式问答 / 引用溯源"]
-        UI_Admin["管理端 · 知识治理工作台 / 巡检报表"]
+    %% ================= 1. 表现层 =================
+    subgraph Client ["🖥️ 表现层 (React 18 + Vite · Port 3000)"]
+        direction TB
+        UI_User["👤 <b>用户端</b><br/>• SSE 流式问答响应<br/>• 知识引用溯源<br/>• 用户反馈"]
+        UI_Admin["🛠️ <b>管理端</b><br/>• 运营分析仪表盘<br/>• 知识库巡检<br/>• 全链路 Trace 审计"]
     end
     class UI_User,UI_Admin clientStyle
 
-    subgraph JavaGateway ["☕ 业务中台 (Spring Boot 3.2)"]
+    %% ================= 2. 业务中台 =================
+    subgraph Gateway ["☕ 业务中台 (Spring Boot 3.4 · Port 8080)"]
         direction TB
-        API_Gateway["API 路由分发 / JWT 权限鉴权"]
-        SSE_Engine["SSE 流式推送引擎"]
-        L1_Cache["Caffeine 本地热点缓存"]
-        Trace_Filter["Trace 链路拦截 (TraceId 注入)"]
-        Biz_Service["业务管理 / 审计持久化"]
-    end
-    class API_Gateway,SSE_Engine,L1_Cache,Trace_Filter,Biz_Service javaStyle
-
-    subgraph PythonCore ["🐍 AI 算力与智能体服务 (FastAPI)"]
-        direction TB
-        Orchestrator["DAG 拓扑任务编排调度器"]
-        EventBus[("EventBus 事件总线 (状态同步)")]
+        JWT["🔐 <b>统一鉴权网关</b> (Phone + Password JWT)"]
         
-        subgraph SubAgents ["🤖 Multi-Agent 协同矩阵"]
-            A_Router["Intent Router"]
-            A_Retrieval["Retrieval Agent"]
-            A_Analysis["Analysis Agent"]
-            A_Eval["Self-Correction Agent"]
+        subgraph MidCore ["中台核心驱动"]
+            direction TB
+            SSE["📡 <b>SSE 流式代理</b> (WebClient 异步桥接)"]
+            Trace["⏱️ <b>Trace 采集器</b> (TraceId 全链路注入)"]
+            Biz["💼 <b>业务管理</b> (持久化 / 定时巡检 / 报表)"]
         end
-        class A_Router,A_Retrieval,A_Analysis,A_Eval agentStyle
 
-        subgraph PipelineEngine ["🔍 检索与重排管线"]
-            Chunk_Engine["语义父子分块解析"]
-            Hybrid_Search["双路召回 (BM25 + HNSW)"]
-            RRF_Merge["RRF 倒数排名融合"]
-            Cross_Rerank["Cross-Encoder 重排序"]
+        subgraph Cache ["🧊 <b>三级缓存加速链</b>"]
+            direction LR
+            L1["L1 Caffeine<br/>本地微秒级"] -->|Miss| L2["L2 Redis<br/>精确匹配"] -->|Miss| L3["L3 Milvus<br/>cosine ≥ 0.90"]
         end
-        class Chunk_Engine,Hybrid_Search,RRF_Merge,Cross_Rerank pipeStyle
-
-        Memory_Engine["三级记忆引擎 (Working / Episodic / Profile)"]
-        Governance_Engine["知识库离线治理 (聚类分析 / 异常巡检)"]
     end
-    class Orchestrator,EventBus,Memory_Engine,Governance_Engine pythonStyle
+    class JWT,SSE,Trace,Biz,L1,L2,L3 javaStyle
 
-    subgraph DataLayer ["💾 混合存储基础设施"]
-        DB_MySQL[("MySQL 8.0<br/>业务元数据 / 审计日志")]
-        DB_Redis[("Redis 7.0<br/>分布式二级缓存 / 会话")]
-        DB_Milvus[("Milvus 2.4+<br/>稠密/稀疏向量 / 语义缓存")]
+    %% ================= 3. AI 智能体与核心引擎 =================
+    subgraph AI ["🐍 AI 智能体框架 (FastAPI · Port 8000)"]
+        direction TB
+
+        %% 智能体编排
+        subgraph Agents ["🤖 多 Agent 协同系统"]
+            direction TB
+            Router["🧭 <b>RouterAgent</b> (意图分类)"]
+            
+            subgraph Workers ["分流执行"]
+                direction TB
+                ChitChat["💬 <b>ChitChatAgent</b><br/>规则过滤 + LLM 自然回复"]
+                KQA["📚 <b>KnowledgeQAAgent</b><br/>上下文组装 → 多 Agent 编排"]
+                AdminCopilot["📊 <b>AdminCopilotAgent</b><br/>运营数据分析 / 知识巡检"]
+            end
+            
+            MultiAgent["🔀 <b>MultiAgentOrchestrator</b> (DAG 拓扑并行调度)"]
+            ReAct["⚙️ <b>ReActAgent Workers</b> (Observe → Think → Act)"]
+            EventBus[("📢 <b>EventBus 黑板</b> (状态共享 + Pub/Sub)")]
+
+            Router --> ChitChat & KQA & AdminCopilot
+            KQA --> MultiAgent --> ReAct
+            ReAct -.->|"事件发布/订阅"| EventBus
+        end
+        class Router,ChitChat,KQA,AdminCopilot,MultiAgent,ReAct,EventBus agentStyle
+
+        %% 检索管线与记忆引擎并列
+        subgraph Engines ["⚡ 双核心引擎"]
+            direction LR
+            subgraph PipeEngine ["🔍 混合检索重排管线"]
+                direction LR
+                P1["1. <b>查询预处理</b>: Query 改写 / 父子分块"]
+                P2["2. <b>双路召回</b>: HNSW 稠密向量 + BM25 稀疏检索"]
+                P3["3. <b>精细重排</b>: RRF 排名融合 + Cross-Encoder"]
+                P4["4. <b>后置处理</b>: 引用整合 · 回溯父 Chunk"]
+                P1 --> P2 --> P3 --> P4
+            end
+
+            subgraph MemEngine ["🧠 三级记忆与离线治理"]
+                direction TB
+                M1["• <b>工作记忆</b> (Redis · 会话 TTL 24h)"]
+                M2["• <b>长期记忆</b> (Milvus · 语义/情景/程序<br/>&nbsp;&nbsp;三维打分: α·语义 + β·时间 + γ·重要性)"]
+                M3["• <b>用户画像</b> (MySQL · 偏好标签加权合并)"]
+                M4["• <b>离线治理</b> (自动聚类 + 知识巡检)"]
+            end
+        end
+        class P1,P2,P3,P4 pipeStyle
+        class M1,M2,M3,M4 memStyle
+
+        ReAct ==>|"调用检索"| PipeEngine
+        KQA -.->|"上下文读取"| MemEngine
     end
-    class DB_MySQL,DB_Redis,DB_Milvus storeStyle
 
-    %% 交互连线
-    UI_User -->|HTTP / SSE| API_Gateway
-    UI_Admin -->|REST API| API_Gateway
+    %% ================= 4. 存储基础设施 =================
+    subgraph Storage ["💾 混合存储基础设施"]
+        direction TB
+        DB_Redis[("<b>Redis 7.0</b><br/>• 精确缓存<br/>• 会话工作记忆 (TTL 24h)<br/>• 分布式执行锁")]
+        DB_Milvus[("<b>Milvus 2.4+ (3 Collections)</b><br/>• 语义向量缓存<br/>• 知识库稠密向量 (子 Chunk)<br/>• 长期记忆向量索引")]
+        DB_MySQL[("<b>MySQL 8.0</b><br/>• 业务元数据 / Trace 日志<br/>• 知识库 / 用户画像<br/>• 未命中问题日志")]
+    end
+    class DB_Redis,DB_Milvus,DB_MySQL storeStyle
+
+    %% ================= 主干跨层数据流 (极简单向连接) =================
+    Client ==>|"HTTP / SSE 交互 (JWT 鉴权)"| JWT
+    JWT --> SSE & Biz
+    SSE -.-> Cache
     
-    API_Gateway --> L1_Cache
-    L1_Cache -.->|Cache Miss| DB_Redis
-    API_Gateway --> SSE_Engine
-    API_Gateway -->|RPC / 异步转发| Orchestrator
-    Trace_Filter -.->|跨语言 TraceId 透传| Orchestrator
-
-    Orchestrator --> EventBus
-    EventBus <--> SubAgents
+    SSE ==>|"<br/>WebClient 代理 + TraceId 透传"| Router
     
-    A_Retrieval --> PipelineEngine
-    A_Analysis --> Memory_Engine
-    A_Eval -->|充分性不足| A_Retrieval
-
-    PipelineEngine <--> DB_Milvus
-    Memory_Engine <--> DB_Redis & DB_Milvus
-    Biz_Service --> DB_MySQL
-    Governance_Engine --> DB_MySQL & DB_Milvus
+    Gateway -.->|"业务持久化 & 缓存读写"| Storage
+    Engines ==>|"向量检索 / 记忆读写 / 治理反哺"| Storage
 ```
 
 ---
@@ -169,44 +197,48 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    classDef normal fill:#F8FAFC,stroke:#64748B,stroke-width:1px,color:#0F172A;
+    classDef default fill:#F8FAFC,stroke:#64748B,stroke-width:1px,color:#0F172A;
     classDef condition fill:#FEF9C3,stroke:#CA8A04,stroke-width:1.5px,color:#854D0E;
     classDef accent fill:#F3E8FF,stroke:#9333EA,stroke-width:1.5px,color:#581C87;
     classDef complete fill:#ECFDF5,stroke:#059669,stroke-width:1.5px,color:#065F46;
     classDef retry fill:#FFF1F2,stroke:#F43F5E,stroke-width:1.5px,color:#9F1239;
+    classDef subagent fill:#EFF6FF,stroke:#3B82F6,stroke-width:1.5px,color:#1E40AF;
 
-    Query["🗣️ 用户复合提问"] --> Planner["📋 DAG 任务规划器"]
+    Query["🗣️ 用户复合提问"] --> Planner["📋 DAG 任务规划器 (拓扑依赖解析)"]
 
-    subgraph DAG_Execution ["多智能体并行调度与单体自愈 (DAG Execution)"]
-        Planner -->|并行派发| SubA_Task["📌 子任务 A"]
-        Planner -->|并行派发| SubB_Task["📌 子任务 B"]
+    subgraph DAG_Engine ["⚡ DAG 拓扑编排与并发调度 (Orchestrator)"]
+        direction TB
 
-        subgraph Agent_A ["🤖 检索智能体 A (ReAct 自愈循环)"]
-            SubA_Task --> ExecA["🔍 执行混合检索"]
-            ExecA --> EvalA{"⚡ 充分性自评"}
-            EvalA -- "❌ 不充分 & 未达上限" --> RewriteA["🔄 Query 改写 / 扩展"]
-            RewriteA --> ExecA
-            EvalA -- "✅ 充分 或 ⚠️ 达重试上限" --> OutA["📦 产出子结果 A"]
-        end
+        %% 并发派发
+        Planner --> TaskA["Task 1: 实体检索 (无依赖)"]
+        Planner --> TaskB["Task 2: 规范检索 (无依赖)"]
 
-        subgraph Agent_B ["🤖 检索智能体 B (ReAct 自愈循环)"]
-            SubB_Task --> ExecB["🔍 执行混合检索"]
-            ExecB --> EvalB{"⚡ 充分性自评"}
-            EvalB -- "❌ 不充分 & 未达上限" --> RewriteB["🔄 Query 改写 / 扩展"]
-            RewriteB --> ExecB
-            EvalB -- "✅ 充分 或 ⚠️ 达重试上限" --> OutB["📦 产出子结果 B"]
-        end
-
-        OutA & OutB -->|发布结果| Bus[("📦 EventBus 状态共享")]
-        Bus -->|所有前置依赖就绪| SubC["🤖 智能体 C<br/>多跳上下文汇总推理"]
+        TaskA ==>|派发并发执行| AgentA["🤖 Sub-Agent 1 (Retrieval)"]
+        TaskB ==>|派发并发执行| AgentB["🤖 Sub-Agent 2 (Retrieval)"]
+        
+        AgentA & AgentB -->|发布产出| Bus[("📦 EventBus (状态共享与就绪监听)")]
+        
+        %% 汇聚依赖
+        Bus -->|依赖就绪: Task 1 & 2 完成| TaskC["Task 3: 交叉对比 (依赖 Task 1 & 2)"]
+        TaskC ==>|触发执行| Synthesizer["🤖 Synthesizer Agent (多跳汇总与推理)"]
     end
 
-    class SubA_Task,SubB_Task,ExecA,ExecB,OutA,OutB,SubC accent
-    class EvalA,EvalB condition
-    class RewriteA,RewriteB retry
+    subgraph SubAgent_Pattern ["🔄 Sub-Agent 内部执行范式 (ReAct Loop)"]
+        direction TB
+        S_Exec["🔍 检索与工具调用"] --> S_Eval{"⚡ 充分性自评"}
+        S_Eval -->|❌ 信息不足| S_Retry["🔄 Query 改写重试 (Max N次)"]
+        S_Retry --> S_Exec
+        S_Eval -->|✅ 充分 / ⚠️ 达重试上限| S_Out["📦 产出结构化子结果"]
+    end
 
-    SubC --> Gen["📝 结构化响应生成"]
-    Gen --> SSE["📡 SSE 流式吐出至前端"]
+    Synthesizer --> Gen["📝 结构化响应生成"]
+    Gen --> SSE["📡 SSE 流式输出"]
+
+    class Planner,Synthesizer accent
+    class TaskA,TaskB,TaskC subagent
+    class AgentA,AgentB subagent
+    class S_Eval condition
+    class S_Retry retry
     class Gen,SSE complete
 ```
 
