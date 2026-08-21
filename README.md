@@ -142,7 +142,7 @@ flowchart LR
 
     Doc["📄 原始输入文档"] --> Split{"✂️ 语义感知分块"}
     
-    Split -->|Macro Chunk| Parent["📦 父 Chunk (800~1500 tokens)<br/>保留完整业务段落与上下文"]
+    Split -->|Macro Chunk| Parent["📦 父 Chunk<br/>保留完整业务段落与上下文"]
     Split -->|Micro Chunk| Child["🧩 子 Chunk (200~300 tokens)<br/>细粒度语义片段"]
 
     Child --> BM25["🔤 BM25 稀疏索引 (关键词)"]
@@ -173,25 +173,39 @@ flowchart TD
     classDef condition fill:#FEF9C3,stroke:#CA8A04,stroke-width:1.5px,color:#854D0E;
     classDef accent fill:#F3E8FF,stroke:#9333EA,stroke-width:1.5px,color:#581C87;
     classDef complete fill:#ECFDF5,stroke:#059669,stroke-width:1.5px,color:#065F46;
+    classDef retry fill:#FFF1F2,stroke:#F43F5E,stroke-width:1.5px,color:#9F1239;
 
     Query["🗣️ 用户复合提问"] --> Planner["📋 DAG 任务规划器"]
 
-    subgraph DAG_Execution ["多智能体并行调度"]
-        Planner --> SubA["🤖 智能体 A<br/>子任务拆解 1"]
-        Planner --> SubB["🤖 智能体 B<br/>子任务拆解 2"]
-        
-        SubA & SubB -->|发布结果| Bus[("📦 EventBus 状态共享")]
-        Bus -->|依赖就绪通知| SubC["🤖 智能体 C<br/>汇总推理分析"]
+    subgraph DAG_Execution ["多智能体并行调度与单体自愈 (DAG Execution)"]
+        Planner -->|并行派发| SubA_Task["📌 子任务 A"]
+        Planner -->|并行派发| SubB_Task["📌 子任务 B"]
+
+        subgraph Agent_A ["🤖 检索智能体 A (ReAct 自愈循环)"]
+            SubA_Task --> ExecA["🔍 执行混合检索"]
+            ExecA --> EvalA{"⚡ 充分性自评"}
+            EvalA -- "❌ 不充分 & 未达上限" --> RewriteA["🔄 Query 改写 / 扩展"]
+            RewriteA --> ExecA
+            EvalA -- "✅ 充分 或 ⚠️ 达重试上限" --> OutA["📦 产出子结果 A"]
+        end
+
+        subgraph Agent_B ["🤖 检索智能体 B (ReAct 自愈循环)"]
+            SubB_Task --> ExecB["🔍 执行混合检索"]
+            ExecB --> EvalB{"⚡ 充分性自评"}
+            EvalB -- "❌ 不充分 & 未达上限" --> RewriteB["🔄 Query 改写 / 扩展"]
+            RewriteB --> ExecB
+            EvalB -- "✅ 充分 或 ⚠️ 达重试上限" --> OutB["📦 产出子结果 B"]
+        end
+
+        OutA & OutB -->|发布结果| Bus[("📦 EventBus 状态共享")]
+        Bus -->|所有前置依赖就绪| SubC["🤖 智能体 C<br/>多跳上下文汇总推理"]
     end
-    class SubA,SubB,SubC accent
 
-    SubC --> Eval{"⚡ 检索充分性自评"}
-    class Eval condition
+    class SubA_Task,SubB_Task,ExecA,ExecB,OutA,OutB,SubC accent
+    class EvalA,EvalB condition
+    class RewriteA,RewriteB retry
 
-    Eval -- "❌ 信息不充分 (Score < Threshold)" --> Rewrite["🔄 Query 改写 / 扩展重试"]
-    Rewrite -->|重新检索| SubA
-
-    Eval -- "✅ 信息充分" --> Gen["📝 结构化响应生成"]
+    SubC --> Gen["📝 结构化响应生成"]
     Gen --> SSE["📡 SSE 流式吐出至前端"]
     class Gen,SSE complete
 ```
@@ -221,7 +235,7 @@ flowchart LR
 
     subgraph Offline ["🟠 离线治理"]
         Miss --> Log[("Trace 审计库")]
-        Log --> Cluster["HDBSCAN 未覆盖 Query 聚类"]
+        Log --> Cluster["未覆盖 Query 聚类"]
         Cluster --> Gap["📊 输出高频知识缺口报表"]
         
         Inspect["定时巡检器"] --> Scan["扫描重复/低质/过期文档"]
