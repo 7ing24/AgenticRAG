@@ -24,7 +24,7 @@ class ParentChildChunker:
                  child_chunk_overlap: int = 50,
                  semantic_buffer_size: int = 1,
                  semantic_breakpoint_type: str = "percentile",
-                 semantic_breakpoint_amount: float = None):
+                 semantic_breakpoint_amount: float = 90.0):
         """embeddings: 用于语义切分父块（复用全局实例）"""
         from langchain_experimental.text_splitter import SemanticChunker
 
