@@ -7,7 +7,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 17" />
-  <img src="https://img.shields.io/badge/Spring_Boot-3.2-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white" alt="Spring Boot 3.2" />
+  <img src="https://img.shields.io/badge/Spring_Boot-3.4-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white" alt="Spring Boot 3.4" />
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+" />
   <img src="https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/Milvus-2.4+-00A1EA?style=for-the-badge&logo=zilliz&logoColor=white" alt="Milvus" />
@@ -34,7 +34,7 @@
 
 * **Multi-Agent 协同与自评**：面向多跳推理任务，基于 DAG 拓扑排序并行调度 Sub-Agent，通过 EventBus 共享上下文；Sub-Agent 结合 ReAct 范式进行检索充分性自评与改写重试。
 
-* **三级记忆与二级语义缓存**：构建“工作记忆 → 长期记忆 (semantic/episodic/procedural) → 用户画像”三级体系，自动触发摘要沉淀；结合 Caffeine + Redis 二级缓存与 Milvus 语义相似度匹配加速高频请求。
+* **三级记忆与三级语义缓存**：构建”工作记忆 → 长期记忆 (semantic/episodic/procedural) → 用户画像”三级体系，自动触发摘要沉淀；结合 Caffeine + Redis 精确匹配 + Milvus 语义相似度三级缓存加速高频请求。
 
 * **全链路 Trace 审计**：在路由分发、LLM 调用、工具执行等节点统一埋点，跨 Java/Python 收集 I/O、耗时与 Token 消耗。
 
@@ -250,7 +250,7 @@ flowchart TD
   * **用户画像 (User Profile)**：维护业务偏好与常用领域标签，个性化调整 Prompt 权重。
 * **二级语义缓存加速**：
   * **L1 本地缓存**：`Caffeine` 提供微秒级单机热点拦截。
-  * **L2 分布式语义缓存**：`Redis + Milvus` 协同。输入 Query 首先进入 Milvus 执行向量余弦相似度匹配，若高于预设阈值（如 `0.95`）则判定语义命中，直接返回缓存结果并延长热点 Key 的 TTL。
+  * **L2 分布式语义缓存**：`Redis + Milvus` 协同。输入 Query 首先进入 Milvus 执行向量余弦相似度匹配，若高于预设阈值（`0.90`）则判定语义命中，直接返回缓存结果并延长热点 Key 的 TTL。
 
 ### 4. 闭环知识库离线治理体系
 
@@ -290,7 +290,7 @@ flowchart LR
 
 | 层次 / 模块 | 技术选型 | 核心作用说明 |
 | :--- | :--- | :--- |
-| **业务中台** | `Java 17` / `Spring Boot 3.2` / `MyBatis-Plus` | 核心业务路由、高并发鉴权、审计持久化 |
+| **业务中台** | `Java 17` / `Spring Boot 3.4` / `MyBatis-Plus` | 核心业务路由、高并发鉴权、审计持久化 |
 | **流式通信** | `Spring WebFlux` (SSE) | 生产级 Server-Sent Events 流式响应与心跳保活 |
 | **AI 引擎** | `Python 3.10+` / `FastAPI` / `Pydantic` | 异步 AI 服务、DAG 编排、多智能体协同 |
 | **向量数据库** | `Milvus 2.4+` | BM25 稀疏检索、HNSW 稠密检索与语义缓存索引 |
@@ -320,7 +320,7 @@ mysql -u root -p ai_knowledge_db < sql/init.sql
 ### 3. 启动 Python AI 服务 (Port: 8000)
 
 ```bash
-cd ai-service
+cd python-service
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
@@ -334,7 +334,6 @@ python main.py
 ### 4. 启动 Java 业务中台 (Port: 8080)
 
 ```bash
-cd backend-service
 # 修改 src/main/resources/application.yml 中的数据源配置
 mvn clean package -DskipTests
 java -jar target/ai-knowledge-system-*.jar
@@ -359,26 +358,28 @@ npm run dev
 
 ```text
 .
-├── backend-service/                # Java 业务中台工程 (Spring Boot)
-│   ├── src/main/java/com/rag/
-│   │   ├── controller/             # RESTful API 与 SSE 流式控制器
-│   │   ├── service/                # 业务逻辑与定时巡检任务
-│   │   ├── cache/                  # Caffeine + Redis 多级缓存封装
-│   │   └── trace/                  # 跨语言 TraceId 拦截与审计存储
-│   └── src/main/resources/         # 基础配置与 MyBatis Mapper XML
-├── ai-service/                     # Python AI 核心服务 (FastAPI)
-│   ├── core/
-│   │   ├── chunking/               # 语义感知父子分块实现
-│   │   ├── retrieval/              # 混合检索 (BM25+HNSW) 与重排
-│   │   └── evaluation/             # RAGAS 指标自动化评估
-│   ├── agents/
-│   │   ├── orchestrator.py         # DAG 拓扑执行引擎
-│   │   ├── event_bus.py            # Agent 间状态共享总线
-│   │   └── sub_agents/             # 细分 Agent 逻辑实现
-│   ├── memory/                     # 三级记忆管理 (Working/Episodic/Profile)
-│   └── governance/                 # Query 聚类分析与知识巡检
-├── sql/                            # 数据库建表与初始化脚本
-└── README.md
+├── src/main/java/com/demo/aiknowledge/   # Java 业务中台 (Spring Boot 3.4)
+│   ├── controller/             # RESTful API 与 SSE 流式控制器
+│   ├── service/                # 业务逻辑与定时巡检任务
+│   ├── config/                 # Security / Cache / CORS 配置
+│   ├── entity/                 # MyBatis-Plus 数据库实体
+│   └── mapper/                 # MyBatis-Plus Mapper 接口
+├── python-service/                     # Python AI 服务 (FastAPI)
+│   ├── agent/                  # RouterAgent / ReActAgent / MemoryAgent
+│   ├── engine/                 # DAG 编排器 / EventBus / 状态管理
+│   ├── workflow/               # 知识问答 / 闲聊 / 管理助手 / 推理
+│   ├── service/                # 检索 / 重排 / 父子分块 / 语义缓存 / 巡检
+│   ├── tools/                  # Tool Registry 工具体系
+│   ├── memory/                 # 三级记忆管理 (语义/情景/程序)
+│   ├── intent/                 # 意图分类器 (LLM + 关键词 Fallback)
+│   ├── core/                   # LLM / Milvus / MySQL / Redis 基础设施
+│   └── eval/                   # RAGAS 评测框架
+├── frontend/                   # React 18 + Vite 前端
+│   └── src/
+│       ├── api/                # Axios API 封装 (用户端/管理端/仪表盘)
+│       └── pages/              # 用户端 + 管理端页面
+├── sql/                        # MySQL 初始化脚本
+└── pom.xml                     # Maven 配置
 ```
 
 ---
