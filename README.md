@@ -6,14 +6,14 @@
 *集成 Multi-Agent 协同调度 · 混合检索与重排序 · 三级记忆引擎 · 离线知识治理闭环 · 全链路 Trace 审计*
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 17" />
-  <img src="https://img.shields.io/badge/Spring_Boot-3.4-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white" alt="Spring Boot 3.4" />
-  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+" />
-  <img src="https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
-  <img src="https://img.shields.io/badge/Milvus-2.4+-00A1EA?style=for-the-badge&logo=zilliz&logoColor=white" alt="Milvus" />
-  <img src="https://img.shields.io/badge/Redis-7.0-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis" />
-  <img src="https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL" />
-  <img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="License" />
+  <img src="https://img.shields.io/badge/Java-17-orange.svg" alt="Java">
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.4-brightgreen.svg" alt="Spring Boot">
+  <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
+  <img src="https://img.shields.io/badge/FastAPI-0.110+-teal.svg" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Milvus-2.4+-blue.svg" alt="Milvus">
+  <img src="https://img.shields.io/badge/Redis-7.0-red.svg" alt="Redis">
+  <img src="https://img.shields.io/badge/MySQL-8.0-blue.svg" alt="MySQL">
+  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
 </p>
 
 </div>
