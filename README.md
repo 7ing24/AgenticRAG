@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡ Agentic RAG 智能问答与知识治理平台
+# Agentic RAG 智能问答与知识治理平台
 
 **基于 Java (Spring Boot) + Python (FastAPI) 双引擎架构的高性能 RAG 系统**  
 *集成 Multi-Agent 协同调度 · 混合检索与重排序 · 三级记忆引擎 · 离线知识治理闭环 · 全链路 Trace 审计*
