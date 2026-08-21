@@ -1,0 +1,3164 @@
+[
+  {
+    "id": "q_001",
+    "question": "实体识别任务能识别出哪些预定义的实体类别？",
+    "difficulty": "simple",
+    "ground_truth": "人名、地点、组织、日期、时间",
+    "relevant_chunk_ids": [
+      "doc_108_parent_25"
+    ],
+    "evidence": {
+      "doc_108_parent_25": "实体识别任务能识别出的预定义实体类别包括人名、地点、组织、日期、时间等。示例输出中明确标注了“人名”“地名”“日期”，文本还提到“如人名、地点、组织、日期、时间等”，并指出任务目的是识别“人名、地名和组织名等实体”。"
+    }
+  },
+  {
+    "id": "q_002",
+    "question": "Runtime status 应该显示哪些关键依赖的状态？",
+    "difficulty": "simple",
+    "ground_truth": "Runtime status 应该显示模型、索引、数据库、文件存储、外部服务、权限配置和后台任务的状态。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_94"
+    ],
+    "evidence": {
+      "doc_107_parent_94": "Runtime status 应该显示关键依赖是否可用，比如模型、索引、数据库、文件存储、外部服务、权限配置和后台任务状态。"
+    }
+  },
+  {
+    "id": "q_003",
+    "question": "Redis是如何在单线程基础上实现高并发处理多个客户端连接的？",
+    "difficulty": "simple",
+    "ground_truth": "Redis通过I/O多路复用技术，使单个线程能够同时监听和处理多个客户端连接的读写事件，从而在单线程基础上实现高并发。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_281"
+    ],
+    "evidence": {
+      "doc_106_parent_281": "Redis在单线程基础上采用I/O多路复用技术，使单个线程能同时处理多个客户端连接，从而提升并发性能。"
+    }
+  },
+  {
+    "id": "q_004",
+    "question": "代码中定义的dropout概率值来自哪个参数？",
+    "difficulty": "simple",
+    "ground_truth": "代码中定义的dropout概率值来自参数args.dropout。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_229"
+    ],
+    "evidence": {
+      "doc_108_parent_229": "代码中定义的dropout概率值来自参数args.dropout。"
+    }
+  },
+  {
+    "id": "q_005",
+    "question": "模型整体由哪些主要部分组成？",
+    "difficulty": "simple",
+    "ground_truth": "模型整体由Embedding、Encoder和prediction_heads三部分组成。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_105"
+    ],
+    "evidence": {
+      "doc_108_parent_105": "模型整体由 Embedding、Encoder 和 prediction_heads 组成。"
+    }
+  },
+  {
+    "id": "q_006",
+    "question": "该文本片段中第337行的内容是什么？",
+    "difficulty": "simple",
+    "ground_truth": "| |",
+    "relevant_chunk_ids": [
+      "doc_106_parent_559"
+    ],
+    "evidence": {
+      "doc_106_parent_559": "337 | |"
+    }
+  },
+  {
+    "id": "q_007",
+    "question": "SwanLab初始化时设置的项目名称是什么？",
+    "difficulty": "simple",
+    "ground_truth": "sft",
+    "relevant_chunk_ids": [
+      "doc_108_parent_435"
+    ],
+    "evidence": {
+      "doc_108_parent_435": "SwanLab初始化时设置的项目名称是\"sft\"。"
+    }
+  },
+  {
+    "id": "q_008",
+    "question": "自动问答系统大致可分为哪三类？",
+    "difficulty": "simple",
+    "ground_truth": "自动问答系统大致可分为检索式问答、知识库问答和社区问答三类。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_31"
+    ],
+    "evidence": {
+      "doc_108_parent_31": "自动问答大致可分为三类：检索式问答（Retrieval-based QA）、知识库问答（Knowledge-based QA）和社区问答（Community-based QA）。检索式问答通过搜索引擎等方式从大量文本中检索答案；知识库问答通过结构化的知识库来回答问题；社区问答则依赖于用户生成的问答数据，如问答社区、论坛等。"
+    }
+  },
+  {
+    "id": "q_009",
+    "question": "模型中用于键（key）和值（value）的头的数量是如何确定的？",
+    "difficulty": "simple",
+    "ground_truth": "模型中用于键（key）和值（value）的头的数量（n_kv_heads）由配置参数args.n_kv_heads确定：若args.n_kv_heads为None，则n_kv_heads等于总头数args.n_heads；否则，n_kv_heads取args.n_kv_heads的值，且必须满足args.n_heads能被n_kv_heads整除。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_226"
+    ],
+    "evidence": {
+      "doc_108_parent_226": "用于键（key）和值（value）的头的数量（n_kv_heads）由模型配置参数args.n_kv_heads确定：若args.n_kv_heads为None，则n_kv_heads等于总头数args.n_heads；否则，n_kv_heads直接取args.n_kv_heads的值。同时要求args.n_heads能被n_kv_heads整除，即满足args.n_heads % n_kv_heads == 0。"
+    }
+  },
+  {
+    "id": "q_010",
+    "question": "Agent的工作流程第一步是什么？",
+    "difficulty": "simple",
+    "ground_truth": "Agent的工作流程第一步是接收用户输入。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_523"
+    ],
+    "evidence": {
+      "doc_108_parent_523": "Agent的工作流程第一步是接收用户输入。"
+    }
+  },
+  {
+    "id": "q_011",
+    "question": "旧的非泛型代码例如ArrayList是否仍然可用？",
+    "difficulty": "simple",
+    "ground_truth": "旧的非泛型代码例如ArrayList仍然可用。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_27"
+    ],
+    "evidence": {
+      "doc_106_parent_27": "旧的非泛型代码（如 ArrayList）仍然可用。"
+    }
+  },
+  {
+    "id": "q_012",
+    "question": "当被驱动表没有使用索引时，MySQL会采用哪种连表查询方式？",
+    "difficulty": "simple",
+    "ground_truth": "MySQL会采用Block Nested Loop（块嵌套循环）连表查询方式。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_204"
+    ],
+    "evidence": {
+      "doc_106_parent_204": "Using join buffer (Block Nested Loop)：连表查询的方式，表示当被驱动表没有使用索引的时候，MySQL会先将驱动表读出来放到join buffer中，再遍历被驱动表与驱动表进行查询。"
+    }
+  },
+  {
+    "id": "q_013",
+    "question": "根据文本，10年内总共需要存储的数据上限是多少？",
+    "difficulty": "simple",
+    "ground_truth": "10年内总共需要存储的数据上限是7000万。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_562"
+    ],
+    "evidence": {
+      "doc_106_parent_562": "10年内总共要存储的数据上限是7000w。"
+    }
+  },
+  {
+    "id": "q_014",
+    "question": "为什么 runtime status 对 Agent/RAG 项目的调试和交付很重要？",
+    "difficulty": "simple",
+    "ground_truth": "Runtime status 能显式暴露 Agent/RAG 项目中易出问题的环境和依赖状态（如模型 key、embedding、向量索引、数据库、文件目录、外部服务），同时避免泄露 secret，从而帮助快速定位故障根源，显著降低调试和交付成本，是项目从 demo 走向稳定工程系统的关键支撑。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_28"
+    ],
+    "evidence": {
+      "doc_107_parent_28": "Runtime status 能将 Agent/RAG 项目中易出问题的环境和依赖状态（如模型 key、embedding、向量索引、数据库、文件目录、外部服务）显式暴露出来，同时避免泄露 secret；这有助于快速定位故障根源，显著降低调试和交付成本，是项目从 demo 走向稳定工程系统的关键支撑。"
+    }
+  },
+  {
+    "id": "q_015",
+    "question": "BM25检索和embedding检索的主要区别是什么？",
+    "difficulty": "simple",
+    "ground_truth": "BM25检索基于词项匹配，依赖词汇重叠与统计特征（如词频、逆文档频率），适合精确关键词检索，但对拼写错误、词形变化敏感；embedding检索基于语义相似性，通过向量空间中的距离衡量文本间隐含含义和上下文关系，适合同义表达和概念匹配。两者原理不同、适用场景互补。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_76"
+    ],
+    "evidence": {
+      "doc_107_parent_76": "BM25基于词项匹配，适合精确关键词检索；embedding检索基于语义相似，适合同义表达和概念匹配。两者在原理和适用场景上存在本质差异：BM25依赖词汇重叠与统计特征（如词频、逆文档频率），对拼写、形态变化敏感；embedding则通过向量空间中的距离衡量语义相关性，能捕捉隐含含义和上下文关系。因此，二者具有互补性。"
+    }
+  },
+  {
+    "id": "q_016",
+    "question": "这份面试资料的副标题是什么？",
+    "difficulty": "simple",
+    "ground_truth": "从向量检索到可信 Agent 问答的面试准备资料",
+    "relevant_chunk_ids": [
+      "doc_107_parent_0"
+    ],
+    "evidence": {
+      "doc_107_parent_0": "副标题：从向量检索到可信 Agent 问答的面试准备资料"
+    }
+  },
+  {
+    "id": "q_017",
+    "question": "模型参数是从哪个地址加载的？",
+    "difficulty": "simple",
+    "ground_truth": "模型参数从 model_args.model_name_or_path 指定的地址加载。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_438"
+    ],
+    "evidence": {
+      "doc_108_parent_438": "模型参数地址：{model_args. model_name_or_path}  \nmodel = AutoModelForCausalLM.from_pretrained(model_args. model_name_or_path, trust_remote_code=True)"
+    }
+  },
+  {
+    "id": "q_018",
+    "question": "该文本要求返回的JSON数据格式是什么？",
+    "difficulty": "simple",
+    "ground_truth": "返回的JSON数据格式为：{\"code\": 200, \"message\": \"success\", \"data\": {\"id\": \"string\", \"name\": \"string\", \"age\": \"integer\", \"email\": \"string\"}}，其中code为整数类型，message为字符串类型，data为对象类型，包含四个必填字段：id（字符串）、name（字符串）、age（整数）、email（字符串），所有字段均需严格符合对应的数据类型要求。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_37"
+    ],
+    "evidence": {
+      "doc_107_parent_37": "返回的JSON数据格式为：{\"code\": 200, \"message\": \"success\", \"data\": {\"id\": \"string\", \"name\": \"string\", \"age\": \"integer\", \"email\": \"string\"}}。其中，code为整数类型，表示状态码；message为字符串类型，表示响应消息；data为对象类型，包含id（字符串）、name（字符串）、age（整数）、email（字符串）四个字段。所有字段均为必填项，且需符合对应的数据类型要求。"
+    }
+  },
+  {
+    "id": "q_019",
+    "question": "LLaMA2 Attention模块的构建是在完成什么操作之后进行的？",
+    "difficulty": "simple",
+    "ground_truth": "完成旋转嵌入的实现之后",
+    "relevant_chunk_ids": [
+      "doc_108_parent_223"
+    ],
+    "evidence": {
+      "doc_108_parent_223": "在上面我们已经完成了旋转嵌入的实现，接下来我们就可以构建 LLaMA2 Attention 模块了。"
+    }
+  },
+  {
+    "id": "q_020",
+    "question": "在基础防线中，生成答案后需要检查引用ID是否来自哪一轮检索结果？",
+    "difficulty": "simple",
+    "ground_truth": "在基础防线中，生成答案后需要检查引用ID是否来自本轮检索结果。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_14"
+    ],
+    "evidence": {
+      "doc_107_parent_14": "基础防线中，生成答案后需要检查引用ID是否来自本轮检索结果。Prompt中要求只能引用给定证据，但模型仍可能编造引用，因此需在生成后校验；最基础的校验是确认答案中的引用是否出自本轮retrieved set。此外，还需对不存在或格式异常的引用进行清理或标记，并对关键claim做更细粒度的证据映射。"
+    }
+  },
+  {
+    "id": "q_021",
+    "question": "HuggingFace社区中Qwen-2.5-1.5B模型的config.json文件包含哪些信息？",
+    "difficulty": "simple",
+    "ground_truth": "HuggingFace社区中Qwen-2.5-1.5B模型的config.json文件包含模型的架构、隐藏层大小、模型层数等配置信息。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_395"
+    ],
+    "evidence": {
+      "doc_108_parent_395": "HuggingFace社区中Qwen-2.5-1.5B模型的config.json文件包含模型的配置信息，包括模型的架构、隐藏层大小、模型层数等。"
+    }
+  },
+  {
+    "id": "q_022",
+    "question": "模型参数量是如何计算的？",
+    "difficulty": "simple",
+    "ground_truth": "模型参数量通过累加模型中所有需梯度更新的参数张量的元素总数（即每个参数张量的 `numel()` 值）计算得出，公式为 `num_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)`，结果以百万为单位输出，格式为 `Model has {num_params / 1e6:.3f} M parameters.`。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_373"
+    ],
+    "evidence": {
+      "doc_108_parent_373": "计算模型参数量的方法是：`num_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)`，即对模型中所有需梯度更新的参数张量，累加其元素总数（`p.numel()`），最终得到总参数量。程序随后以百万为单位打印结果：`print(f\"Model has {num_params / 1e6:.3f} M parameters.\")`。"
+    }
+  },
+  {
+    "id": "q_023",
+    "question": "为什么系统需要考虑历史对话的长度？",
+    "difficulty": "simple",
+    "ground_truth": "系统需要考虑历史对话的长度，因为历史太短会导致上下文断裂，无法准确判断用户意图（如追问前文、切换主题、纠正前提或要求跨文档综合）；历史太长则会引入无关噪声，干扰理解与响应。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_82"
+    ],
+    "evidence": {
+      "doc_107_parent_82": "因为系统要区分用户是在追问前文、切换主题、纠正前提还是要求跨文档综合。历史太少会断上下文，历史太多会引入噪声。"
+    }
+  },
+  {
+    "id": "q_024",
+    "question": "RRF的全称是什么？",
+    "difficulty": "simple",
+    "ground_truth": "RRF的全称是Reciprocal Rank Fusion。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_6"
+    ],
+    "evidence": {
+      "doc_107_parent_6": "RRF的全称是Reciprocal Rank Fusion，是一种融合多个排序列表的方法。"
+    }
+  },
+  {
+    "id": "q_025",
+    "question": "预估单个后端服务器节点能承受的QPS时，需要知道哪两个关键数值？",
+    "difficulty": "simple",
+    "ground_truth": "线程数（如Tomcat线程池大小）和平均请求处理时间（秒）。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_473"
+    ],
+    "evidence": {
+      "doc_106_parent_473": "预估单个后端服务器节点能承受的QPS时，需要知道的两个关键数值是：线程数（如Tomcat线程池大小）和平均请求处理时间（秒）。理论计算公式为：QPS（单节点） = 线程数 / 平均请求处理时间（秒）。例如，若线程池大小为200，单个请求处理时间为50ms（0.05秒），则QPS（单节点）= 200 / 0.05 = 4000。"
+    }
+  },
+  {
+    "id": "q_026",
+    "question": "JVM中TLAB的作用是什么？",
+    "difficulty": "simple",
+    "ground_truth": "TLAB是每个线程在Eden区专属的一块内存区域，用于线程本地的对象内存分配，避免多线程同时分配对象时因竞争而加互斥锁，从而提升内存分配效率。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_128"
+    ],
+    "evidence": {
+      "doc_106_parent_128": "TLAB（Thread Local Allocation Buffer）是每个线程在Eden区专属的一块内存区域，用于避免多线程同时new对象时因竞争内存分配而需加互斥锁的问题；当线程的TLAB未满时，可直接在其内部分配对象内存，无需加锁，从而提升内存分配效率。"
+    }
+  },
+  {
+    "id": "q_027",
+    "question": "RAG系统中拒答的主要原因是什么？",
+    "difficulty": "simple",
+    "ground_truth": "RAG系统中拒答的主要原因是证据不足，具体包括：没有检索到任何相关chunk、检索分数很低、top chunks互相矛盾、用户问题超出知识库范围、用户要求模型推断没有证据支持的结论。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_12"
+    ],
+    "evidence": {
+      "doc_107_parent_12": "RAG系统中拒答的主要原因是证据不足，具体包括：没有检索到任何相关chunk、检索分数很低、top chunks互相矛盾、用户问题超出知识库范围、用户要求模型推断没有证据支持的结论。拒答机制的目标是在证据不足时不冒充确定，避免“没有证据还答得很自信”的危险错误。工程上可通过检索数量、分数、覆盖度和citation可用性等指标判断是否证据不足，进而返回“no evidence”或“weak evidence”。"
+    }
+  },
+  {
+    "id": "q_028",
+    "question": "消费者在启动时如何决定从哪个位置开始消费？",
+    "difficulty": "simple",
+    "ground_truth": "消费者在启动时根据 auto.offset.reset 参数的值来决定从哪个位置开始消费。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_304"
+    ],
+    "evidence": {
+      "doc_106_parent_304": "消费者在启动时根据 auto.offset.reset 参数来决定从哪个位置开始消费。"
+    }
+  },
+  {
+    "id": "q_029",
+    "question": "AI Code Review（AICR）能识别出代码中的哪些问题？",
+    "difficulty": "simple",
+    "ground_truth": "AI Code Review（AICR）能识别出代码中的潜在bug、性能风险（如未添加索引的SQL语句）、可维护性问题和健壮性问题。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_641"
+    ],
+    "evidence": {
+      "doc_106_parent_641": "AI Code Review（AICR）能识别出代码中的潜在bug或性能风险，例如提醒某个SQL语句应添加索引；同时有助于提升代码质量，包括可维护性、健壮性等。"
+    }
+  },
+  {
+    "id": "q_030",
+    "question": "Agentic RAG 比普通 RAG 强在哪里？",
+    "difficulty": "simple",
+    "ground_truth": "Agentic RAG 比普通 RAG 强在具备围绕证据的可控决策能力，可自主判断是否重写查询、是否发起二次检索、是否拒答、是否调用外部工具，而非仅依赖固定流程或自由生成。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_80"
+    ],
+    "evidence": {
+      "doc_107_parent_80": "Agentic RAG 比普通 RAG 强在能围绕证据做决策，例如是否 rewrite、是否二次检索、是否拒答、是否调用工具；重点在于可控决策，而非自由发挥。"
+    }
+  },
+  {
+    "id": "q_031",
+    "question": "在forward函数中，计算均值时使用的维度是哪个？",
+    "difficulty": "simple",
+    "ground_truth": "在forward函数中，计算均值时使用的维度是-1。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_73"
+    ],
+    "evidence": {
+      "doc_108_parent_73": "在forward函数中，计算均值时使用的维度是-1。"
+    }
+  },
+  {
+    "id": "q_032",
+    "question": "LLaMA2的MLP模块构建步骤在文档中的小节编号是多少？",
+    "difficulty": "simple",
+    "ground_truth": "1.4",
+    "relevant_chunk_ids": [
+      "doc_108_parent_240"
+    ],
+    "evidence": {
+      "doc_108_parent_240": "1.4"
+    }
+  },
+  {
+    "id": "q_033",
+    "question": "引用验证在RAG系统中为什么重要？",
+    "difficulty": "simple",
+    "ground_truth": "引用验证在RAG系统中至关重要，因为引用不是装饰，而是系统可信度的核心；若缺乏验证，模型可能生成看似真实却不存在的引用编号，或引用真实文档却无法支持答案中的主张，从而损害结果的准确性与可靠性。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_13"
+    ],
+    "evidence": {
+      "doc_107_parent_13": "引用不是装饰，而是RAG系统可信度的核心。常见错误包括：模型生成看似真实的引用编号但并不存在；引用了真实文档却不支持答案中的主张。"
+    }
+  },
+  {
+    "id": "q_034",
+    "question": "对于中文等非空格分隔的语言，通常将什么作为原子分词单位处理？",
+    "difficulty": "simple",
+    "ground_truth": "单个汉字",
+    "relevant_chunk_ids": [
+      "doc_108_parent_107"
+    ],
+    "evidence": {
+      "doc_108_parent_107": "对于中文等非空格分隔的语言，通常将单个汉字作为原子分词单位（token）处理。"
+    }
+  },
+  {
+    "id": "q_035",
+    "question": "在工程实现中，rerank 之后的少量证据会被如何使用？",
+    "difficulty": "simple",
+    "ground_truth": "在工程实现中，rerank 之后的少量证据会被直接放入 prompt 中作为上下文使用。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_42"
+    ],
+    "evidence": {
+      "doc_107_parent_42": "在工程实现中，rerank 之后的少量证据会被直接放入 prompt 中作为上下文使用。"
+    }
+  },
+  {
+    "id": "q_036",
+    "question": "可靠RAG的核心是什么？",
+    "difficulty": "simple",
+    "ground_truth": "可靠RAG的核心是让答案和证据建立可审计、可评测、可回归的关系。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_92"
+    ],
+    "evidence": {
+      "doc_107_parent_92": "可靠 RAG 的核心不是让模型更会说，而是让答案和证据建立可审计、可评测、可回归的关系。"
+    }
+  },
+  {
+    "id": "q_037",
+    "question": "Tool、Skill和Subagent分别解决什么问题？",
+    "difficulty": "simple",
+    "ground_truth": "Tool 解决“能做什么”的问题，提供稳定 API 以执行具体动作；Skill 解决“应该怎么做”的问题，提供任务方法论以指导模型如何调用和组合工具；Subagent 解决“由谁在什么边界里做”的问题，通过职责收束将特定类型任务限定在专门的上下文环境中执行。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_25"
+    ],
+    "evidence": {
+      "doc_107_parent_25": "Tool 解决“能做什么”，是稳定 API，负责具体动作；Skill 解决“应该怎么做”，是任务方法论，指导模型如何使用工具；Subagent 解决“由谁在什么边界里做”，是职责收束，把某类任务放到专门上下文里执行。"
+    }
+  },
+  {
+    "id": "q_038",
+    "question": "根据文本，Tool在权限检查方面有什么特别要求？",
+    "difficulty": "simple",
+    "ground_truth": "Tool 在权限检查方面要求内部必须再次进行权限检查，不能仅依赖 Agent 的权限判断，尤其对于业务类 Tool，还需同时处理权限控制、错误处理、审计、幂等性保障和结构化输出。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_54"
+    ],
+    "evidence": {
+      "doc_107_parent_54": "Tool 内部必须再次做权限检查，不能只相信 Agent。尤其是业务 tool，要处理权限、错误、审计、幂等和结构化输出，否则 Agent 很难稳定使用。"
+    }
+  },
+  {
+    "id": "q_039",
+    "question": "训练好的Tokenizer的特殊token '<|im_start|>' 对应的ID是多少？",
+    "difficulty": "simple",
+    "ground_truth": "3",
+    "relevant_chunk_ids": [
+      "doc_108_parent_282"
+    ],
+    "evidence": {
+      "doc_108_parent_282": "assert tokenizer. token_to_id(\"<\\|im_start\\|>\") == 3"
+    }
+  },
+  {
+    "id": "q_040",
+    "question": "synchronized锁升级过程了解吗？",
+    "difficulty": "simple",
+    "ground_truth": "synchronized锁升级过程是Java中JVM对synchronized关键字实现的单向优化机制，依次经历无锁状态、偏向锁、轻量级锁和重量级锁四个阶段：初始时对象处于无锁状态；首次线程访问时偏向该线程，进入偏向锁（适用于单线程场景）；发生竞争时撤销偏向锁并升级为轻量级锁，通过CAS操作尝试获取锁；若竞争激烈导致自旋失败，则进一步升级为重量级锁，依赖操作系统互斥量并挂起线程；整个过程不可降级，旨在降低锁操作的性能开销。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_709"
+    ],
+    "evidence": {
+      "doc_106_parent_709": "synchronized锁升级过程是指Java中synchronized关键字在JVM层面实现的锁优化机制，包括无锁状态、偏向锁、轻量级锁和重量级锁四个阶段。当线程访问同步块时，首先尝试获取偏向锁（仅适用于单线程场景）；若有竞争，则撤销偏向锁并升级为轻量级锁（基于CAS操作）；若竞争激烈、自旋失败，则进一步升级为重量级锁（依赖操作系统互斥量，挂起线程）。锁升级是单向的，不可降级，旨在减少锁操作的性能开销。"
+    }
+  },
+  {
+    "id": "q_041",
+    "question": "当CPU使用率高但任务吞吐量低时，可能存在什么问题？",
+    "difficulty": "simple",
+    "ground_truth": "可能存在计算密集型任务或锁竞争。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_74"
+    ],
+    "evidence": {
+      "doc_106_parent_74": "若 CPU 使用率高但任务吞吐量低，可能存在计算密集型任务或锁竞争。"
+    }
+  },
+  {
+    "id": "q_042",
+    "question": "现实中的企业级业务应用为什么很少采用纯Agent系统？",
+    "difficulty": "simple",
+    "ground_truth": "现实中的企业级业务应用很少采用纯Agent系统，因其可控性差、成本无法预估、问题难以排查处理；主流方案是Agentic Workflow，即以固定Workflow骨架保障整体流转、分支、顺序和依赖关系的可控性与可运维性，并仅在关键节点（如意图理解、问题归类、知识库检索等）局部嵌入Agent能力，实现动态推理与决策。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_660"
+    ],
+    "evidence": {
+      "doc_106_parent_660": "现实中的企业级业务应用极少采用纯Agent系统，因为其可控性差、成本无法预估、出现问题难以排查处理。相比之下，Agentic Workflow成为主流方案：上层为固定Workflow骨架（可控、可运维、可排查），保障整体流转、分支、顺序和依赖关系由代码/配置确定；局部嵌入Agent能力（如意图理解、问题归类）以支持动态推理与决策。例如智能客服系统，整体是标准Workflow（用户提问→意图分类→分支路由→查数据→知识库检索→答案输出），仅在关键节点融入Agent能力。"
+    }
+  },
+  {
+    "id": "q_043",
+    "question": "前向传播函数中，输入的tokens张量的形状是什么？",
+    "difficulty": "simple",
+    "ground_truth": "输入的tokens张量的形状为 `_bsz, seqlen`，其中 `_bsz` 表示批次大小，`seqlen` 表示序列长度。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_259"
+    ],
+    "evidence": {
+      "doc_108_parent_259": "在前向传播函数中，输入的tokens张量的形状为 `_bsz, seqlen`，其中 `_bsz` 表示批次大小（batch size），`seqlen` 表示序列长度（sequence length）。该形状通过 `tokens.shape` 直接获取，用于后续词嵌入和模型计算。"
+    }
+  },
+  {
+    "id": "q_044",
+    "question": "BaseEmbeddings基类的cosine_similarity方法用于计算什么？",
+    "difficulty": "simple",
+    "ground_truth": "BaseEmbeddings基类的cosine_similarity方法用于计算两个浮点数列表表示的向量之间的余弦相似度，返回值为范围在[-1,1]之间的float类型数值；其通过计算两向量点积与各自范数乘积的比值得到，若输入向量中存在无穷大或NaN值，或两向量范数乘积为零，则返回0.0。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_488"
+    ],
+    "evidence": {
+      "doc_108_parent_488": "BaseEmbeddings基类的cosine_similarity方法用于计算两个向量之间的余弦相似度，返回值为float类型，范围在[-1,1]之间。该方法接收两个浮点数列表作为输入向量，通过计算点积与向量范数乘积的比值得到余弦相似度；若向量中存在无穷大或NaN值，或两向量范数乘积为零，则返回0.0。"
+    }
+  },
+  {
+    "id": "q_045",
+    "question": "Query Rewrite 和 HyDE 的主要作用是什么？",
+    "difficulty": "simple",
+    "ground_truth": "Query Rewrite 和 HyDE 的主要作用是解决 query-document mismatch 问题：Query Rewrite 通过生成语义改写后的查询，使检索 query 更接近知识库中文档的正式表达；HyDE 通过为短问题生成假想答案或假想文档片段，增强 dense retrieval 的语义召回能力；二者均仅参与召回阶段，不能作为最终证据，且必须保留原始 query，对 rewrite 结果进行数量限制和 trace 记录。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_43"
+    ],
+    "evidence": {
+      "doc_107_parent_43": "Query Rewrite 和 HyDE 的主要作用是解决 query-document mismatch 问题。Rewrite 通过生成语义改写后的查询，使检索 query 更接近知识库中文档的正式表达；HyDE 则通过为短问题生成假想答案或假想文档片段，增强 dense retrieval 的语义召回能力。二者均参与召回阶段，不能作为最终证据，同时需保留原始 query，并对 rewrite 结果做数量限制和 trace 记录。"
+    }
+  },
+  {
+    "id": "q_046",
+    "question": "为什么互联网公司选择使用 RC？",
+    "difficulty": "simple",
+    "ground_truth": "互联网公司选择使用 RC 是因为其在保证事务读一致性（避免不可重复读）的同时，具有较好的并发性能和较低的锁开销；RC 不加间隙锁，避免了 RR 级别下的幻读处理开销和锁竞争，也规避了 Serializable 级别的严格封锁导致的性能瓶颈，从而更契合互联网业务对高吞吐量、低延迟与一致性平衡的实际需求。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_717"
+    ],
+    "evidence": {
+      "doc_106_parent_717": "互联网公司选择使用 RC（Read Committed）隔离级别，因其在保证事务读一致性的同时，具有较好的并发性能和较低的锁开销；相比 Serializable 严格但性能差、RR（Repeatable Read）存在幻读问题且可能加间隙锁影响并发，RC 能避免不可重复读，且不加间隙锁，提升高并发场景下的吞吐量与响应速度，更契合互联网业务对性能与一致性的平衡需求。"
+    }
+  },
+  {
+    "id": "q_047",
+    "question": "在实际业务中，建立非聚簇索引时是否只选择非空且唯一的列？",
+    "difficulty": "simple",
+    "ground_truth": "在实际业务中，建立非聚簇索引时并非只选择非空且唯一的列；非聚簇索引可以建在允许NULL值或存在重复值的列上，是否建索引主要取决于查询需求、过滤频率、选择性（高选择性更优）、更新开销及业务场景的综合权衡。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_228"
+    ],
+    "evidence": {
+      "doc_106_parent_228": "实际业务中，对索引列建立非聚簇索引时，并非只选择非空且唯一的列。非聚簇索引可建在允许NULL值或存在重复值的列上；是否选择某列建索引，主要取决于查询需求、过滤频率、选择性（高选择性更优）、更新开销及业务场景权衡，而非强制要求非空和唯一。"
+    }
+  },
+  {
+    "id": "q_048",
+    "question": "当代码中使用了org.apache.kafka.clients.producer.Producer类时，是否需要将其对应的Bean加入Spring容器？",
+    "difficulty": "simple",
+    "ground_truth": "当代码中使用了org.apache.kafka.clients.producer.Producer类时，若相关依赖已引入，则需要将其对应的Bean加入Spring容器；若依赖未引入，则无需加入。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_339"
+    ],
+    "evidence": {
+      "doc_106_parent_339": "当代码中使用了org.apache.kafka.clients.producer.Producer类时，需先判断该类是否已引入（即相关依赖是否已添加）。若未引入，则无需将该Bean加入Spring容器；若已引入，则需要将该Bean加入Spring容器。"
+    }
+  },
+  {
+    "id": "q_049",
+    "question": "LLaMA2解码器层的输入张量尺寸是什么？",
+    "difficulty": "simple",
+    "ground_truth": "LLaMA2解码器层的输入张量尺寸是Size([1, 50, 768])。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_243"
+    ],
+    "evidence": {
+      "doc_108_parent_243": "LLaMA2解码器层的输入张量尺寸是Size([1, 50, 768])。"
+    }
+  },
+  {
+    "id": "q_050",
+    "question": "模型检查点每隔多少步保存一次？",
+    "difficulty": "simple",
+    "ground_truth": "模型检查点每隔20000步保存一次。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_335"
+    ],
+    "evidence": {
+      "doc_108_parent_335": "每20000步保存一个带步数标记的检查点。"
+    }
+  },
+  {
+    "id": "q_051",
+    "question": "RAG Agent面试八股文的编号是多少？",
+    "difficulty": "simple",
+    "ground_truth": "16",
+    "relevant_chunk_ids": [
+      "doc_107_parent_44"
+    ],
+    "evidence": {
+      "doc_107_parent_44": "RAG Agent 面试八股文 16"
+    }
+  },
+  {
+    "id": "q_052",
+    "question": "频率余弦张量 freqs_cos 是通过什么函数进行广播重塑的？",
+    "difficulty": "simple",
+    "ground_truth": "freqs_cos 是通过 reshape_for_broadcast 函数进行广播重塑的。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_221"
+    ],
+    "evidence": {
+      "doc_108_parent_221": "freqs_cos 是通过 reshape_for_broadcast 函数进行广播重塑的。"
+    }
+  },
+  {
+    "id": "q_053",
+    "question": "Spring中事务的实现基于什么技术？",
+    "difficulty": "simple",
+    "ground_truth": "Spring中事务的实现基于AOP（面向切面编程），通过动态代理技术（包括JDK动态代理和CGLIB代理）将事务管理逻辑作为横切关注点与业务逻辑分离，实现无侵入式的代码增强。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_329"
+    ],
+    "evidence": {
+      "doc_106_parent_329": "Spring中事务的实现基于AOP（面向切面编程），通过动态代理技术实现，具体包括JDK动态代理（基于接口生成代理类）等方式，将事务管理逻辑作为横切关注点与业务逻辑分离，实现无侵入式的代码增强。"
+    }
+  },
+  {
+    "id": "q_054",
+    "question": "LawBench是由哪个团队发布的？",
+    "difficulty": "simple",
+    "ground_truth": "LawBench是由OpenCompass法律榜团队发布的。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_531"
+    ],
+    "evidence": {
+      "doc_108_parent_531": "LawBench是由OpenCompass法律榜团队发布的。"
+    }
+  },
+  {
+    "id": "q_055",
+    "question": "完整的RAG流程除了向量数据库的语义召回外，还需要哪些关键环节？",
+    "difficulty": "simple",
+    "ground_truth": "完整的RAG流程除了向量数据库的语义召回外，还需要文档解析、chunk设计、稀疏检索、结果融合、重排、上下文构造、引用校验、拒答和评测。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_99"
+    ],
+    "evidence": {
+      "doc_107_parent_99": "完整的RAG流程除了向量数据库的语义召回外，还需要文档解析、chunk设计、稀疏检索、结果融合、重排、上下文构造、引用校验、拒答和评测。"
+    }
+  },
+  {
+    "id": "q_056",
+    "question": "Tool在Agent系统中被定义为什么？",
+    "difficulty": "simple",
+    "ground_truth": "Tool 是 Agent 能够调用的外部能力，是给模型使用的受控 API，不仅包含执行逻辑，还包含名称、用途说明、参数 schema、权限边界、错误返回、审计信息和可评测契约，可涵盖检索、问答、文件解析、数据库查询、网页搜索、报告生成、发邮件或业务系统接口等多种能力，不能简单等同于“一个函数”。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_23"
+    ],
+    "evidence": {
+      "doc_107_parent_23": "Tool 是 Agent 能够调用的外部能力，是给模型使用的受控 API。它不仅包含执行逻辑，还包含名称、用途说明、参数 schema、权限边界、错误返回、审计信息和可评测契约。它可以是检索、问答、文件解析、数据库查询、网页搜索、报告生成、发邮件或某个业务系统接口。面试中不应简单将其等同于“一个函数”。"
+    }
+  },
+  {
+    "id": "q_057",
+    "question": "在工程实践中，构建 Agent 时需要明确哪些关键要素？",
+    "difficulty": "simple",
+    "ground_truth": "在工程实践中，构建 Agent 时需要明确工具边界、状态、停止条件、错误处理和可观测 trace。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_22"
+    ],
+    "evidence": {
+      "doc_107_parent_22": "在工程实践中，构建 Agent 时需要明确工具边界、状态、停止条件、错误处理和可观测 trace。"
+    }
+  },
+  {
+    "id": "q_058",
+    "question": "tokenizer中特殊token<|im_end|>对应的ID是多少？",
+    "difficulty": "simple",
+    "ground_truth": "4",
+    "relevant_chunk_ids": [
+      "doc_108_parent_281"
+    ],
+    "evidence": {
+      "doc_108_parent_281": "assert tokenizer. token_to_id(\" <|im_end|> \") == 4"
+    }
+  },
+  {
+    "id": "q_059",
+    "question": "乙的存活率是多少？",
+    "difficulty": "simple",
+    "ground_truth": "乙的存活率是10.08%。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_610"
+    ],
+    "evidence": {
+      "doc_106_parent_610": "乙的存活率为情况2(15.2%×60%) + 情况3(4.8%×20%) = 10.08%"
+    }
+  },
+  {
+    "id": "q_060",
+    "question": "线上召回突然变差时，需要检查哪些方面？",
+    "difficulty": "simple",
+    "ground_truth": "需要检查数据是否入库成功、embedding版本是否变化、索引是否完整、metadata filter是否过严、query rewrite是否漂移、reranker是否异常、文档权限是否过滤掉了结果。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_91"
+    ],
+    "evidence": {
+      "doc_107_parent_91": "检查数据是否入库成功、embedding 版本是否变化、索引是否完整、metadata filter 是否过严、query rewrite 是否漂移、reranker 是否异常、文档权限是否过滤掉了结果。"
+    }
+  },
+  {
+    "id": "q_061",
+    "question": "Gateway、runtime 和 workspace 分别解决什么问题？",
+    "difficulty": "simple",
+    "ground_truth": "Gateway 解决访问控制和用户边界问题，runtime 解决 Agent 的执行与运行时环境问题，workspace 解决用户完成具体任务所需的上下文、状态与交互环境问题。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_60"
+    ],
+    "evidence": {
+      "doc_107_parent_60": "Gateway 解决访问和用户边界，runtime 解决 Agent 怎么运行，workspace 解决用户如何完成任务。三者分开后，系统更容易测试、替换和排障。"
+    }
+  },
+  {
+    "id": "q_062",
+    "question": "《In-Context Retrieval-Augmented Language Models》这篇论文的作者有哪些？",
+    "difficulty": "simple",
+    "ground_truth": "Ori Ram、Yoav Levine、Itay Dalmedigos、Dor Muhlgay、Amnon Shashua、Kevin Leyton-Brown 和 Yoav Shoham",
+    "relevant_chunk_ids": [
+      "doc_108_parent_532"
+    ],
+    "evidence": {
+      "doc_108_parent_532": "Ori Ram, Yoav Levine, Itay Dalmedigos, Dor Muhlgay, Amnon Shashua, Kevin Leyton-Brown 和 Yoav Shoham"
+    }
+  },
+  {
+    "id": "q_063",
+    "question": "Unigram分词方法如何分割单词“unhappiness”？",
+    "difficulty": "simple",
+    "ground_truth": "Unigram分词方法将单词“unhappiness”分割为[\"un\", \"happiness\"]。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_272"
+    ],
+    "evidence": {
+      "doc_108_parent_272": "Unigram分词方法将单词“unhappiness”分割为[\"un\", \"happiness\"]。该方法基于概率模型，通过选择具有最高概率的子词进行最优分割；Unigram词典由语言模型训练生成，为每个子词分配概率，从而实现符合语言使用习惯的子词切分。"
+    }
+  },
+  {
+    "id": "q_064",
+    "question": "RAG评测中最不可靠的方式是什么？",
+    "difficulty": "simple",
+    "ground_truth": "只看一次 demo 答案",
+    "relevant_chunk_ids": [
+      "doc_107_parent_16"
+    ],
+    "evidence": {
+      "doc_107_parent_16": "只看一次 demo 答案，是最不可靠的评测方式。"
+    }
+  },
+  {
+    "id": "q_065",
+    "question": "在什么条件下会执行权重数据的减法操作？",
+    "difficulty": "simple",
+    "ground_truth": "当 self.r > 0 且 self.merged 为真时，会执行权重数据的减法操作。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_460"
+    ],
+    "evidence": {
+      "doc_108_parent_460": "当 self.r > 0 且 self.merged 为真时，会执行权重数据的减法操作。"
+    }
+  },
+  {
+    "id": "q_066",
+    "question": "解码器的前向传播过程中，最终输出会经过哪个归一化层处理？",
+    "difficulty": "simple",
+    "ground_truth": "LayerNorm 归一化层",
+    "relevant_chunk_ids": [
+      "doc_108_parent_81"
+    ],
+    "evidence": {
+      "doc_108_parent_81": "解码器的前向传播过程中，最终输出会经过 LayerNorm 归一化层处理。"
+    }
+  },
+  {
+    "id": "q_067",
+    "question": "类加载过程在什么情况下会被触发？",
+    "difficulty": "simple",
+    "ground_truth": "类加载过程在类的首次主动使用时被触发，具体包括：通过new关键字实例化对象、调用类的静态方法、访问类的静态字段（除被final修饰且已在编译期确定值的常量外）、通过反射调用（如Class.forName()）、初始化子类时（会先触发父类的加载和初始化）、以及作为Java虚拟机启动时的主类被加载。被动引用（如子类访问父类的静态字段、数组定义、引用常量池中的常量）不会触发类加载。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_166"
+    ],
+    "evidence": {
+      "doc_106_parent_166": "类加载过程在类的首次主动使用时被触发，包括new实例化、调用静态方法、访问静态字段、反射调用（如Class.forName()）等。被动引用不会触发加载，例如通过子类访问父类的静态字段时，不会加载子类。"
+    }
+  },
+  {
+    "id": "q_068",
+    "question": "在微服务架构中，为了追踪一个请求经过了哪些服务以及调用顺序，需要生成并传递的唯一标识符叫什么？",
+    "difficulty": "simple",
+    "ground_truth": "traceID",
+    "relevant_chunk_ids": [
+      "doc_106_parent_442"
+    ],
+    "evidence": {
+      "doc_106_parent_442": "在微服务架构中，为了追踪一个请求经过了哪些服务以及调用顺序，需要生成并传递的唯一标识符叫 traceID。当请求到达首个后端服务或网关服务时，服务会生成一个唯一全局 traceID，然后放入到请求的 Header 中，通过 Header 传递给下一个调用服务。下游服务通过过滤器或拦截器接收该 traceID，并记录到 ThreadLocal 等线程私有存储中，确保同一线程内所有日志自动关联 traceID。"
+    }
+  },
+  {
+    "id": "q_069",
+    "question": "在方法三中，使用CompletableFuture实现线程同步时，计数器的初始值是多少？",
+    "difficulty": "simple",
+    "ground_truth": "1",
+    "relevant_chunk_ids": [
+      "doc_106_parent_66"
+    ],
+    "evidence": {
+      "doc_106_parent_66": "在方法三中，使用CompletableFuture实现线程同步时，计数器的初始值是1。"
+    }
+  },
+  {
+    "id": "q_070",
+    "question": "论文阅读 Agent 的最终结论必须基于什么？",
+    "difficulty": "simple",
+    "ground_truth": "论文阅读 Agent 的最终结论必须基于已入库、可引用的证据。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_64"
+    ],
+    "evidence": {
+      "doc_107_parent_64": "最终结论必须来自已入库证据。discovery 候选不能直接作为最终答案证据。多论文对比要保证每个 claim 有来源。memory 只能辅助研究上下文，不能替代证据。Agent 真正回答必须基于已入库、可引用的证据。每一步都要有 trace 和证据边界。"
+    }
+  },
+  {
+    "id": "q_071",
+    "question": "在Redis缓存与MySQL数据一致性方案中，为什么推荐先更新MySQL再删除Redis缓存，而不是先删除缓存再更新数据库？",
+    "difficulty": "simple",
+    "ground_truth": "因为先删除缓存再更新数据库在高并发场景下，写请求删除缓存后、数据库更新前，读请求可能从MySQL读取旧值并回写到Redis，导致缓存中长期存在脏数据；而先更新MySQL再删除Redis缓存，虽存在极短不一致窗口，但由于数据库更新耗时远大于缓存删除耗时，旧值被回写至缓存的概率极低，能更有效地保障数据一致性。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_492"
+    ],
+    "evidence": {
+      "doc_106_parent_492": "先更新MySQL再删除Redis缓存，是因为若先删缓存后更新数据库，在高并发场景下易引发数据不一致：写请求删除缓存后，若读请求在数据库更新前已从MySQL读到旧值并回写至缓存，将导致缓存中长期保留脏数据；而先更新数据库再删缓存，虽有极短不一致窗口，但因数据库更新耗时远大于缓存写入耗时，旧值回写缓存的概率极低。"
+    }
+  },
+  {
+    "id": "q_072",
+    "question": "Redis哨兵机制通过什么方式监测主从集群中各个实例的服务状态？",
+    "difficulty": "simple",
+    "ground_truth": "Redis哨兵机制通过心跳机制监测服务状态，即每个哨兵节点每隔1秒向集群中的每个主节点和从节点发送ping命令；若某实例在规定时间内未响应，该哨兵将其标记为“主观下线”；当达到预设数量（quorum）的哨兵节点均判定其“主观下线”时，则认定为“客观下线”。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_264"
+    ],
+    "evidence": {
+      "doc_106_parent_264": "Redis哨兵机制基于心跳机制监测服务状态，每隔1秒向集群的每个实例发送ping命令。若某哨兵节点发现某实例未在规定时间响应，则判定其“主观下线”；当超过指定数量（quorum）的哨兵节点均认为该实例“主观下线”时，则判定为“客观下线”。哨兵节点可同时监测master和slave节点。"
+    }
+  },
+  {
+    "id": "q_073",
+    "question": "作者在总结八股文档时使用的方法存在什么问题？",
+    "difficulty": "simple",
+    "ground_truth": "作者总结八股文档时使用的方法存在耗时很长、无法达到理想状态回答的问题，需持续优化进步。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_11"
+    ],
+    "evidence": {
+      "doc_106_parent_11": "作者总结八股文档时使用的方法存在耗时很长、无法达到理想状态回答的问题，还需持续优化进步。"
+    }
+  },
+  {
+    "id": "q_074",
+    "question": "Unsafe类在Java中主要提供什么级别的原子操作？",
+    "difficulty": "simple",
+    "ground_truth": "Unsafe类在Java中主要提供硬件级别的原子操作。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_121"
+    ],
+    "evidence": {
+      "doc_106_parent_121": "Unsafe类提供了硬件级别的原子操作，是CAS的核心类，通过本地（native）方法绕开JVM直接访问底层操作系统，支持数组、对象、内存、CAS、线程（park）、栅栏（Fence）等底层操作，被JUC包及第三方框架广泛用于保障并发安全。"
+    }
+  },
+  {
+    "id": "q_075",
+    "question": "该文本片段中显示的数字是多少？",
+    "difficulty": "simple",
+    "ground_truth": "342",
+    "relevant_chunk_ids": [
+      "doc_106_parent_568"
+    ],
+    "evidence": {
+      "doc_106_parent_568": "342"
+    }
+  },
+  {
+    "id": "q_076",
+    "question": "Tool routing的关键作用是什么？",
+    "difficulty": "simple",
+    "ground_truth": "Tool routing 的关键作用是根据用户意图生成路由信号，决定是否调用工具及调用何种工具，从而实现对工具的精准选择与协调调度，是智能体具备工具使用能力的核心机制。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_58"
+    ],
+    "evidence": {
+      "doc_107_parent_58": "Tool routing 是 Agent 是否“会用工具”的关键。它根据用户意图（如问答、搜索、入库、导出、总结、对比、订阅）生成路由信号，决定是否调用工具及调用何种工具，从而实现对工具的精准选择与协调调度，是智能体具备工具使用能力的核心机制。"
+    }
+  },
+  {
+    "id": "q_077",
+    "question": "该文本要求返回的JSON数据格式是什么？",
+    "difficulty": "simple",
+    "ground_truth": "{\"answer\": \"返回的JSON数据格式应为：{\"answer\": \"字符串\"}，其中\"answer\"字段的值为一个字符串，该字符串需严格遵循问题要求，仅包含从文本中摘取的关键信息，字数控制在100-200字之间，不得添加任何解释说明标点符号如句号引号括号等或额外内容\"}",
+    "relevant_chunk_ids": [
+      "doc_108_parent_156"
+    ],
+    "evidence": {
+      "doc_108_parent_156": "返回的JSON数据格式应为：{\"answer\": \"字符串\"}，其中\"answer\"字段的值为一个字符串，该字符串需严格遵循问题要求，仅包含从文本中摘取的关键信息，字数控制在100-200字之间，不得添加任何解释、说明、标点符号（如句号、引号、括号等）或额外内容。"
+    }
+  },
+  {
+    "id": "q_078",
+    "question": "在典型工作流中，用户查看 trace 和引用之后的下一步是什么？",
+    "difficulty": "simple",
+    "ground_truth": "生成知识沉淀",
+    "relevant_chunk_ids": [
+      "doc_107_parent_30"
+    ],
+    "evidence": {
+      "doc_107_parent_30": "在典型工作流中，用户查看 trace 和引用之后的下一步是生成知识沉淀。"
+    }
+  },
+  {
+    "id": "q_079",
+    "question": "RAG的核心目标是什么？",
+    "difficulty": "simple",
+    "ground_truth": "RAG的核心目标是让大模型在回答时能够使用外部知识库中可追溯的证据，以解决知识截止、无法访问私有/内部/个人资料以及回答缺乏可靠出处的问题，从而提升回答的可靠性并支持答案来源的解释与验证。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_1"
+    ],
+    "evidence": {
+      "doc_107_parent_1": "RAG的核心目标不是“让大模型记住更多知识”，而是让大模型在回答时能够使用外部知识库里的可追溯证据。它旨在解决大模型知识截止、无法访问私有/内部/个人资料、以及回答缺乏可靠出处的问题。其基本思路是：用户问题 → 检索相关文档片段 → 把证据放进上下文 → 让模型基于证据回答。RAG是一套把外部知识转化为可检索、可引用、可评测证据链的系统工程，目标是让模型回答更可靠，并能解释答案来自哪里。"
+    }
+  },
+  {
+    "id": "q_080",
+    "question": "Redis全量同步时为什么耗时较长？",
+    "difficulty": "simple",
+    "ground_truth": "Redis全量同步耗时较长是因为需要执行生成RDB文件（涉及磁盘IO）和发送RDB文件（涉及网络IO）。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_279"
+    ],
+    "evidence": {
+      "doc_106_parent_279": "全量同步耗时较长是因为需要执行生成RDB文件（磁盘IO）和发送RDB文件（网络IO）。"
+    }
+  },
+  {
+    "id": "q_081",
+    "question": "使用OR条件时，如果一方字段有索引而另一方没有索引，会导致什么后果？",
+    "difficulty": "simple",
+    "ground_truth": "使用OR条件时，如果一方字段有索引而另一方没有索引，会导致索引失效，触发全表扫描。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_189"
+    ],
+    "evidence": {
+      "doc_106_parent_189": "当使用 OR 条件时，一方有索引，一方没有索引，会导致索引失效，全表扫描。"
+    }
+  },
+  {
+    "id": "q_082",
+    "question": "代码中第45行执行的操作是什么？",
+    "difficulty": "simple",
+    "ground_truth": "第45行执行的操作是将变量count的值加1。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_112"
+    ],
+    "evidence": {
+      "doc_106_parent_112": "第45行执行的操作是将变量count的值加1（即count++）。"
+    }
+  },
+  {
+    "id": "q_083",
+    "question": "在消息队列选型中，哪种技术是基于Erlang语言开发的？",
+    "difficulty": "simple",
+    "ground_truth": "RabbitMQ是基于Erlang语言开发的。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_320"
+    ],
+    "evidence": {
+      "doc_106_parent_320": "RabbitMQ是基于Erlang语言开发的。"
+    }
+  },
+  {
+    "id": "q_084",
+    "question": "策略模式属于哪一类设计模式？",
+    "difficulty": "simple",
+    "ground_truth": "策略模式属于行为型设计模式。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_540"
+    ],
+    "evidence": {
+      "doc_106_parent_540": "策略模式属于行为型设计模式，它定义了一系列算法，把它们单独封装起来，并且使它们可以互相替换，使得算法可以独立于使用它的客户端而变化。"
+    }
+  },
+  {
+    "id": "q_085",
+    "question": "为什么不应该用字符串存储日期？",
+    "difficulty": "simple",
+    "ground_truth": "因为字符串占用空间更大、日期比较需逐字符进行导致效率低，且无法直接使用日期相关的API进行计算和比较；应改用DATETIME、TIMESTAMP或数值型时间戳。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_213"
+    ],
+    "evidence": {
+      "doc_106_parent_213": "字符串占用的空间更大，存储的日期效率较低（逐个字符进行比对），无法用日期相关的API进行计算和比较。应考虑使用DATETIME、TIMESTAMP或数值型时间戳。"
+    }
+  },
+  {
+    "id": "q_086",
+    "question": "DPO为什么能作为RLHF的简单易用平替版本？",
+    "difficulty": "simple",
+    "ground_truth": "DPO能作为RLHF的简单易用平替版本，是因为它将RLHF中复杂的强化学习问题转化为监督学习问题，直接建模人类偏好，无需训练独立的奖励模型（RM）和运行PPO等强化学习算法；其理论基础在于奖励函数与最优策略间的映射关系，证明约束奖励最大化可由单阶段策略优化求解；仅需Actor和Reference Model两个LLM，显存占用低、训练流程大幅简化。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_198"
+    ],
+    "evidence": {
+      "doc_108_parent_198": "DPO将RLHF的强化学习问题转化为监督学习，直接学习人类偏好，无需训练奖励模型（RM）和执行强化学习流程；其通过奖励函数与最优策略间的映射，证明约束奖励最大化问题可由单阶段策略训练优化；仅需两个LLM（Actor和Ref Model），显存占用低、训练过程比PPO简单得多，因而成为RLHF更简单易用的平替版本。"
+    }
+  },
+  {
+    "id": "q_087",
+    "question": "这段代码导入了哪些Python库或模块？",
+    "difficulty": "simple",
+    "ground_truth": "random、json、os、transformers（包括AutoTokenizer和PreTrainedTokenizerFast）",
+    "relevant_chunk_ids": [
+      "doc_108_parent_294"
+    ],
+    "evidence": {
+      "doc_108_parent_294": "random、json、os、transformers（具体为AutoTokenizer和PreTrainedTokenizerFast）"
+    }
+  },
+  {
+    "id": "q_088",
+    "question": "String类为什么设计为不可变的？",
+    "difficulty": "simple",
+    "ground_truth": "String类设计为不可变的，主要是为了保障安全性（防止字符串在类加载、网络连接、文件路径等敏感操作中被恶意篡改）、实现天然线程安全（避免同步开销）、支持哈希码缓存优化（首次调用hashCode()时计算并缓存，提升HashMap等集合性能）以及支撑字符串常量池的高效共享与复用（减少内存占用）。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_0"
+    ],
+    "evidence": {
+      "doc_106_parent_0": "String类设计为不可变的，主要出于安全性、线程安全、哈希码缓存优化和字符串常量池复用考虑。不可变性可防止字符串被恶意篡改，保障类加载、网络连接、文件路径等敏感操作的安全；天然具备线程安全性，无需同步开销；其哈希码可在首次调用hashCode()时计算并缓存，提升HashMap等集合性能；同时支持字符串常量池中对象的高效共享与复用，减少内存占用。"
+    }
+  },
+  {
+    "id": "q_089",
+    "question": "Spring通过什么机制解决单例模式下的循环依赖问题？",
+    "difficulty": "simple",
+    "ground_truth": "Spring通过三级缓存机制解决单例模式下的循环依赖问题：一级缓存（singletonObjects）存放完全初始化好的单例Bean，二级缓存（earlySingletonObjects）存放提前曝光的早期引用，三级缓存（singletonFactories）存放ObjectFactory用于创建早期引用；当A依赖B、B又依赖A时，A在创建过程中将其ObjectFactory放入三级缓存，B创建时通过该工厂获取A的早期引用，从而打破循环依赖；该机制仅适用于单例Bean的setter注入场景。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_351"
+    ],
+    "evidence": {
+      "doc_106_parent_351": "Spring通过三级缓存机制提前暴露未完全初始化的Bean实例，解决单例模式下的循环依赖问题。三级缓存包括：一级缓存（singletonObjects）存放完全初始化好的单例Bean；二级缓存（earlySingletonObjects）存放提前曝光的早期引用；三级缓存（singletonFactories）存放ObjectFactory，用于创建早期引用。当A依赖B、B又依赖A时，A在创建过程中将ObjectFactory放入三级缓存，B创建时通过该工厂获取A的早期引用，从而打破循环依赖。该机制仅适用于单例Bean的setter注入场景。"
+    }
+  },
+  {
+    "id": "q_090",
+    "question": "向量数据库在RAG系统中主要解决什么问题？",
+    "difficulty": "simple",
+    "ground_truth": "向量数据库在RAG系统中主要解决语义召回问题，即通过存储文本的embedding向量，在用户提问时进行近邻搜索，召回语义相近的相关片段；它擅长处理同义表达和概念相近的问题，但不擅长精确术语、编号、公式、缩写等，也不适合承载业务状态、权限、元数据、文档状态等信息，因此需与结构化数据库、关键词索引等协同工作。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_4"
+    ],
+    "evidence": {
+      "doc_107_parent_4": "向量数据库在RAG系统中主要解决语义召回问题，即通过存储文本的embedding向量，在用户提问时进行近邻搜索，召回语义相近的相关片段。它擅长处理同义表达和概念相近的问题，但不擅长精确术语、编号、公式、缩写等；也不适合承载业务状态、权限、元数据、文档状态等信息。因此，它只是RAG的一部分，需与结构化数据库、关键词索引等协同工作，共同支撑可靠检索。"
+    }
+  },
+  {
+    "id": "q_091",
+    "question": "LLM Agent 被比喻成什么角色？",
+    "difficulty": "simple",
+    "ground_truth": "LLM Agent 被比喻成“全能的私人助理”。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_501"
+    ],
+    "evidence": {
+      "doc_108_parent_501": "LLM Agent 被比喻成“全能的私人助理”，不仅懂得多，还能跑腿办事，甚至能主动思考最优方案。"
+    }
+  },
+  {
+    "id": "q_092",
+    "question": "Subagent 的主要价值是什么？",
+    "difficulty": "simple",
+    "ground_truth": "Subagent 的主要价值是职责收束：主 Agent 专注理解用户意图和整合结果，subagent 专责执行特定专业任务；通过限制工具范围减少上下文污染，避免长任务干扰主 Agent；确保任务具备专门的安全边界和固定交付格式；主 Agent 仅需接收最终摘要和证据；同时便于评测工具调用准确性和输出契约合规性。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_57"
+    ],
+    "evidence": {
+      "doc_107_parent_57": "Subagent 的主要价值是职责收束：主 Agent 负责理解用户意图和整合结果，subagent 负责某个专业任务；可限制工具范围，减少上下文污染，避免长任务上下文污染主 Agent；确保任务有专门的安全边界和固定交付格式；主 Agent 仅需最终摘要和证据；也更容易评测工具调用和输出契约。"
+    }
+  },
+  {
+    "id": "q_093",
+    "question": "为了提高机器翻译的质量，研究者探索了哪些模型？",
+    "difficulty": "simple",
+    "ground_truth": "为了提高机器翻译的质量，研究者探索了基于神经网络的Seq2Seq模型和Transformer模型。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_30"
+    ],
+    "evidence": {
+      "doc_108_parent_30": "为了提高机器翻译的质量，研究者不断探索新的方法和技术，如基于神经网络的Seq2Seq模型、Transformer模型等，这些模型能够学习到源语言和目标语言之间的复杂映射关系，从而实现更加准确和流畅的翻译。"
+    }
+  },
+  {
+    "id": "q_094",
+    "question": "OpenCompass评测榜单主要为哪个市场提供大模型选型参考？",
+    "difficulty": "simple",
+    "ground_truth": "中国市场",
+    "relevant_chunk_ids": [
+      "doc_108_parent_475"
+    ],
+    "evidence": {
+      "doc_108_parent_475": "OpenCompass评测榜单主要为中国市场提供大模型选型参考。该榜单是国内的评测榜单，针对大模型在多种语言和任务上的表现进行评估，特别关注大模型在中文语境下的准确性、鲁棒性和适应性，结合中文语言理解和多语言能力测试，以适应本地化需求，为国内企业和研究者选择合适模型提供重要参考。"
+    }
+  },
+  {
+    "id": "q_095",
+    "question": "Entry对象在Entry数组中的位置是通过什么计算出来的？",
+    "difficulty": "simple",
+    "ground_truth": "Entry对象在Entry数组中的位置是通过ThreadLocal对象的threadLocalHashCode计算出来的。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_85"
+    ],
+    "evidence": {
+      "doc_106_parent_85": "每个Entry对象在Entry数组中的位置是通过ThreadLocal对象的threadLocalHashCode计算出来的，以此来快速定位Entry对象在Entry数组中的位置。"
+    }
+  },
+  {
+    "id": "q_096",
+    "question": "加载Qwen-2.5-1.5B模型配置文件时，使用的是transformers库中的哪个类？",
+    "difficulty": "simple",
+    "ground_truth": "AutoConfig",
+    "relevant_chunk_ids": [
+      "doc_108_parent_397"
+    ],
+    "evidence": {
+      "doc_108_parent_397": "加载Qwen-2.5-1.5B模型配置文件时，使用的是transformers库中的AutoConfig类。文中明确指出：“可以使⽤ AutoConfig 类直接加载下载好的配置文件”，并给出示例代码：“from transformers import AutoConfig”和“config = AutoConfig.from_pretrained(model_name_or_path)”。"
+    }
+  },
+  {
+    "id": "q_097",
+    "question": "多模态RAG中，为什么需要保留原始图表的位置、caption、页码和周边上下文？",
+    "difficulty": "simple",
+    "ground_truth": "因为图表摘要会丢失信息，保留原始图表的位置、caption、页码和周边上下文可支持在回答阶段回看原始图表或由人工确认关键数字，确保信息准确性和可追溯性；摘要仅用于召回和初步理解，而高风险场景必须依赖原始图表内容进行最终验证。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_15"
+    ],
+    "evidence": {
+      "doc_107_parent_15": "因为图表摘要会丢失信息，所以需要保留原始图表的位置、caption、页码和周边上下文；摘要仅用于召回和初步理解，而高风险场景需在回答阶段回看原始图表或由人工确认关键数字，确保信息准确性和可追溯性。"
+    }
+  },
+  {
+    "id": "q_098",
+    "question": "哪些对象可以作为GC Root？",
+    "difficulty": "simple",
+    "ground_truth": "虚拟机栈中引用的对象（如局部变量表中的对象引用）、本地方法栈中JNI引用的对象、方法区中类静态属性引用的对象、方法区中常量引用的对象、Java虚拟机内部的引用（如基本数据类型对应的Class对象、常驻异常对象、系统类加载器等）、被synchronized同步锁持有的对象、JMXBean、JVMTI中注册的回调、本地代码缓存的引用对象。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_137"
+    ],
+    "evidence": {
+      "doc_106_parent_137": "虚拟机栈中引用的对象（如局部变量表中的对象引用）、本地方法栈中JNI（即Native方法）引用的对象、方法区中类静态属性引用的对象、方法区中常量引用的对象、Java虚拟机内部的引用（如基本数据类型对应的Class对象、一些常驻的异常对象、系统类加载器等）、被同步锁（synchronized关键字）持有的对象、反映Java虚拟机内部情况的JMXBean、JVMTI中注册的回调、本地代码缓存的引用对象。"
+    }
+  },
+  {
+    "id": "q_099",
+    "question": "模型检查点文件的保存路径中包含了哪些模型配置信息？",
+    "difficulty": "simple",
+    "ground_truth": "模型检查点文件的保存路径中包含了模型的维度（dim）、层数（n_layers）、词表大小（vocab_size）以及训练步数（step+1）。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_358"
+    ],
+    "evidence": {
+      "doc_108_parent_358": "模型检查点文件的保存路径中包含了模型的维度（dim）、层数（n_layers）、词表大小（vocab_size）以及训练步数（step+1）。"
+    }
+  },
+  {
+    "id": "q_100",
+    "question": "RAG 能否完全消除幻觉？",
+    "difficulty": "simple",
+    "ground_truth": "RAG 不能完全消除幻觉。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_100"
+    ],
+    "evidence": {
+      "doc_107_parent_100": "RAG 可以降低幻觉，但不能天然消除幻觉。只有把证据检索、生成约束、引用校验、拒答和评测结合起来，才能将幻觉风险变成可观察、可控制的问题。"
+    }
+  },
+  {
+    "id": "q_101",
+    "question": "图3的标题是什么？",
+    "difficulty": "simple",
+    "ground_truth": "图3.",
+    "relevant_chunk_ids": [
+      "doc_108_parent_142"
+    ],
+    "evidence": {
+      "doc_108_parent_142": "图3."
+    }
+  },
+  {
+    "id": "q_102",
+    "question": "问题",
+    "difficulty": "complex",
+    "ground_truth": "Function Calling 存在响应延迟高、错误处理复杂、调试困难、上下文管理受限、过度依赖结构化输入、难以处理模糊或开放性任务等弊端。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_669"
+    ],
+    "evidence": {
+      "doc_106_parent_669": "Function Calling 的弊端"
+    }
+  },
+  {
+    "id": "q_103",
+    "question": "ReAct范式强调‘边执行边规划’，而Plan-and-Execute范式主张‘先规划后执行’，这两种Agent设计思路在应对需要动态调整策略的复杂任务时，各自最根本的适应性差异体现在哪里？",
+    "difficulty": "complex",
+    "ground_truth": "ReAct范式的根本适应性优势在于通过“推理→行动→观察”迭代循环，依托实时反馈实现自适应策略修正；Plan-and-Execute范式的根本适应性局限在于依赖前置静态全局规划，缺乏动态容错与在线调整能力。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_653"
+    ],
+    "evidence": {
+      "doc_106_parent_653": "ReAct范式通过“推理→行动→观察”循环实现边执行边规划，具备动态实时响应能力，适合需动态调整策略的复杂任务；但其局部贪心策略缺乏全局思维，易陷入死胡同。Plan-and-Execute范式先生成完整步骤再顺序执行，强调全局规划与结构性，但在环境变化或执行中出现意外时难以灵活调整策略，适应性受限。二者根本差异在于：ReAct以迭代反馈驱动自适应修正，而Plan-and-Execute依赖前置静态规划，动态容错与在线调整能力较弱。"
+    }
+  },
+  {
+    "id": "q_104",
+    "question": "在评估查询重写（rewrite）效果时，为什么既要关注 rewrite gain 又要警惕 rewrite harm，而不是单纯追求重写后的性能提升？",
+    "difficulty": "complex",
+    "ground_truth": "因为重写可能覆盖原始查询、引入错误信息（如将HyDE文本误作最终证据），导致检索质量下降；单纯追求性能提升而忽视rewrite harm会掩盖重写失败或有害的情况，无法真实反映重写对整体系统效果的影响。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_45"
+    ],
+    "evidence": {
+      "doc_107_parent_45": "在评估查询重写效果时，既要关注 rewrite gain（重写带来的收益），又要警惕 rewrite harm（重写引发的损害），因为重写可能覆盖原始 query、引入错误信息（如将 HyDE 文本误作最终证据），导致检索质量下降；单纯追求性能提升而忽视 harm 会掩盖重写失败或有害的情况，无法真实反映重写对整体系统效果的影响。"
+    }
+  },
+  {
+    "id": "q_105",
+    "question": "这个AI项目的主要目标和核心内容是什么？",
+    "difficulty": "complex",
+    "ground_truth": "该项目的主要目标是构建一个高效、可扩展的AI系统，聚焦于自然语言处理与多模态理解能力的融合；核心内容包括研发支持长文本理解的大模型架构、优化推理速度与资源消耗的轻量化技术、构建高质量中文语料库及评测基准，并推动在教育、客服和内容生成等场景的落地应用，同时强调开源协作与产业结合，致力于提升AI技术的实用性与可访问性。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_743"
+    ],
+    "evidence": {
+      "doc_106_parent_743": "该项目的主要目标是构建一个高效、可扩展的AI系统，聚焦于自然语言处理与多模态理解能力的融合。核心内容包括研发支持长文本理解的大模型架构、优化推理速度与资源消耗的轻量化技术、构建高质量中文语料库及评测基准，并推动在教育、客服和内容生成等场景的落地应用。项目强调开源协作与产业结合，致力于提升AI技术的实用性与可访问性。"
+    }
+  },
+  {
+    "id": "q_106",
+    "question": "这些资源在构建或训练中文对话类大语言模型时分别扮演什么角色？",
+    "difficulty": "complex",
+    "ground_truth": "train_3.5M_CN 作为高质量中文多轮对话数据集，专门用于中文对话类大语言模型的监督微调阶段；minimind 是极简主义大语言模型实现，主要用作教学或轻量级训练框架参考，不提供训练数据；seq-monkey-data 是中英文混合语料数据集，可支持中文对话模型的预训练或指令微调，但需从中筛选或适配中文子集。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_389"
+    ],
+    "evidence": {
+      "doc_108_parent_389": "train_3.5M_CN 是中文对话数据集，用于构建或训练中文对话类大语言模型的监督微调阶段，提供高质量的中文多轮对话样本；minimind 是极简主义大语言模型实现，主要作为教学或轻量级训练框架参考，不直接提供训练数据；seq-monkey-data 是面向 Llama2 的训练与推理数据集，包含中英文混合语料，可支持中文对话模型的预训练或指令微调，但需筛选或适配中文子集。"
+    }
+  },
+  {
+    "id": "q_107",
+    "question": "在知识频繁更新且需要确保信息可追溯、能明确引用来源的场景下，为什么更推荐使用RAG而非微调？",
+    "difficulty": "complex",
+    "ground_truth": "因为RAG能动态接入外部知识，支持知识频繁更新、确保信息可追溯，并能明确引用来源；而微调难以应对知识高频更新，且无法提供来源引用能力。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_75"
+    ],
+    "evidence": {
+      "doc_107_parent_75": "RAG适合把外部知识动态接入模型，知识更新快、可追溯、能引用来源；知识密集且频繁更新的场景优先考虑RAG。微调更适合改变模型行为风格、格式遵循、特定任务能力，而不擅长应对知识高频更新与来源追溯需求。"
+    }
+  },
+  {
+    "id": "q_108",
+    "question": "为什么在评估检索系统召回率时，需要准备大量测试用例（如专业项目需上千条），而不能仅用少量问题就得出有意义的统计结果？",
+    "difficulty": "complex",
+    "ground_truth": "因为召回率是逐题统计后计算的平均值，少量测试用例无法覆盖不同问题类型、难度和分布，易受偶然性影响，导致统计结果不可靠；而专业项目需反映系统在广泛复杂场景下的真实性能，只有达到上千条测试用例，才能获得稳定、可信且具有统计意义的平均召回率。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_700"
+    ],
+    "evidence": {
+      "doc_106_parent_700": "因为召回率是逐题统计后计算的平均值，少量测试用例无法反映系统在不同问题类型、难度和分布下的真实表现，易受偶然性影响，导致统计结果不可靠；而专业项目需覆盖更广泛、更复杂的问题场景，因此至少需要上千条测试用例，才能获得稳定、可信、具有统计意义的平均召回率。"
+    }
+  },
+  {
+    "id": "q_109",
+    "question": "为什么在RAG系统中，权限控制必须在检索阶段就实施，而不是等到模型生成回答时再判断用户是否有权访问所检索到的内容？",
+    "difficulty": "complex",
+    "ground_truth": "因为在检索阶段若不实施权限控制，模型会先接触到用户无权访问的全部数据，导致敏感信息在生成回答前就已泄露；只有在检索阶段即进行权限过滤，才能确保模型仅处理用户有权访问的内容，从源头防止信息泄露。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_84"
+    ],
+    "evidence": {
+      "doc_107_parent_84": "权限过滤必须在检索阶段就实施，因为不能先检索全库再让模型判断，否则模型一旦看到无权访问的数据，就已经造成信息泄露。检索阶段即进行权限控制，可确保模型仅接触用户有权访问的内容，从源头防止敏感信息暴露。"
+    }
+  },
+  {
+    "id": "q_110",
+    "question": "在堆这种数据结构中，插入新元素和删除堆顶元素时都需维护堆序性质，那么这两种操作在调整过程中分别是从哪个位置开始比较并交换的？为什么它们的起始位置不同？",
+    "difficulty": "complex",
+    "ground_truth": "插入新元素时从新元素所在位置（即堆尾）开始，与父节点比较并交换；删除堆顶元素时从堆顶（即数组首位置）开始，与子节点比较并交换。起始位置不同是因为插入操作新增元素位于堆尾，其父节点已满足堆序，只需自底向上逐层比较调整；而删除操作需用堆尾元素填补堆顶空缺，该元素值通常较小（小根堆）或较大（大根堆），易破坏堆序，必须自顶向下逐层与子节点比较并选择合适子节点下沉，以恢复堆序性质。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_487"
+    ],
+    "evidence": {
+      "doc_106_parent_487": "插入新元素时从新元素所在位置开始，与父节点比较并交换；删除堆顶元素时从堆顶（即数组首位置）开始，与子节点比较并交换。起始位置不同是因为插入操作新增元素位于堆尾，需自底向上调整以恢复堆序；而删除操作先将堆尾元素移至堆顶，该元素可能破坏堆序，需自顶向下调整，通过与子节点比较选择合适方向下沉。"
+    }
+  },
+  {
+    "id": "q_111",
+    "question": "为什么T5模型中的Encoder-Decoder Attention机制需要在位置编码和Mask机制上进行特殊设计，而不是直接复用Encoder内部的Self-Attention方式？",
+    "difficulty": "complex",
+    "ground_truth": "因为Encoder-Decoder Attention需实现跨序列对齐与自回归生成约束：一方面，Decoder在生成每个token时只能依赖已生成的历史输出（不可见未来token），故必须采用因果Mask；另一方面，它需将Decoder当前位置与Encoder全部输入位置进行注意力计算，因此位置编码须兼容Encoder与Decoder不同序列的坐标系统，而不能直接复用Encoder中仅面向单向/双向输入且无时序生成限制的Self-Attention设计。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_133"
+    ],
+    "evidence": {
+      "doc_108_parent_133": "Encoder-Decoder Attention在位置编码和Mask机制上需特殊设计，主要是为了区分输入和输出序列。与Encoder内部Self-Attention不同，它需避免Decoder在生成时看到未来token（故需因果Mask），同时要对齐Encoder的输入序列与Decoder的输出序列，因此位置编码需兼容跨模块交互，Mask机制须确保Decoder仅关注已生成的历史输出及全部Encoder输入，而非直接复用Encoder的双向Self-Attention方式。"
+    }
+  },
+  {
+    "id": "q_112",
+    "question": "为什么在向量空间模型中使用16384维的one-hot词向量会导致极高的稀疏率，而N-gram语言模型又会因N增大而面临数据稀疏性问题？这两种‘稀疏性’在本质上有何异同？",
+    "difficulty": "complex",
+    "ground_truth": "在向量空间模型中，16384维one-hot词向量的稀疏率高达约99.97%，是因为每个词仅在唯一维度取值为1、其余维度恒为0，这种高维离散编码方式导致结构性、确定性稀疏，源于人为设计的维度冗余；而N-gram语言模型中，随着N增大，可能的N-gram组合总数呈指数级增长，但实际语料有限，绝大多数序列未出现或频次极低，从而产生统计性、概率分布意义上的稀疏。二者均表现为大量零值（向量空间）或未登录项（N-gram），但本质不同：前者是编码机制固有的、必然发生的结构性稀疏，后者是语料覆盖不足导致的偶然性、数据驱动的统计稀疏。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_35"
+    ],
+    "evidence": {
+      "doc_108_parent_35": "在向量空间模型中，16384维one-hot词向量仅在对应词位置为1，其余16379位为0，稀疏率达约99.97%；这是由高维离散编码导致的结构性稀疏。N-gram模型中，N增大使N-gram序列总数指数级增长，而实际语料中多数序列未出现或频次极低，造成统计性稀疏。二者均表现为大量零值或未登录项，但本质不同：前者是人为设计的维度冗余导致的确定性稀疏，后者是有限语料覆盖不足引发的概率分布稀疏。"
+    }
+  },
+  {
+    "id": "q_113",
+    "question": "为什么在实际知识库检索系统中，单纯依赖稠密检索（dense retrieval）可能不够可靠，而需要结合稀疏检索（sparse retrieval）构成混合检索方案？",
+    "difficulty": "complex",
+    "ground_truth": "因为稠密检索擅长语义相似性匹配，能应对用户问法与原文表述不一致的情况，但难以准确匹配关键词、专有名词、缩写、公式、编号、API名称等精确术语；而稀疏检索（如BM25）恰好擅长此类精确匹配，在技术文档、论文、代码、法务、医疗等含大量专业术语的场景中不可或缺；单一方法存在盲区，混合检索通过多路召回与融合重排，可兼顾语义理解与精确匹配，显著提升召回率和系统可靠性。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_5"
+    ],
+    "evidence": {
+      "doc_107_parent_5": "Sparse retrieval（如BM25）擅长关键词、专有名词、缩写、公式、编号、API名称等精确匹配；dense retrieval擅长语义相似性匹配。用户问法与原文表述常不一致，需dense retrieval；技术文档、论文、代码、法务、医疗等场景含大量精确术语，需sparse retrieval。单一路检索易有盲区，混合检索可提升召回稳定性。真实知识库中两类问题并存，多路召回+融合重排比单纯向量检索更可靠。"
+    }
+  },
+  {
+    "id": "q_114",
+    "question": "为什么在鸡蛋掉落问题中，为了确保最坏情况下总尝试次数最少，第一次必须选择第x层而不是更高或更低的楼层？这背后体现了怎样的策略权衡？",
+    "difficulty": "complex",
+    "ground_truth": "第一次必须选择第x层，是因为若选x+1层且鸡蛋碎，则需用第二个鸡蛋从1层逐层试至x层，总尝试次数达x+1次，超过预设最坏次数x；若选x−1层且鸡蛋碎，则最多只需x−1次，未充分利用x次上限，导致策略非最优。严格推导表明：设首次在y层扔，鸡蛋碎时需1次（本次）加y−1次线性试探，共y次，为使最坏情况恰为x次，必有y=x。这体现了“大步跳跃缩范围”与“小步精确定位”的协同权衡：首层高度x既决定了初始搜索跨度，又锚定了最坏情况下的总尝试次数下限，确保两枚鸡蛋在碎/不碎两种分支中尝试次数均衡摊分，实现全局最坏情况最小化。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_598"
+    ],
+    "evidence": {
+      "doc_106_parent_598": "第一次必须选择第x层，是因为若选x+1层且鸡蛋碎，则第二个鸡蛋需从1层逐层试至x层，共x+1次，超出预设最坏次数x；若选x−1层，则碎时最多试x−1次，未达x次上限，浪费尝试潜力。反证法表明：设首次在y层扔，碎则需y次（1次+y−1次线性试探），为匹配最坏情况x次，必有y=x。这体现了在“大步跳跃缩范围”与“小步精确定位”间的策略权衡：首层高度决定最坏总次数的理论下限，确保两蛋协同使最坏情形均摊。"
+    }
+  },
+  {
+    "id": "q_115",
+    "question": "为什么在生成新文本时需要反复将刚生成的token添加到输入序列中，并每次都只基于最新序列的最后一个位置预测下一个token，而不是一次性生成所有新token？",
+    "difficulty": "complex",
+    "ground_truth": "因为模型具有自回归性质，每个新token的预测必须依赖此前所有已生成token构成的完整上下文；Transformer等模型在推理时需以更新后的完整序列作为输入，才能正确计算注意力机制和隐藏状态，从而保证生成结果的连贯性与准确性，因此无法跳过中间步骤一次性生成全部token。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_324"
+    ],
+    "evidence": {
+      "doc_108_parent_324": "在generate方法中，每次只获取序列中最后一个位置的logits来生成新token，然后将该token添加到序列中，再基于更新后的序列继续生成下一个token。这种迭代过程是因为模型的自回归性质决定的：每个新token的预测都依赖于此前所有已生成的token构成的完整上下文，无法跳过中间步骤一次性生成全部token；同时，模型结构（如Transformer）在推理时需以完整历史序列作为输入，才能正确计算注意力和隐藏状态，确保生成结果的连贯性与准确性。"
+    }
+  },
+  {
+    "id": "q_116",
+    "question": "这个Happy-LLM项目主要面向哪些学习者群体，它希望学习者在开始前具备哪些知识基础和能力，才能更有效地掌握从Transformer原理到LLaMA2实现、再到RAG与Agent等前沿应用的完整学习路径？",
+    "difficulty": "complex",
+    "ground_truth": "Happy-LLM项目主要面向大学生、研究人员和大语言模型（LLM）爱好者；学习者需具备一定的Python编程经验，最好掌握深度学习基础知识，并了解自然语言处理（NLP）领域的基本概念和术语。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_3"
+    ],
+    "evidence": {
+      "doc_108_parent_3": "Happy-LLM项目主要面向大学生、研究人员、LLM爱好者。学习前建议具备一定的编程经验，尤其是对Python语言有一定了解；最好具备深度学习相关知识，并了解NLP领域的基本概念和术语，以便更轻松掌握从Transformer原理到LLaMA2实现、再到RAG与Agent等前沿应用的完整学习路径。"
+    }
+  },
+  {
+    "id": "q_117",
+    "question": "Hugging Face Transformers 框架如何从技术实现和生态建设两个层面，共同推动大语言模型时代下NLP研究者高效开展模型开发与应用？",
+    "difficulty": "complex",
+    "ground_truth": "Hugging Face Transformers 框架通过技术实现与生态建设双轮驱动：技术上采用模块化设计，以 AutoModel 实现上百种主流模型的一键加载，Trainer 封装 DDP、DeepSpeed、Megatron-LM 等分布式训练策略，支持百亿参数模型的混合并行训练，并集成 SavingPolicy、LoggingCallback、PEFT、Weights & Biases 等工具提升训练自动化与效率；生态上依托开放社区提供数亿参数模型和 25 万+数据集，通过 Transformers、Datasets、Evaluate 等统一框架无缝集成模型、数据与评估能力，显著降低研究者在模型开发、微调、评估与部署全流程中的工程门槛，实现高效复用与快速迭代。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_391"
+    ],
+    "evidence": {
+      "doc_108_parent_391": "技术实现层面，Transformers通过模块化设计统一支持上百种主流模型架构，AutoModel类可一键加载任意预训练模型；Trainer类封装分布式训练逻辑，支持DDP、DeepSpeed、Megatron-LM等策略，实现混合并行训练，适配百亿参数模型；集成SavingPolicy、LoggingCallback及Deepspeed、peft、wandb等工具，提升训练自动化与效率。生态建设层面，Hugging Face构建了庞大AI社区，开放数亿参数模型和25万+数据集，通过Transformers、Datasets、Evaluate等框架集成模型、数据与评估函数，使研究者能便捷复用开"
+    }
+  },
+  {
+    "id": "q_118",
+    "question": "为什么在软件开发中，像拷贝大文件、加载大量资源文件以及聊天软件和后台服务器这类应用通常需要使用多线程技术？",
+    "difficulty": "complex",
+    "ground_truth": "因为拷贝大文件和加载大量资源文件是耗时操作，单线程执行会阻塞主线程导致界面无响应或系统停滞；聊天软件需同时处理消息收发、用户交互、心跳检测等并发任务；后台服务器必须并行响应多个客户端请求以保证高吞吐与低延迟；多线程技术能将这些耗时或并发任务分配到独立线程中执行，从而避免阻塞主线程，提升程序响应性、资源利用率和系统整体性能。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_63"
+    ],
+    "evidence": {
+      "doc_106_parent_63": "在软件开发中，拷贝大文件、加载大量资源文件属于耗时操作，若在单线程中执行会阻塞主线程，导致界面无响应或系统停滞；聊天软件需同时处理消息收发、用户交互、心跳检测等并发任务；后台服务器必须并行响应多个客户端请求，保证高吞吐与低延迟。多线程技术可将这些耗时或并发任务分配到独立线程中执行，避免阻塞主线程，提升程序响应性、资源利用率和系统整体性能。"
+    }
+  },
+  {
+    "id": "q_119",
+    "question": "这些文献共同反映了自然语言处理领域在词表示方法上的怎样的演进脉络？",
+    "difficulty": "complex",
+    "ground_truth": "自然语言处理领域在词表示方法上的演进脉络是从静态、离散、基于词频的向量空间模型（如1975年Salton等提出），发展为静态、稠密、上下文无关的分布式词表示（如2013年Word2Vec），再跃升为动态、上下文敏感的深度上下文化表示（如2018年ELMo），进而依托仅依赖注意力机制的Transformer架构（2017年），最终实现深度双向预训练、强上下文感知的词表示（如2019年BERT），整体呈现从静态到动态、从孤立词到上下文融合、从浅层分布统计到深层语义建模的持续深化趋势。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_39"
+    ],
+    "evidence": {
+      "doc_108_parent_39": "从1975年Salton等提出的向量空间模型（静态、离散、基于词频的词表示）开始，演进为2013年Mikolov等的分布式词表示（Word2Vec，静态、稠密、上下文无关的词向量），再到2018年Peters等的深度上下文化词表示（ELMo，动态、上下文敏感），继而发展为2017年Vaswani等提出的Transformer架构（仅依赖注意力机制），最终在2019年Devlin等基于Transformer实现BERT（深度双向预训练、上下文强感知）。这一脉络体现了从静态到动态、从孤立词到上下文融合、从浅层分布到深层语义建模的持续深化。"
+    }
+  },
+  {
+    "id": "q_120",
+    "question": "医疗榜这个评测集主要用来考察大语言模型在哪些关键能力上的表现，它由哪个机构提供，又属于哪一类更广泛的评测体系？",
+    "difficulty": "complex",
+    "ground_truth": "医疗榜主要用来考察大语言模型在医学知识问答、安全伦理理解等关键能力上的表现；由上海人工智能实验室提供；属于垂直领域榜单这一更广泛的评测体系。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_477"
+    ],
+    "evidence": {
+      "doc_108_parent_477": "医疗榜主要用来考察大语言模型在医学知识问答、安全伦理理解等关键能力上的表现；由上海人工智能实验室提供；属于垂直领域榜单这一更广泛的评测体系。"
+    }
+  },
+  {
+    "id": "q_121",
+    "question": "为什么在评估RAG优化效果时，不能仅凭‘答案看起来更好了’就下结论，而必须结合多个指标和具体案例进行综合判断？",
+    "difficulty": "complex",
+    "ground_truth": "因为仅凭“答案看起来更好了”主观判断无法反映优化对recall@k、MRR、citation precision、claim recall、abstain precision、latency和成本等关键指标的实际影响，可能掩盖retrieval recall下降、no-evidence表现恶化、citation precision降低或延迟增加等退化问题；必须固定测试集、评测命令和指标，综合分析增益与损害，检查典型失败样本，避免query drift，并通过关键案例验证，才能确认优化在整体指标提升且无关键维度退化的情况下真正有效。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_19"
+    ],
+    "evidence": {
+      "doc_107_parent_19": "不能仅凭“答案看起来更好了”下结论，因为需固定测试集、评测命令和指标，对比优化前后的recall@k、MRR、citation precision、claim recall、abstain precision、latency和成本；需分析增益与损害，检查典型失败样本，避免query drift；尤其要观察retrieval recall、no-evidence表现、citation precision和延迟是否退化。只有在整体指标提升且关键案例验证有效时，优化才算真正成功。"
+    }
+  },
+  {
+    "id": "q_122",
+    "question": "在Redis高可用架构中，为什么选择主从模式来实现读写分离，而不是让所有节点都具备读写能力，尤其是在读操作远多于写操作的业务场景下？",
+    "difficulty": "complex",
+    "ground_truth": "因为主从模式通过主节点集中处理写操作保障数据一致性，同时由多个从节点分担读请求，显著提升读吞吐能力，有效缓解单节点的内存上限、宕机风险、带宽瓶颈和高并发连接压力，特别适配读操作远多于写操作的业务场景。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_259"
+    ],
+    "evidence": {
+      "doc_106_parent_259": "主从架构随之而来的是读写分离，而Redis一般应用场景下，读操作明显多于写操作。单节点Redis存在内存上限、宕机风险、带宽瓶颈及高并发连接压力等问题，需多节点提升容量与可用性。主从模式通过一个主节点处理所有写操作、多个从节点分担读请求，既保障数据一致性（写操作集中于主节点），又显著提升读吞吐能力，特别适配读远多于写的业务场景。"
+    }
+  },
+  {
+    "id": "q_123",
+    "question": "在设计一个支持文件上传和工具调用的AI Agent系统时，为什么既要采用沙箱（Sandbox）机制，又必须对上传文件进行访问控制和权限隔离？这两者分别解决什么层面的安全问题？",
+    "difficulty": "complex",
+    "ground_truth": "沙箱机制用于限制Agent对文件、网络、代码执行或系统资源的访问，防止工具调用产生真实副作用，解决执行层面的安全问题；对上传文件进行访问控制和权限隔离，是为了确保文件仅属于当前用户或线程，防止被其他用户检索或被模型利用执行越权指令，同时限制文件类型、大小、路径和可见范围，解决数据层面的机密性、完整性与隔离性问题。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_96"
+    ],
+    "evidence": {
+      "doc_107_parent_96": "沙箱（Sandbox）机制用于限制Agent对文件、网络、代码执行或系统资源的访问，防止工具调用产生真实副作用，解决执行层面的安全问题；对上传文件进行访问控制和权限隔离，是为了确保文件仅属于当前用户或线程，防止被其他用户检索或被模型利用执行越权指令，同时限制文件类型、大小、路径和可见范围，解决数据层面的机密性、完整性与隔离性问题。"
+    }
+  },
+  {
+    "id": "q_124",
+    "question": "这段代码整体上是在完成一个Tokenizer的哪些关键生命周期操作？请结合保存、加载、验证和测试四个环节，说明其如何确保自定义分词器在实际应用中能正确处理特殊符号、对话结构和词汇映射。",
+    "difficulty": "complex",
+    "ground_truth": "这段代码整体上完成了Tokenizer的保存、加载、验证和测试四个关键生命周期操作：在保存环节调用`tokenizer.save()`将分词器序列化为文件并生成配置；在加载环节通过`AutoTokenizer.from_pretrained()`重建分词器实例；在验证环节断言特殊token（如`<unk>`、`<|im_start|>`等）与ID的映射关系符合预期，确保词汇映射准确；在测试环节调用`apply_chat_template()`验证对话结构处理能力，并打印词汇表大小、特殊token列表及生成的prompt，从而全面保障自定义分词器对特殊符号、多轮对话格式和词汇映射的实际正确性。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_301"
+    ],
+    "evidence": {
+      "doc_108_parent_301": "代码完成Tokenizer的保存、加载、验证和测试四个关键生命周期操作：保存环节调用`tokenizer.save()`将分词器序列化为文件，并生成配置；加载环节通过`AutoTokenizer.from_pretrained()`重建分词器实例；验证环节断言特殊token（如`<unk>`、`<|im_start|>`等）与ID的映射关系是否符合预期；测试环节使用`apply_chat_template()`验证对话结构处理能力，并打印词汇表大小、特殊token列表及生成的prompt，确保特殊符号、多轮对话格式和词汇映射在实际应用中正确生效。"
+    }
+  },
+  {
+    "id": "q_125",
+    "question": "为什么在使用 Transformers 库训练大语言模型时，推荐采用 Trainer 类而不是手动编写训练循环？",
+    "difficulty": "complex",
+    "ground_truth": "因为 Trainer 类封装了模型的训练逻辑，并在效率优化、可视化、分布式训练支持、混合精度训练、梯度累积、检查点保存与恢复、日志记录、评估集成等方面做了系统性优化，能显著降低开发复杂度，提升训练稳定性和可复现性，从而高效、便捷地完成大语言模型的训练。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_404"
+    ],
+    "evidence": {
+      "doc_108_parent_404": "Trainer 类封装了模型的训练逻辑，且做了较好的效率优化、可视化等工作，可以高效、便捷地完成大语言模型的训练。"
+    }
+  },
+  {
+    "id": "q_126",
+    "question": "在两堆物品的博弈中，为什么当两堆数量相同时后手玩家有必胜策略，而数量不同时先手玩家反而能确保获胜？",
+    "difficulty": "complex",
+    "ground_truth": "当两堆数量相同时，后手玩家可通过镜像策略（即每次在另一堆中拿走与先手相同数量的物品）始终保持两堆相等，最终迫使先手面对（1,1）局面而输掉；当两堆数量不同时，先手玩家可首次操作使两堆数量相等，从而将后手置于上述必败位置，之后无论后手如何操作，先手均能继续采用镜像策略确保获胜。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_625"
+    ],
+    "evidence": {
+      "doc_106_parent_625": "若两堆数量不同，先拿者获胜，方法：先拿者把两堆拿成等同的数量；若两堆数量相同，后拿者获胜，方法：后拿者模仿对方，从另外一堆拿同样的数量。"
+    }
+  },
+  {
+    "id": "q_127",
+    "question": "为什么在RAG系统优化中，仅凭个别问题答案变好就认为整体效果提升是一种危险的误解？",
+    "difficulty": "complex",
+    "ground_truth": "因为RAG系统优化涉及检索、引用、主张覆盖、拒答和延迟等多个维度，个别问题答案变好可能仅反映某单一环节的偶然改善，并不能代表其他关键维度同步提升；若缺乏基于固定测试集的系统性多维评测（如retrieval、citation、claim、abstain、latency），而仅依赖单个demo问题或仅关注答案语义相似度、忽略证据支撑，则极易误判优化效果，导致整体性能未提升甚至退化。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_52"
+    ],
+    "evidence": {
+      "doc_107_parent_52": "仅凭个别问题答案变好就认为整体效果提升是一种危险的误解，因为RAG优化若无系统性评测，易沦为玄学；一次答案改善不代表检索、引用、主张覆盖、拒答等多维度指标同步提升；必须基于固定测试集，从retrieval、citation、claim、abstain和latency等维度综合评估gain与harm；仅用单个demo问题或仅关注答案语义相似度而忽略证据支撑，会导致误判优化有效性。"
+    }
+  },
+  {
+    "id": "q_128",
+    "question": "为什么在多模态RAG中，直接将图表、表格等非文本内容转换为纯文本摘要可能导致信息丢失，而需要结合OCR、视觉模型或结构化表示（如Markdown、SQL）来提升检索效果？",
+    "difficulty": "complex",
+    "ground_truth": "因为图表、表格等非文本内容蕴含关键数字、空间布局、行列关系、表头与单位等结构化信息，直接转换为纯文本摘要易丢失这些细节；而OCR可提取精确文字及位置信息，视觉模型能理解图表语义和结构，Markdown可保留表格层级与格式，SQL等结构化表示则支持精准条件查询，三者结合能更完整地捕获和表达原始信息的语义与关系，从而显著提升多模态RAG中的检索准确性与完整性。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_83"
+    ],
+    "evidence": {
+      "doc_107_parent_83": "图表、表格、公式和页面布局不易转为干净文本，即使生成摘要也可能丢失关键数字和结构关系。常见做法是保留图片位置、caption及上下文，再用OCR或视觉模型生成结构化摘要作为可检索文本入库。简单表格可转为Markdown或行级文本；复杂表格需保留表头、单位、行列关系和来源位置。SQL等结构化查询有时比纯向量检索更合适。"
+    }
+  },
+  {
+    "id": "q_129",
+    "question": "为什么在注意力机制中使用上三角掩码矩阵并将其与注意力分数相加，就能确保模型只关注当前token及之前的位置，而不会看到未来的信息？",
+    "difficulty": "complex",
+    "ground_truth": "因为上三角掩码矩阵将未来位置（即行索引小于列索引的位置）设为-inf，与注意力分数相加后，这些位置的分数变为-inf；经过Softmax后，-inf对应的概率为0，而当前及之前位置（下三角及对角线）的分数不受影响，其相对大小关系保持不变，从而确保模型在计算每个token的注意力权重时仅依赖于该token及其之前的位置，严格防止信息泄露到未来。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_54"
+    ],
+    "evidence": {
+      "doc_108_parent_54": "生成的Mask矩阵是上三角矩阵，上三角位置元素为-inf，其余位置为0。注意力分数与该掩码相加后，上三角区域（对应未来token）的分数变为-inf，下三角区域分数不变。Softmax操作将-inf映射为0，从而完全屏蔽未来位置的注意力权重，确保模型仅关注当前及之前位置的信息。"
+    }
+  },
+  {
+    "id": "q_130",
+    "question": "这段代码的主要目的是什么？它如何协同工作来支持模型的训练过程？",
+    "difficulty": "complex",
+    "ground_truth": "这段代码的主要目的是初始化模型与分词器、构建监督微调训练数据集，并启用自动混合精度以提升训练效率；它通过init_model()加载预训练模型和对应分词器，利用SFTDataset类将原始数据路径转换为适配模型输入格式的数据集（结合tokenizer和指定max_length进行预处理），再将数据集封装进DataLoader供迭代训练，同时在前向传播中通过amp.autocast()自动降为float16计算以减少显存占用、加速训练，并保持关键参数更新的数值稳定性，三者协同支撑高效、稳定的模型监督微调训练过程。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_367"
+    ],
+    "evidence": {
+      "doc_108_parent_367": "这段代码的主要目的是初始化模型与分词器、构建训练数据集，并启用自动混合精度（amp.autocast）以提升训练效率。它通过init_model()加载预训练模型和对应分词器；利用SFTDataset类将原始数据路径转换为适配模型输入格式的监督微调数据集，结合tokenizer和指定max_length进行预处理；数据集随后被封装进DataLoader供迭代训练。amp.autocast()在前向传播中自动将部分计算降为半精度（float16），减少显存占用并加速训练，同时保持关键参数更新的数值稳定性，三者协同支撑高效、稳定的模型监督微调训练过程。"
+    }
+  },
+  {
+    "id": "q_131",
+    "question": "为什么在构建Agent系统时，不能简单地把所有可用函数都注册为tool，而需要谨慎控制工具的数量和使用场景？",
+    "difficulty": "complex",
+    "ground_truth": "因为Tool是需具备清晰描述、严格schema、结构化输出、权限检查和错误返回的受控API，而非普通函数；工具过多会显著增加模型误调用风险和上下文开销，降低系统可靠性与效率；因此必须按具体任务谨慎暴露必要工具，并在复杂场景中通过skill指导执行流程或用subagent收束职责，确保Agent仅在正确场景调用正确工具。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_72"
+    ],
+    "evidence": {
+      "doc_107_parent_72": "Tool 是给模型使用的受控 API，不只是普通函数，需具备清晰描述、严格 schema、结构化输出、权限检查和错误返回。工具不是越多越好，过多会增加误调用风险和上下文成本，因此必须按任务谨慎暴露工具；必要时应通过 skill 指导执行流程，或用 subagent 收束职责。评测重点在于 Agent 是否在正确场景调用正确工具。"
+    }
+  },
+  {
+    "id": "q_132",
+    "question": "在评估信息检索系统的召回效果时，为什么不仅要关注整体的 recall@k 或 MRR 指标，还要特别考察‘引用片段（citation chunk）’是否被成功召回？这反映了评估目标的哪些深层变化？",
+    "difficulty": "complex",
+    "ground_truth": "因为在实际应用中用户需要精准定位到支撑结论的具体文本片段，而非仅获取相关文档；这反映了评估目标从“文档级相关性”向“细粒度、可验证、可引用的内容单元”的深层转变，强调检索结果的可解释性、可溯源性与实际使用价值。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_86"
+    ],
+    "evidence": {
+      "doc_107_parent_86": "在评估信息检索系统的召回效果时，不仅要关注整体的 recall@k 或 MRR 指标，还要特别考察‘引用片段（citation chunk）’是否被成功召回，因为实际应用中用户往往需要精准定位到支撑结论的具体文本片段，而非仅获取相关文档。这反映了评估目标从“文档级相关性”向“细粒度、可验证、可引用的内容单元”深层转变，强调检索结果的可解释性、可溯源性与实际使用价值。"
+    }
+  },
+  {
+    "id": "q_133",
+    "question": "在RAG系统中，为什么即使有了对话记忆（Memory）来维持上下文和用户偏好，最终回答仍必须重新检索知识库并依赖新检索到的证据，而不能直接依据Memory中的内容作答？",
+    "difficulty": "complex",
+    "ground_truth": "因为Memory中的内容是经过压缩的摘要，可能遗漏细节、引入误差，缺乏事实可靠性，仅用于理解上下文、改写查询和判断检索范围；而最终答案必须基于最新、可追溯、高保真的知识库检索结果，确保准确性和可验证性。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_11"
+    ],
+    "evidence": {
+      "doc_107_parent_11": "Memory 不能替代证据，仅用于理解上下文、改写 query 和维持用户偏好，不可直接作为最终答案依据；最终答案必须重新检索知识库并依赖新检索到的证据。Memory 的 summary 可能压缩、遗漏甚至引入误差，不具备事实可靠性；它仅辅助 query rewrite 和 scope 判断，而答案必须绑定可追溯的当前检索引用。"
+    }
+  },
+  {
+    "id": "q_134",
+    "question": "这段技术面试复习提纲整体上聚焦于Java并发编程与JVM底层原理两大核心领域，它通过一系列递进式问题引导学习者系统梳理关键概念及其内在联系。那么，从知识体系构建的角度看，这份提纲为何将乐观锁/悲观锁、JMM的三大特性、上下文切换、原子类、Unsafe以及JVM内存结构和逃逸分析等内容并列组织？它们共同指向Java高性能、高可靠服务开发中哪一根本性挑战？",
+    "difficulty": "complex",
+    "ground_truth": "这些内容共同指向Java高性能、高可靠服务开发中“多线程环境下保障数据一致性与执行高效性”的根本性挑战。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_711"
+    ],
+    "evidence": {
+      "doc_106_parent_711": "这些内容共同指向Java高性能、高可靠服务开发中“多线程环境下保障数据一致性与执行高效性”的根本性挑战。乐观锁/悲观锁解决并发访问冲突的策略选择；JMM三大特性（原子性、可见性、有序性）是并发正确性的理论基石；上下文切换影响执行效率；原子类和Unsafe提供无锁/底层原子操作能力；JVM内存结构与逃逸分析则关系对象生命周期管理、内存分配优化及线程安全基础——它们从并发控制机制、内存模型约束、执行开销优化、底层操作支持到运行时资源管理，协同支撑高并发场景下程序的正确性、性能与稳定性。"
+    }
+  },
+  {
+    "id": "q_135",
+    "question": "为什么两个线程能严格交替打印0到100的数字，而不是出现重复打印、跳号或顺序混乱的情况？",
+    "difficulty": "complex",
+    "ground_truth": "因为通过synchronized(LOCK)实现互斥，确保同一时刻仅一个线程进入临界区；使用volatile修饰count保证修改对所有线程可见；每个线程在while循环中严格检查count % 2 == index（index为0或1）以确认轮次，不满足则wait()释放锁并等待；被notifyAll()唤醒后重新竞争锁并再次检查条件，避免虚假唤醒；notifyAll()在每次打印后唤醒所有等待线程，使另一线程能及时获得锁并执行，从而严格按奇偶顺序交替打印0到100，彻底杜绝重复打印、跳号和顺序混乱。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_107"
+    ],
+    "evidence": {
+      "doc_106_parent_107": "通过synchronized(LOCK)确保同一时刻只有一个线程能进入临界区；使用while(count % 2 != index)循环判断轮次，不满足条件则调用LOCK.wait()释放锁并等待；被唤醒后重新竞争锁并再次检查条件，避免虚假唤醒；count为volatile保证可见性；notifyAll()在结束时唤醒所有等待线程，确保协作有序；严格按奇偶索引（0/1）控制两个线程交替执行，从而实现0–100严格交替打印，杜绝重复、跳号和乱序。"
+    }
+  },
+  {
+    "id": "q_136",
+    "question": "为什么在应用旋转位置编码后，虽然中间计算步骤将实部和虚部分开处理，最终输出的张量形状却与输入保持一致，而没有保留复数结构或额外增加维度？",
+    "difficulty": "complex",
+    "ground_truth": "因为通过`torch.stack([xq_out_r, xq_out_i], dim=-1)`将实部和虚部拼接为`[..., 2]`后，立即使用`flatten(3)`将原通道维与新增的2维合并，使复数分量被展平回原始通道数（如输入48维对应24对实虚部，展平后仍为48维），且最终调用`type_as(xq)`将结果转为输入张量的数据类型，从而保持输出形状与输入完全一致，既不保留复数结构也不增加维度。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_222"
+    ],
+    "evidence": {
+      "doc_108_parent_222": "通过`torch.stack([xq_out_r, xq_out_i], dim=-1)`将实部和虚部在最后一维拼接为形状`[..., 2]`，再经`flatten(3)`将最后两个维度（即原`n_head_dim`维度与新增的2维）合并，使复数分量被展平回原始通道数。例如输入`[1,50,6,48]`中48维被视作24对实虚部，`stack+flatten(3)`后仍为48维，故输出形状与输入完全一致。最终调用`type_as(xq)`确保数据类型一致，不保留复数结构或增加维度。"
+    }
+  },
+  {
+    "id": "q_137",
+    "question": "为什么在SSL/TLS握手过程中，客户端不仅要检查服务器证书是否由受信任的CA签发，还必须确认其是否在有效期内？这两个验证步骤共同保障了通信安全的哪些关键方面？",
+    "difficulty": "complex",
+    "ground_truth": "客户端检查服务器证书是否由受信任的CA签发，是为了验证服务器身份的真实性，防止中间人攻击；确认证书在有效期内，是为了确保所用密钥仍处于有效保障状态，避免使用已过期、被撤销或不再受支持的密钥。这两个步骤共同保障了通信身份的真实性（authenticity）和密钥的有效性（validity），是建立可信安全通道的前提，确保后续密钥交换与加密通信不被伪造者利用或因密钥失效而暴露。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_373"
+    ],
+    "evidence": {
+      "doc_106_parent_373": "客户端必须检查服务器证书是否由受信任的CA签发，以确保服务器身份真实可信，防止中间人攻击；同时必须确认证书在有效期内，以避免使用已过期、被撤销或不再受保障的密钥。这两个验证步骤共同保障了通信身份的真实性（authenticity）和密钥的有效性（validity），是建立可信安全通道的前提，确保后续密钥交换与加密通信不被伪造者利用或因密钥失效而暴露。"
+    }
+  },
+  {
+    "id": "q_138",
+    "question": "T5模型的‘大一统’思想具体体现在哪些方面，为什么说这种设计能让不同自然语言处理任务被更直观地统一理解和处理？",
+    "difficulty": "complex",
+    "ground_truth": "T5模型的“大一统”思想具体体现在：将所有自然语言处理任务统一建模为“文本到文本”的转换形式，输入和输出均为纯文本字符串；摒弃任务特定的头部结构（如分类层、序列标注标签）；通过任务前缀（如“translate English to German:”“summarize:”）显式标识任务类型；在模型架构、训练目标（自回归语言建模）、数据预处理（全词掩码、相同分词器）上保持完全一致；不同任务共享全部参数与优化过程。这种设计使任务边界模糊化，模型能更直观地理解任务意图，并通过文本提示灵活切换功能，从而实现对各类NLP任务的统一、直观理解和处理，显著提升泛化性与可扩展性。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_139"
+    ],
+    "evidence": {
+      "doc_108_parent_139": "T5模型的“大一统”思想体现在将所有自然语言处理任务（如翻译、摘要、问答、分类等）统一建模为“文本到文本”的转换形式，即输入和输出均为纯文本字符串。这种设计摒弃了任务特定的头部结构（如分类层、序列标注标签），转而通过任务前缀（如“translate English to German:”“summarize:”）显式标识任务类型。由于模型架构、训练目标（自回归语言建模）、数据预处理（全词掩码、相同分词器）均保持一致，不同任务在统一框架下共享参数与优化过程。这使得任务边界模糊化，模型能更直观地理解任务意图，并通过文本提示灵活切换功能，显著提升泛化性与可扩展性。"
+    }
+  },
+  {
+    "id": "q_139",
+    "question": "图3.3和图3.4共同说明了模型中prediction_heads与Encoder Layer之间的结构关系，那么这种设计体现了怎样的整体建模思路——即在保持编码器层级特征提取能力的同时，如何支持对不同任务或输出目标的灵活预测？",
+    "difficulty": "complex",
+    "ground_truth": "该设计体现了“特征复用与预测解耦相统一”的整体建模思路：通过在每一层Encoder Layer后均接入独立可定制的prediction_heads，既保留了编码器逐层提取的层级化特征（低层细节、高层语义）的完整性与可用性，又使不同任务或输出目标能直接基于最适配的特征粒度进行灵活预测，无需修改编码器结构，从而在不牺牲编码能力的前提下实现多任务、多目标的高效、解耦式输出。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_108"
+    ],
+    "evidence": {
+      "doc_108_parent_108": "图3.3和图3.4共同表明，模型在每一层Encoder Layer后均接入独立的prediction_heads，而非仅在顶层输出。这种“逐层预测”设计使各编码器层提取的层级化特征（如低层细节、高层语义）可被直接用于不同粒度或任务导向的预测；同时，各prediction_head结构可差异化定制（如输出维度、激活函数），从而在保持编码器固有特征提取能力的前提下，灵活适配多任务、多目标输出需求，实现特征复用与预测解耦的统一。"
+    }
+  },
+  {
+    "id": "q_140",
+    "question": "为什么在堆操作中需要重复执行步骤2，直到堆序性质恢复？这反映了堆数据结构的什么核心特性？",
+    "difficulty": "complex",
+    "ground_truth": "因为在插入或删除操作后，堆的局部有序性可能被破坏，而堆仅保证父子节点间的大小关系（即局部有序性），不保证兄弟节点或跨层节点的相对顺序，所以需要重复执行步骤2，通过逐层上浮或下沉来持续修复局部失衡，直至整棵树重新满足堆序性质；这反映了堆数据结构的核心特性是局部有序性。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_489"
+    ],
+    "evidence": {
+      "doc_106_parent_489": "重复执行步骤2是为了确保堆中每个节点都满足堆序性质（即父节点关键字不小于/不大于子节点关键字），因为插入或删除操作可能破坏原有堆结构的局部有序性，需通过逐层调整（如上浮或下沉）使整体重新满足堆序。这反映了堆的核心特性是局部有序性：堆仅保证父子节点间的大小关系，而不关注兄弟节点或跨层节点的相对顺序，因此单次调整只能修复局部失衡，需持续迭代直至全局堆序恢复。"
+    }
+  },
+  {
+    "id": "q_141",
+    "question": "这段代码在构建LLaMA2的注意力机制时，如何根据硬件或环境条件动态选择不同的计算路径，并且这两种路径在功能目标和处理流程上有什么本质一致性？",
+    "difficulty": "complex",
+    "ground_truth": "代码通过判断self.flash布尔值动态选择计算路径：若为True则调用torch.nn.functional.scaled_dot_product_attention（启用Flash Attention优化），否则执行手动实现的注意力流程（含QK转置相乘、缩放、掩码加法、Softmax、Dropout及SV相乘）；两种路径功能目标完全一致，均完成因果自注意力计算，输出形状与语义相同；处理流程的本质一致性在于均严格遵循“查询-键相似度计算→掩码与缩放→注意力权重归一化→加权值聚合”这一标准注意力范式，仅底层实现因硬件或环境对Flash Attention的支持与否而不同。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_238"
+    ],
+    "evidence": {
+      "doc_108_parent_238": "代码根据是否支持Flash Attention动态选择计算路径：若self.flash为True，调用torch.nn.functional.scaled_dot_product_attention；否则执行手动实现的注意力流程（含QK转置相乘、缩放、掩码加法、Softmax、Dropout及SV相乘）。两种路径功能目标完全一致——均完成因果自注意力计算，输出形状与语义相同；处理流程本质一致性体现在均严格遵循“查询-键相似度计算→掩码与缩放→注意力权重归一化→加权值聚合”这一标准注意力范式，仅底层实现方式因硬件/环境支持差异而不同。"
+    }
+  },
+  {
+    "id": "q_142",
+    "question": "为什么GLM预训练任务在早期中文大模型发展中具有开创性意义，但后续ChatGLM系列却逐步放弃该范式、转而回归CLM？这一演进路径反映了大模型技术发展中的哪些关键权衡？",
+    "difficulty": "complex",
+    "ground_truth": "GLM预训练任务在早期中文大模型发展中具有开创性意义，因其首次精巧融合CLM与MLM，成功产出中文开源原生LLM（如ChatGLM-6B），成为中文LLM研究的起点；但后续ChatGLM系列从ChatGLM2起逐步放弃该范式、转而回归CLM，是因为在超大规模预训练场景下，CLM展现出远超MLM/SLM的训练效率、模型扩展性、生成能力及文本理解能力；这一演进路径反映了大模型技术发展中对训练效率、扩展性、生成能力与理解能力之间关键权衡：早期需兼顾理解与生成的平衡设计，而规模化后更强调单一范式在极致规模下的综合性能优势。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_158"
+    ],
+    "evidence": {
+      "doc_108_parent_158": "GLM预训练任务在早期中文大模型发展中具有开创性意义，因其精巧融合CLM与MLM，率先产出中文开源原生LLM（如ChatGLM-6B），成为中文LLM研究起点。但进入LLM时代后，CLM在超大规模预训练中展现出远超MLM/SLM的优势：增大模型体量和预训练规模后，CLM生成模型的文本理解能力反超MLM理解模型。因此，从ChatGLM2起，智谱放弃GLM范式，回归经典CLM，同时采用LLaMA架构、MQA注意力机制，并大幅提升预训练规模与上下文长度。这一演进反映了大模型发展中对训练效率、扩展性、生成能力与理解能力之间关键权衡。"
+    }
+  },
+  {
+    "id": "q_143",
+    "question": "为什么Skill被设计为比普通Prompt更结构化的可复用任务流程，而不是简单地写成一段更长的提示词？",
+    "difficulty": "complex",
+    "ground_truth": "因为Skill需沉淀“怎么做事”的方法论，而不仅依赖语言描述，其核心在于明确触发条件、前置检查和执行步骤三要素，从而保障跨场景复用性、可维护性和执行确定性，避免长提示词因模糊性、隐含假设和顺序依赖导致的不可靠与难调试问题。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_55"
+    ],
+    "evidence": {
+      "doc_107_parent_55": "Skill被设计为比普通Prompt更结构化的可复用任务流程，是因为它需沉淀“怎么做事”的方法论，而不仅依赖语言描述。其核心在于明确三要素：触发条件（何时使用）、前置检查（所需环境、文件、权限或上下文）、执行步骤（调用工具或处理数据的顺序）。这种结构化设计保障了跨场景复用性、可维护性和执行确定性，避免长提示词因模糊性、隐含假设和顺序依赖导致的不可靠与难调试问题。"
+    }
+  },
+  {
+    "id": "q_144",
+    "question": "这段代码的作用是为模型注册了哪两个用于位置编码的缓冲区，它们在模型训练和推理中分别承担什么功能？",
+    "difficulty": "complex",
+    "ground_truth": "这段代码为模型注册了“freqs_cos”和“freqs_sin”两个用于位置编码的缓冲区；其中，“freqs_cos”存储预计算的余弦频率分量，“freqs_sin”存储预计算的正弦频率分量，二者共同支持RoPE（旋转位置嵌入）计算，在训练和推理中为模型提供固定、无需学习的位置频率信息，使查询和键向量能根据token的相对位置动态旋转，从而增强序列建模能力；由于设为persistent=False，它们不参与模型参数的保存与加载，仅在运行时存在。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_252"
+    ],
+    "evidence": {
+      "doc_108_parent_252": "模型注册了两个用于位置编码的缓冲区：“freqs_cos”和“freqs_sin”。它们分别存储预计算的余弦和正弦频率分量，用于RoPE（旋转位置嵌入）计算。在训练和推理中，这两个缓冲区提供固定、无需学习的位置频率信息，使模型能根据token的相对位置动态旋转查询和键向量，从而增强序列建模能力；因设为persistent=False，它们不参与模型参数保存与加载，仅在运行时存在。"
+    }
+  },
+  {
+    "id": "q_145",
+    "question": "为什么在这段多线程代码中，两个线程能够实现交替打印0到100的数字，而不是出现重复、跳号或顺序混乱的情况？",
+    "difficulty": "complex",
+    "ground_truth": "因为通过synchronized块对共享资源加锁，确保同一时刻只有一个线程进入临界区；count的读取、打印和自增操作在同步块内原子执行，消除了竞态条件；同时利用wait()和notifyAll()实现线程协作：一个线程打印完数字后调用notifyAll()唤醒其他线程，并自身调用wait()释放锁进入等待；另一线程获得锁后继续打印下一个数字，严格保证了交替执行顺序，从而避免重复、跳号和顺序混乱。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_108"
+    ],
+    "evidence": {
+      "doc_106_parent_108": "通过使用synchronized块对共享资源加锁，确保同一时刻只有一个线程能访问临界区；配合wait()和notifyAll()实现线程间协作：当某线程打印完一个数字后，调用notifyAll()唤醒其他等待线程，同时自身调用wait()释放锁并进入等待状态；另一线程获得锁后继续打印下一个数字，如此循环。共享变量count的读取、打印、自增操作均在同步块内原子执行，避免了竞态条件；wait()/notifyAll()机制保证了严格的交替执行顺序，从而防止重复、跳号和顺序混乱。"
+    }
+  },
+  {
+    "id": "q_146",
+    "question": "在训练完成后，如何利用训练好的模型进行文本生成？整个流程中模型加载、设备选择和数据类型设置之间存在怎样的协同关系？",
+    "difficulty": "complex",
+    "ground_truth": "训练完成后，通过运行`python model_sample.py`启动文本生成；该脚本中的`TextGenerator`类在初始化时加载预训练模型检查点和分词器，自动选择设备（优先CUDA，无则回退CPU），并指定数据类型为`bfloat16`；三者协同表现为：模型权重按指定`dtype`加载，设备自动适配以确保张量运算兼容，共同保障推理过程的正确性与高效性。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_370"
+    ],
+    "evidence": {
+      "doc_108_parent_370": "在模型训练完成后，通过运行`python model_sample.py`生成文本。`model_sample.py`中定义了`TextGenerator`类，其`__init__`方法加载模型检查点（如`./base_model_215M/pretrain_1024_18_6144.pth`）、分词器（如`./tokenizer_k/`），并设置设备（`device=None`，优先使用CUDA，无则回退至CPU）和数据类型（`dtype=\"bfloat16\"`）。模型加载、设备选择与数据类型设置协同：加载时依据指定`dtype`加载权重，设备自动适配以确保张量运算兼容，三者共同保障推理过程"
+    }
+  },
+  {
+    "id": "q_147",
+    "question": "为什么HashMap在JDK 8中引入红黑树来替代长链表，而不是单纯增加数组容量或采用其他结构？这背后需要平衡哪些核心设计目标？",
+    "difficulty": "complex",
+    "ground_truth": "因为扩容成本高且无法根治哈希冲突集中问题，而红黑树在查找、插入、删除上均保持O(log n)时间复杂度，Java已有成熟实现；背后需平衡查询效率（避免链表退化为O(n)）、内存占用（红黑树节点指针开销更大）、实现复杂度与稳定性（红黑树比AVL等更易维护平衡）、以及扩容代价与哈希分布不均的协同优化。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_17"
+    ],
+    "evidence": {
+      "doc_106_parent_17": "JDK 8中，当链表长度≥8且数组长度≥64时，将链表转为红黑树。此举并非单纯扩容数组，因扩容成本高（需rehash全部元素）、无法根本解决哈希冲突集中问题；亦未采用其他结构（如跳表、B树），因红黑树在查找、插入、删除上均保持O(log n)时间复杂度，且Java已有成熟实现。这背后需平衡的核心设计目标包括：查询效率（避免链表过长导致O(n)退化）、内存占用（红黑树节点比链表多指针开销）、实现复杂度与稳定性（红黑树较AVL等更易维护平衡）、以及扩容代价与哈希分布不均的协同优化。"
+    }
+  },
+  {
+    "id": "q_148",
+    "question": "为什么在比较9.12和9.2时，结果是9.2更大？这反映了小数比较中什么样的数值理解原则？",
+    "difficulty": "complex",
+    "ground_truth": "因为9.2等价于9.20，与9.12对齐数位后，十分位均为2，但百分位上0 < 2不成立，实际是9.20的百分位为0、9.12的百分位为2，故需比较百分位：0 < 2，因此9.20 > 9.12；这反映了小数比较中“相同数位对齐后逐位比较”的数值理解原则，强调必须依据位值（十分位、百分位等）对应比较，而非依据小数位数多少或数字字符串长度判断大小。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_526"
+    ],
+    "evidence": {
+      "doc_108_parent_526": "9.2比9.12更大，因为小数比较需先对齐数位：9.2等价于9.20，而9.20 > 9.12。这反映了小数比较中“相同数位对齐后逐位比较”的数值理解原则，强调小数部分应按位值（十分位、百分位等）进行对应比较，而非简单依据数字长度或表面大小判断。"
+    }
+  },
+  {
+    "id": "q_149",
+    "question": "这段代码片段中，_init_weights 方法的主要作用是什么？它如何体现模型初始化策略与参数数量统计之间的关系？",
+    "difficulty": "complex",
+    "ground_truth": "_init_weights 方法的主要作用是对模型中的线性层和 Embedding 层的权重参数进行正态分布初始化；它通过类型判断（如 isinstance(module, nn.Linear)）定位目标模块，并调用 torch.nn.init.normal_ 等函数执行初始化，不直接参与参数数量统计；参数数量统计由 weight.numel() 和累加变量 n_params 完成，二者虽逻辑分离，但共享同一组模型参数——初始化操作作用于各 module.weight，而 numel() 计算的正是这些已被（或即将被）初始化的权重张量的元素总数，从而在模型结构层面建立了初始化策略与参数量统计的间接关联。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_94"
+    ],
+    "evidence": {
+      "doc_108_parent_94": "_init_weights 方法的主要作用是对模型中的线性层和 Embedding 层进行正态分布初始化。它通过 isinstance(module, nn.Linear) 等条件判断模块类型，对匹配模块调用 torch.nn.init.normal_ 等方式初始化权重。该方法本身不直接统计参数数量；参数数量统计由 weight.numel() 和 n_params 实现，二者在代码中分属不同逻辑段——前者用于初始化，后者用于计算总参数量，二者通过共享模型结构（如 module 权重）间接关联：初始化操作作用于各 module.weight，而 numel() 正是对这些已初始化（或待初始化）"
+    }
+  },
+  {
+    "id": "q_150",
+    "question": "在构建Agent系统时，为什么将复杂流程封装为skill而不是直接写在主prompt中，这种设计对团队协作和系统可靠性分别带来了哪些实际好处？",
+    "difficulty": "complex",
+    "ground_truth": "将复杂流程封装为skill而非直接写在主prompt中，对团队协作的实际好处是减少主上下文负担、支持按需加载方法论，并促进团队经验复用，提升协作效率；对系统可靠性的实际好处是skill内置验证步骤和失败策略（如缺依赖、缺权限、结果不可信时的处理），确保流程可验证、可维护，同时主prompt仅承担全局行为约束，职责清晰，显著降低出错风险与模块间耦合度。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_56"
+    ],
+    "evidence": {
+      "doc_107_parent_56": "将复杂流程封装为skill而非直接写在主prompt中，可减少主上下文负担，让Agent按需加载方法论；使团队经验复用，提升协作效率。对系统可靠性，skill需包含验证步骤和失败策略（如缺依赖、缺权限、结果不可信时的处理），避免沦为“长prompt”，确保可验证、可维护；而主prompt仅承担全局行为约束，职责更清晰，降低出错风险与耦合度。"
+    }
+  },
+  {
+    "id": "q_151",
+    "question": "为什么在构建一个完整的AI应用时，除了聊天框之外还需要工作台和产品闭环？这些中间件组件如何共同支撑起这种更高级的工程能力？",
+    "difficulty": "complex",
+    "ground_truth": "因为仅提供聊天框无法支撑AI应用的工程化落地，工作台用于可视化编排、调试和管理Agent流程，产品闭环则保障从用户请求到结果交付的端到端可靠性与可运营性；Auth/Session注入用户上下文并保障身份可信，Rate Limit防止资源滥用，Metrics实现可观测性与成本管控，PII Scrub确保数据合规，Uploads统一处理多模态输入，Memory支持长周期状态维护，Summarization缓解上下文膨胀，Deferred Tool Filter动态控制工具暴露范围，Loop Detection与Tool Error Handling协同保障执行稳定性，Sandbox约束代码执行安全边界，Subagent Limit防止子任务过载——这些中间件组件共同构成可扩展、可监控、可运维、安全合规且具备业务闭环能力的AI应用基础设施。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_29"
+    ],
+    "evidence": {
+      "doc_107_parent_29": "只做一个聊天框，很难体现Agent项目的工程能力；更完整的AI应用需要工作台和产品闭环。中间件组件如Auth/Session（校验身份、注入用户上下文）、Rate Limit（防滥用）、Metrics（统计QPS、延迟、成本等）、PII Scrub（敏感信息脱敏）、Uploads（管理文件）、Memory（抽取/注入记忆）、Summarization（压缩长对话）、Deferred Tool Filter（按需暴露工具）、Loop Detection（防无效循环）、Tool Error Handling（捕获并恢复异常）、Sandbox（限制执行边界）、Subagent Limit（控并发子任"
+    }
+  },
+  {
+    "id": "q_152",
+    "question": "在构建RAG系统时，为什么单纯依赖向量检索往往不够，而需要结合稀疏检索、RRF融合或重排序等技术？这背后反映了信息检索中哪些根本性挑战？",
+    "difficulty": "complex",
+    "ground_truth": "单纯依赖向量检索往往不够，因其存在语义鸿沟、词汇不匹配（如“汽车”与“机动车”）、专有名词与数字日期等结构化信息识别困难、逻辑否定理解缺失、同义词多义词干扰严重、长尾查询及低频实体召回率低等问题；稀疏检索（如BM25）可弥补其在精确关键词匹配、结构化信息处理和词汇重叠利用上的优势；RRF融合能协同稠密与稀疏检索的互补性，提升整体鲁棒性；重排序则通过更精细模型优化初检结果的排序质量。这背后反映了信息检索中语义鸿沟、词汇不匹配、查询歧义性、长尾分布以及精度-召回权衡等根本性挑战。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_102"
+    ],
+    "evidence": {
+      "doc_107_parent_102": "单纯依赖向量检索往往不够，因其在语义匹配上存在局限：对词汇不匹配（如“汽车”vs“机动车”）、专有名词、数字、日期、逻辑否定等难以准确捕获；易受同义词、多义词干扰；对长尾查询和低频实体召回率低。稀疏检索（如BM25）擅长精确匹配关键词、处理结构化信息和词汇重叠；RRF融合可兼顾稠密与稀疏优势，提升鲁棒性；重排序则利用更精细模型对初检结果优化排序。这反映了信息检索中语义鸿沟、词汇不匹配、查询歧义性、长尾分布及精度-召回权衡等根本性挑战。"
+    }
+  },
+  {
+    "id": "q_153",
+    "question": "这个缩写‘wte’在当前上下文中可能代表什么含义，需要结合哪些常见技术场景或领域背景来推断？",
+    "difficulty": "complex",
+    "ground_truth": "“wte”在当前上下文中缺乏足够信息支撑，无法确定其具体含义；需结合完整上下文（如所在文档主题、前后文术语、行业领域或技术栈）进一步判断，常见可能性包括：废物转化为能源（Waste-to-Energy）、Web Template Engine、Windows Terminal Emulator、Weighted Token Embedding（NLP中）等，但仅凭孤立缩写“wte.”无法唯一确定。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_93"
+    ],
+    "evidence": {
+      "doc_108_parent_93": "wte."
+    }
+  },
+  {
+    "id": "q_154",
+    "question": "为什么在RAG系统中，单纯依赖固定长度切块（chunk）往往效果不佳，而需要结合文档结构和重叠（overlap）来设计chunk策略？",
+    "difficulty": "complex",
+    "ground_truth": "因为固定长度切块无法适配文档的多样化结构和语义单元，易导致定义、实验结果、上下文被切断，或检索后证据不聚焦而引入噪声；同时会丢失标题、章节、表格、公式、图注等关键结构信息，造成指代关系（如“this method”“our approach”）语义不完整、关键证据未进入索引；而结合文档结构切块可保留语义完整性与上下文关联，加入重叠则能避免关键信息跨边界丢失，从而在召回率与精确率之间取得更好平衡。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_2"
+    ],
+    "evidence": {
+      "doc_107_parent_2": "chunk太小会导致定义、实验结果、上下文被切断；太大则检索命中后证据不聚焦，模型易受噪声干扰；缺失标题和章节信息会使“this method”“our approach”等指代语义不完整；表格、公式、图片说明易丢失，导致关键证据未进入索引。因此需结合文档结构（如标题、章节、段落、表格、图注）切块，并加入重叠（overlap），避免关键信息跨边界丢失。单纯固定长度切块无法适配多样化的文档结构和语义单元，难以平衡召回率与精确率。"
+    }
+  },
+  {
+    "id": "q_155",
+    "question": "在RAG Agent系统中，为什么需要在Conversation E2E层级特别关注‘保持上下文’与‘防止memory污染证据’之间的平衡？这反映了系统设计上怎样的核心矛盾？",
+    "difficulty": "complex",
+    "ground_truth": "在RAG Agent系统中，Conversation E2E层级需特别关注“保持上下文”与“防止memory污染证据”之间的平衡，是因为多轮对话既要求上下文连贯以保障任务连续性和对话自然性，又必须确保引用的证据真实、相关、可追溯；这反映了系统设计上“上下文一致性”与“证据保真性”之间的核心矛盾：过度依赖历史memory会引入无关或错误信息，损害RAG的可追溯性与可信度，而过度隔离memory则导致上下文断裂，削弱对话连贯性与任务执行能力。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_35"
+    ],
+    "evidence": {
+      "doc_107_parent_35": "Conversation E2E层级需在多轮对话中既保持上下文连贯性，又防止memory污染证据。这反映了系统设计上“上下文一致性”与“证据保真性”之间的核心矛盾：过度依赖历史memory可能导致引入无关或错误信息，削弱RAG的可追溯性与可信度；而过度隔离memory又会损害对话自然性与任务连续性。"
+    }
+  },
+  {
+    "id": "q_156",
+    "question": "为什么在混合检索中不能简单地把向量检索和关键词检索的结果直接拼接在一起，而必须经过去重、融合、排序和过滤等步骤？",
+    "difficulty": "complex",
+    "ground_truth": "因为向量检索和关键词检索结果存在重复、冲突和噪声（如sparse易命中噪声、dense与sparse结果可能冲突），直接拼接会忽略去重以消除冗余、融合（如RRF）以统一不同检索源的分数尺度差异、重排以提升相关性、过滤以满足权限等业务约束，导致结果质量低、不合规。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_39"
+    ],
+    "evidence": {
+      "doc_107_parent_39": "不能简单拼接是因为向量检索和关键词检索结果存在重复、冲突和噪声：dense和sparse结果可能冲突，sparse易命中噪声；直接拼接忽略去重、融合、排序和过滤等必要步骤，无法统一衡量不同检索源的分数尺度差异，也无法处理权限过滤等业务约束。必须通过去重消除冗余，融合（如RRF）统一排序——RRF仅利用各路排名而非原始分数，适配不同尺度；再经重排和过滤保障结果质量与合规性。"
+    }
+  },
+  {
+    "id": "q_157",
+    "question": "在RAG系统中，为什么不仅要关注‘答对问题’，还要专门设计no-answer样本和沉淀hard case？这两类实践共同反映了RAG系统设计中怎样的核心理念？",
+    "difficulty": "complex",
+    "ground_truth": "在RAG系统中，不仅要关注“答对问题”，还要专门设计no-answer样本和沉淀hard case，因为no-answer样本用于检验系统能否准确识别并拒答无关领域、知识库外、前提错误、时间敏感或权限受限等问题，体现“知道自己不知道”的能力；hard case则通过收集真实失败案例驱动golden set构建与迭代优化，提升系统在边界场景下的鲁棒性。这两类实践共同反映了RAG系统设计中对“可信推理”与“可控边界”的核心理念——即不仅追求答案正确性，更强调系统对自身能力边界的清晰认知、决策过程的可解释性以及面对不确定性时的稳健可控。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_85"
+    ],
+    "evidence": {
+      "doc_107_parent_85": "Hard case 是系统失败或边界表现差的样本，通过沉淀用户反馈和失败案例驱动 golden set 构建与迭代优化；no-answer 样本包括无关领域、知识库外问题、错误前提、时间敏感问题和权限外问题，用于验证系统是否“知道自己不知道”。这两类实践共同反映了 RAG 系统设计中对“可信推理”与“可控边界”的核心理念——不仅追求答案正确性，更强调系统对自身能力边界的认知、可解释性与鲁棒性。"
+    }
+  },
+  {
+    "id": "q_158",
+    "question": "为什么在三人决斗中，枪法最差的丙反而存活概率最高，而枪法最好的甲存活概率最低？这背后反映了怎样的博弈策略逻辑？",
+    "difficulty": "complex",
+    "ground_truth": "因为在三人决斗中，甲（枪法最好）被乙和丙同时视为最大威胁而成为唯一靶心，首轮回合存活率仅24%；乙（枪法居中）仅被甲瞄准，存活率20%；丙（枪法最差）无人首轮射击，100%存活，且后续两两对决中因对手已相互削弱而占据相对优势。这反映了博弈中的“威胁排序”与“靶心转移”逻辑：理性参与者优先消灭最强对手，导致强者互耗、弱者免于初始攻击，从而形成实力越强、生存概率越低的逆向淘汰效应。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_608"
+    ],
+    "evidence": {
+      "doc_106_parent_608": "甲枪法最好（十发八中），乙次之（十发六中），丙最差（十发四中）。策略上：甲必射威胁更大的乙，乙必射威胁最大的甲，丙也必射威胁最大的甲；因此第一轮无人射丙，丙100%存活。甲因被乙、丙同时瞄准，存活率仅24%（乙不中40%×丙不中60%）；乙仅被甲瞄准，存活率20%；而丙无初始火力威胁，且在后续可能的两两对决中处于相对有利位置。这体现博弈中的“威胁排序”与“靶心转移”逻辑：强者互为首要目标，弱者反成“安全区”，理性策略导致实力与生存率呈负相关。"
+    }
+  },
+  {
+    "id": "q_159",
+    "question": "为什么在单例模式中，饿汉式虽然线程安全且性能好，却可能影响系统启动效率并造成资源浪费，而懒汉式虽节省资源却需要额外处理线程安全问题？",
+    "difficulty": "complex",
+    "ground_truth": "饿汉式在类加载时即初始化单例对象，导致系统启动时必须完成对象创建及资源分配，从而拖慢启动速度；若该单例后续未被使用，其预先占用的内存、连接等资源即被浪费。懒汉式仅在首次调用时才初始化对象，实现按需加载，避免了闲置资源消耗；但多线程环境下可能多个线程同时判断实例为空并进入初始化流程，引发重复创建风险，因此必须引入同步机制（如synchronized或双重检查锁）来保障线程安全，这增加了代码复杂度，并可能带来同步开销或锁竞争性能损耗。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_532"
+    ],
+    "evidence": {
+      "doc_106_parent_532": "饿汉式在类加载时就初始化对象，虽天然线程安全且调用时无性能损耗，但会拖慢系统启动速度；若单例对象后续未被使用，则其占用的资源（如内存、连接等）造成浪费。懒汉式则在首次调用时才初始化对象，实现按需加载，节省资源；但因多线程可能同时触发初始化，必须通过同步机制（如synchronized、双重检查锁等）额外保障线程安全，增加了实现复杂度和潜在性能开销。"
+    }
+  },
+  {
+    "id": "q_160",
+    "question": "BERT模型中的注意力机制是如何通过捕捉词语间的上下文依赖关系来提升语言理解能力的？",
+    "difficulty": "complex",
+    "ground_truth": "BERT通过多头自注意力机制，动态计算每个词与其他所有词之间的注意力权重，从而同时捕捉句子中任意位置间的上下文依赖关系，无论距离远近；每个注意力头学习不同的语义关联模式，多头组合增强表征多样性；注意力权重随输入内容实时调整，生成上下文感知的词向量表示，有效建模长距离依赖、消解歧义，并提升对指代、省略、一词多义等复杂语言现象的理解能力。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_111"
+    ],
+    "evidence": {
+      "doc_108_parent_111": "BERT采用多头自注意力机制，通过计算每个词与其他所有词之间的注意力权重，动态捕捉词语在上下文中的语义关联。这种机制使模型能同时关注句子中多个位置的依赖关系，无论距离远近，从而建模长距离依赖和歧义消解。每个注意力头学习不同的上下文模式，多头组合增强表征能力；且注意力权重随输入内容变化，实现上下文感知的词向量表示。这种上下文敏感的表示显著提升对指代、省略、一词多义等语言现象的理解能力。"
+    }
+  },
+  {
+    "id": "q_161",
+    "question": "为什么在评测一个包含工具调用、技能分解、子Agent协同和工作台的RAG Agent系统时，仅关注检索召回率是不充分的？需要从哪些关键层面进行分层评估，以及每一层分别要保障Agent能力的什么本质特性？",
+    "difficulty": "complex",
+    "ground_truth": "仅关注检索召回率不充分，因为RAG Agent系统的能力远超单纯信息检索，涵盖工具调用、技能分解、子Agent协同和工作台等多层级复杂行为，单一指标无法反映其端到端的可靠性、鲁棒性与可控性。需从六个关键层面进行分层评估：  \n- 单元层保障基础函数的正确性；  \n- Retrieval层保障证据的充分召回；  \n- Citation层保障引用准确且与答案强支撑；  \n- Answer层保障答案正确、完整、无幻觉；  \n- Abstain层保障证据不足时合理拒答；  \n- Tool契约层保障工具注册规范、schema稳定及错误响应结构化；  \n- Routing层保障问题到工具/子Agent的精准匹配与路由合理性。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_32"
+    ],
+    "evidence": {
+      "doc_107_parent_32": "仅关注检索召回率不充分，因RAG Agent系统涉及工具调用、技能分解、子Agent协同和工作台等复杂能力。需分层评估：单元层保障基础函数正确性；Retrieval层保障证据召回；Citation层保障引用准确与支撑性；Answer层保障答案正确、完整、无幻觉；Abstain层保障证据不足时合理拒答；Tool契约层保障工具注册、schema稳定与错误结构化；Routing层保障问题-工具匹配准确性。"
+    }
+  },
+  {
+    "id": "q_162",
+    "question": "这段代码在训练过程中是如何计算并展示每个epoch的平均耗时，同时确保记录的loss值反映实际梯度累积后的损失大小的？",
+    "difficulty": "complex",
+    "ground_truth": "代码通过将`loss.item()`乘以`args.accumulation_steps`恢复真实损失值，使记录的loss反映梯度累积后的实际损失大小；平均耗时计算为`spend_time / (step + 1) * iter_per_epoch // 60 - spend_time // 60`，即用当前累计耗时除以已执行步数后乘以每epoch总步数，再转换为分钟并减去已过的整分钟数，从而动态预估并展示当前epoch的平均耗时（单位：分钟）。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_333"
+    ],
+    "evidence": {
+      "doc_108_parent_333": "代码通过`loss.item() * args.accumulation_steps`恢复真实损失值，确保记录的loss反映梯度累积后的实际大小；平均耗时计算为`spend_time / (step + 1) * iter_per_epoch // 60 - spend_time // 60`，即用当前累计耗时除以已执行步数，再乘以每epoch总步数，转换为分钟并减去已过的整分钟数，从而得到当前epoch的预估平均耗时（单位：分钟）。"
+    }
+  },
+  {
+    "id": "q_163",
+    "question": "为什么在只有2个鸡蛋和100层楼的限制下，简单的二分法虽然在部分情况下尝试次数较少，却不是最坏情况下的最优策略？这与‘鸡蛋碎了就不可再用’这一约束之间存在怎样的本质矛盾？",
+    "difficulty": "complex",
+    "ground_truth": "因为二分法在高层（如50层）首次测试时若鸡蛋破碎，剩余1个鸡蛋需对下方49层逐层线性测试，最坏情况达50次；而“鸡蛋碎了就不可再用”这一约束导致高层碎蛋后测试能力骤降，无法继续分治，迫使策略退化为低效线性搜索。这与最优策略要求每次尝试的最坏代价（即该次失败后还需的最大尝试次数）严格均衡的本质相矛盾——二分法未考虑鸡蛋数量减少带来的容错能力断崖式下降，因而无法控制最坏情况下的总尝试次数。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_594"
+    ],
+    "evidence": {
+      "doc_106_parent_594": "二分法在第一枚鸡蛋碎于50层时，需用第二枚鸡蛋从1层逐层测试至49层，最坏情况达50次尝试；而“鸡蛋碎了就不可再用”的约束使二分法无法均衡风险——高层碎蛋后剩余测试空间大但仅剩1蛋，被迫退化为线性搜索，导致最坏情况次数剧增。最优策略需让每次尝试的最坏代价尽可能均等，而非简单对半分割楼层。"
+    }
+  },
+  {
+    "id": "q_164",
+    "question": "为什么在使用预训练模型进行监督微调（SFT）时，需要特别关注并沿用该模型对应的Chat Template，而不是随意设计一个新的模板？",
+    "difficulty": "complex",
+    "ground_truth": "因为Chat Template决定了对话数据转化为文本序列的方式，沿用预训练模型对应的Chat Template可保持输入格式与SFT阶段一致，避免破坏模型已学到的指令遵循能力、对角色标记（如user/assistant）及特殊token的语义理解，从而保障其对话生成与指令响应能力；随意设计新模板会引入格式偏差，导致模型性能下降。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_430"
+    ],
+    "evidence": {
+      "doc_108_parent_430": "在SFT过程中，Chat Template决定了如何将对话数据转化为模型可建模的文本序列。使用预训练模型进行SFT时，需沿用其对应的Chat Template，是为了不损伤模型在SFT中已学到的指令遵循能力。若随意设计新模板，会导致输入格式与SFT阶段不一致，破坏模型对指令结构、角色标记（如user/assistant）及特殊token的语义理解，进而削弱其对话生成与指令响应能力。文中明确指出，因采用Qwen-2.5-1.5B模型结构预训练，故沿承使用Qwen-2.5的Chat Template。"
+    }
+  },
+  {
+    "id": "q_165",
+    "question": "为什么Agentic RAG被认为比普通RAG更具适应性，这种差异在实际问答过程中会如何体现？",
+    "difficulty": "complex",
+    "ground_truth": "Agentic RAG比普通RAG更具适应性，是因为它摒弃了固定的“问题→检索→拼上下文→生成”流水线，转而依据问题类型、检索结果质量及证据可靠性动态决策，包括判断是否需要检索、是否启动多轮检索、是否调用外部工具或重写查询；这种差异在实际问答中体现为：对模糊问题能主动发起澄清，对检索结果不充分的情况自动进行迭代检索，对相互矛盾的证据能自主验证或加权处理，对无需检索的常识性问题则直接生成答案，从而避免冗余步骤、提升响应准确性与效率。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_9"
+    ],
+    "evidence": {
+      "doc_107_parent_9": "Agentic RAG比普通RAG更具适应性，因其不采用固定链路（问题→检索→拼上下文→生成），而是根据问题类型、检索结果和证据质量动态决策，例如判断是否需要检索、是否需多轮检索、是否调用外部工具或重写查询。这种差异在实际问答中体现为：面对模糊问题可主动澄清；检索结果不充分时自动迭代检索；证据矛盾时自主验证或加权；无需检索的常识性问题直接生成答案，避免冗余步骤。"
+    }
+  },
+  {
+    "id": "q_166",
+    "question": "这段代码中，模型保存和初始化的流程体现了怎样的训练工程实践？例如，为什么在保存模型前要先获取state_dict（而非直接保存整个模型），又为什么在保存后显式调用model.train()，以及初始化函数为何需要同时处理分词器加载、模型构建、多GPU适配和设备迁移等多个环节？",
+    "difficulty": "complex",
+    "ground_truth": "该训练工程实践体现了模块化、可复现与硬件适配的系统性设计：保存state_dict而非整个模型，因其仅含参数、体积小且跨环境兼容性强；显式调用model.train()确保模型恢复训练时正确启用dropout和BatchNorm的训练行为（如参数更新与统计量累积）；init_model函数统一处理分词器加载、模型构建、多GPU封装（如DataParallel）和设备迁移，保障训练环境一致性、提升资源利用效率，并支持不同硬件配置下的无缝迁移与复现。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_338"
+    ],
+    "evidence": {
+      "doc_108_parent_338": "保存模型前获取state_dict而非整个模型，因state_dict仅保存参数，体积小、跨环境兼容性好；显式调用model.train()确保恢复训练时模型处于训练模式（启用dropout/batchnorm更新）；init_model函数集成分词器加载、模型构建、多GPU适配（如DataParallel封装）和设备迁移，体现模块化、可复现的工程实践，保障训练环境一致性与硬件资源高效利用。"
+    }
+  },
+  {
+    "id": "q_167",
+    "question": "为什么在Agent系统中，仅依靠提示词来控制权限是不够的，而需要在整个调用链路（从网关到运行时再到工具执行）中持续传递和校验用户身份与作用域？",
+    "difficulty": "complex",
+    "ground_truth": "因为提示词易被绕过或篡改，无法保证权限控制的强制性和一致性；用户身份与作用域若仅在网关层校验而未贯穿调用链路，会导致runtime和tool执行环节失去上下文，使检索、文件操作、导出及外部动作等关键行为脱离权限约束；高风险工具需在执行前二次校验权限并可能触发确认或审批，且所有工具调用必须记录脱敏审计日志，因此必须在网关、runtime和tool执行各环节持续传递、校验并应用用户身份与作用域，才能实现端到端的权限可控、可追溯与安全合规。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_68"
+    ],
+    "evidence": {
+      "doc_107_parent_68": "Agent权限不能只靠提示词。用户身份需从gateway层校验后，持续传递至runtime和tool执行环节；检索、文件操作、导出及外部动作均须携带user scope。tool执行前须再次检查权限，高风险tool需增加确认或审批机制。所有tool调用需记录审计日志，包含tool name、输入与输出摘要、耗时、错误及操作者，并对secret、token、PII和文件路径等敏感信息脱敏。"
+    }
+  },
+  {
+    "id": "q_168",
+    "question": "在选择Java垃圾收集器时，为什么不能只看JDK版本或堆内存大小中的某一个因素，而需要综合考虑两者？",
+    "difficulty": "complex",
+    "ground_truth": "因为堆内存大小影响收集器的适用性（如G1、ZGC通常需4G以上堆内存，8G或16G以上效果更佳），而JDK版本决定支持的收集器类型（不同版本可用的垃圾收集器存在差异）；两者相互制约——JDK版本不支持则即使堆足够大也无法使用某收集器，堆过小则即使JDK支持该收集器也无法发挥其优势。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_176"
+    ],
+    "evidence": {
+      "doc_106_parent_176": "选择Java垃圾收集器时，不能只看JDK版本或堆内存大小中的某一个因素，因为：一方面，堆内存大小影响收集器适用性，如G1、ZGC一般需堆内存至少4G以上，8G或16G以上效果更佳；另一方面，JDK版本决定支持的收集器类型，不同版本可用的垃圾收集器存在差异。两者相互制约——即使堆足够大，若JDK版本不支持ZGC，则无法使用；反之，若JDK支持ZGC但堆过小（如仅2G），其优势也无法发挥。因此必须综合评估JDK版本与堆内存大小，才能合理选择适配的垃圾收集器。"
+    }
+  },
+  {
+    "id": "q_169",
+    "question": "为什么在构建问答系统时，需要先将文档切分并生成向量表示，再存入向量数据库，而不是直接对原始文档进行关键词搜索？",
+    "difficulty": "complex",
+    "ground_truth": "因为向量检索能捕捉语义相似性，而关键词搜索仅匹配字面词汇；文档切分后生成向量表示可将语义信息编码为稠密向量，存入向量数据库，查询时通过向量化问题并计算向量相似度（如余弦相似度）高效检索语义相关片段，从而有效处理同义词、多义词和句式变化等问题，显著提升问答系统的准确性和鲁棒性。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_492"
+    ],
+    "evidence": {
+      "doc_108_parent_492": "因为向量检索能捕捉语义相似性，而关键词搜索仅匹配字面词汇。文档切分后生成向量表示，可将语义信息编码为稠密向量，存入向量数据库；查询时将问题同样向量化，通过向量相似度（如余弦相似度）高效检索语义相关片段。相比关键词搜索，该方法能处理同义词、多义词、句式变化等问题，显著提升问答系统的准确性和鲁棒性。"
+    }
+  },
+  {
+    "id": "q_170",
+    "question": "这份《中文信息处理发展报告（2016）》的前言部分主要承担了怎样的学术功能或编撰意图？",
+    "difficulty": "complex",
+    "ground_truth": "《中文信息处理发展报告（2016）》前言部分旨在概述本年度中文信息处理领域的整体发展态势，梳理关键技术进展与重要成果，明确报告的编撰框架、内容组织逻辑及学术定位；同时阐明该报告作为学会年度权威综述的使命，即服务学术界与产业界，促进学科交流与技术转化，并为后续研究提供基础性参考与方向性指引。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_41"
+    ],
+    "evidence": {
+      "doc_108_parent_41": "《中文信息处理发展报告（2016）》前言部分旨在概述本年度中文信息处理领域的整体发展态势，梳理关键技术进展与重要成果，明确报告的编撰框架、内容组织逻辑及学术定位；同时阐明该报告作为学会年度权威综述的使命，即服务学术界与产业界，促进学科交流与技术转化，并为后续研究提供基础性参考与方向性指引。"
+    }
+  },
+  {
+    "id": "q_171",
+    "question": "为什么在生产环境中不推荐使用Executors工厂类来创建线程池，而建议直接使用ThreadPoolExecutor？这背后主要担忧的是哪一类系统性风险？",
+    "difficulty": "complex",
+    "ground_truth": "因为在生产环境中，Executors工厂类创建的线程池存在资源耗尽风险：newFixedThreadPool()和newSingleThreadExecutor()使用无界队列（长度为Integer.MAX_VALUE），易导致请求持续堆积、内存溢出（OOM）；newCachedThreadPool()允许线程数无限增长至Integer.MAX_VALUE，易引发线程数爆炸。这背后主要担忧的是系统性资源失控风险，包括内存溢出和线程资源耗尽。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_76"
+    ],
+    "evidence": {
+      "doc_106_parent_76": "Executors工厂类创建的线程池存在资源耗尽风险：newFixedThreadPool()和newSingleThreadPool()使用无界队列（长度为Integer.MAX_VALUE），可能导致请求堆积、内存溢出（OOM）；newCachedThreadPool()允许创建线程数达Integer.MAX_VALUE，易引发线程数爆炸。这些设计缺陷会引发系统性风险，尤其是OOM和线程资源耗尽，故生产环境推荐直接使用ThreadPoolExecutor，以便显式控制核心线程数、最大线程数、队列容量及拒绝策略，从而规避资源失控风险。"
+    }
+  },
+  {
+    "id": "q_172",
+    "question": "在Redis主从架构中，当主节点发生故障时，除了需要故障恢复机制外，为什么单靠主从复制本身无法完全解决高并发写入和数据实时性这两个关键问题？",
+    "difficulty": "complex",
+    "ground_truth": "因为主从复制存在同步延时，导致从节点数据非实时，无法保障数据实时性；同时架构中仅有一个主节点承担全部写请求，无法分担高并发写入压力，形成写性能单点瓶颈。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_262"
+    ],
+    "evidence": {
+      "doc_106_parent_262": "主从复制存在同步延时，导致slave数据非实时，影响数据实时性；且仅有一个master节点，无法分担高并发写入压力，写性能存在单点瓶颈。"
+    }
+  },
+  {
+    "id": "q_173",
+    "question": "为什么很多看起来很炫的 Agent 演示难以真正上线，而工程化实践中强调的这些要点（如工具白名单、状态管理、回溯能力等）共同解决了什么根本性问题？",
+    "difficulty": "complex",
+    "ground_truth": "因为很多 Agent 演示缺乏工程边界，而工具白名单、状态管理、回溯能力等要点共同解决了 Agent 系统的可靠性、安全性、可控性与可维护性问题，确保调用安全合法、任务进度可追踪可恢复、行为可解释、异常可兜底、资源不耗尽、数据不越权、问题可定位，从而支撑真实业务场景下的稳定运行。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_21"
+    ],
+    "evidence": {
+      "doc_107_parent_21": "很多 Agent 演示难以上线，根本原因在于缺乏工程边界。工具白名单、参数校验、状态管理、Trace（可追溯性）、递归限制、超时控制、降级策略、权限控制和可观测性等要点，共同解决了 Agent 系统的可靠性、安全性、可控性与可维护性问题：确保调用安全合法、任务进度可追踪可恢复、行为可解释、异常可兜底、资源不耗尽、数据不越权、问题可定位，从而支撑真实业务场景下的稳定运行。"
+    }
+  },
+  {
+    "id": "q_174",
+    "question": "在Redis主从全量同步过程中，为什么master节点需要通过replid和offset来判断slave是否为首次同步，而不是仅依靠连接状态或时间戳等其他信息？",
+    "difficulty": "complex",
+    "ground_truth": "因为replid标识数据集的唯一性，offset标识复制进度，二者组合能精确判断slave是否持有与master一致的历史数据版本及同步位置：若replid一致且offset在master的repl_backlog缓冲区内，则为断线重连，可部分同步；若replid不匹配或offset超出缓冲区范围，则为首次同步，需全量同步；而连接状态无法区分新旧连接，时间戳无法反映实际数据一致性，故仅依赖二者无法确保同步的正确性和高效性。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_276"
+    ],
+    "evidence": {
+      "doc_106_parent_276": "master通过replid和offset判断slave是否首次同步，因为replid标识数据集唯一性，若slave与master的replid一致且offset在master的repl_backlog缓冲区范围内，则说明slave是断线重连而非首次同步，可进行部分同步；若replid不匹配或offset超出范围，则判定为首次同步，需执行全量同步。仅依赖连接状态无法区分新旧连接，时间戳则无法准确反映数据一致性状态，而replid+offset组合能精确标识数据版本及进度，确保同步的正确性和高效性。"
+    }
+  },
+  {
+    "id": "q_175",
+    "question": "当一个AI系统需要处理既包含固定长流程又存在动态不确定性的复杂任务，同时对结果正确率要求很高，应该采用怎样的组合策略？为什么这种组合能兼顾可控性、灵活性和可靠性？",
+    "difficulty": "complex",
+    "ground_truth": "应采用Plan-and-Execute、ReAct与Reflection三者组合策略：以Plan-and-Execute进行整体规划，保障固定长流程的可控性与可审核性；在每个步骤内部采用ReAct执行，实现实时交互、动态响应与工具调用，增强灵活性；在关键步骤叠加Reflection机制，通过自我反思与纠错显著提升结果正确率。该组合通过分层协同，将宏观可控性、微观灵活性和过程可靠性有机统一，特别适用于高正确率要求且允许适度增加计算成本的复杂任务场景。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_658"
+    ],
+    "evidence": {
+      "doc_106_parent_658": "应采用Plan-and-Execute、ReAct与Reflection三者组合策略：用Plan-and-Execute做整体规划，确保流程固定、长链路任务的可控性与可审核性；每个步骤内部用ReAct执行，以应对动态不确定性、支持实时交互及工具调用；在关键步骤叠加Reflection进行自我纠错，提升结果正确率。该组合兼顾了Plan-and-Execute的可控性、ReAct的灵活性以及Reflection的可靠性，尤其适用于对正确率要求高、允许增加成本的复杂任务场景。"
+    }
+  },
+  {
+    "id": "q_176",
+    "question": "这段代码在训练一个小型语言模型时，为什么需要先用DataParallel包装模型，再将模型移动到指定设备，并且在保存检查点时还要特别判断模型是否是DataParallel实例？这反映了分布式训练中模型部署和保存的什么关键考量？",
+    "difficulty": "complex",
+    "ground_truth": "因为DataParallel包装会改变模型结构，使其成为DataParallel实例，其实际模型参数存储在module属性中；先包装再移动设备可确保多GPU并行机制正确初始化；保存检查点时必须区分实例类型，对DataParallel实例调用model.module.state_dict()以提取原始模型参数，避免保存冗余包装层。这反映了分布式训练中必须解耦模型封装结构与参数提取逻辑，确保检查点仅包含原始模型权重，从而兼容单卡加载和跨设备部署。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_360"
+    ],
+    "evidence": {
+      "doc_108_parent_360": "使用DataParallel包装模型后，模型被封装为DataParallel实例，其实际模型位于module属性中；需先包装再移动设备以确保多GPU并行正确初始化；保存检查点时必须判断是否为DataParallel实例，若是则调用model.module.state_dict()获取原始模型参数，否则直接调用model.state_dict()，避免保存冗余的DataParallel包装层。这反映了分布式训练中模型封装结构与参数提取逻辑解耦的关键考量——确保保存的检查点仅含原始模型权重，兼容单卡加载与跨设备部署。"
+    }
+  },
+  {
+    "id": "q_177",
+    "question": "在实现LLaMA2模型的过程中，为什么在完成Attention模块和MLP模块后，下一步自然是要构建Decoder Layer，这反映了LLaMA2整体架构怎样的设计逻辑？",
+    "difficulty": "complex",
+    "ground_truth": "因为LLaMA2是纯解码器架构的Transformer模型，其整体由多个结构相同的Decoder Layer堆叠而成，每个Decoder Layer内部依次包含Attention模块、RMSNorm归一化、残差连接、MLP模块及相应的归一化与残差连接；在已实现Attention和MLP这两个核心原子模块后，将其按标准结构（含归一化、残差连接及固定顺序）封装为可复用的Decoder Layer单元，是构建完整模型的必然步骤；这体现了LLaMA2“模块化分层堆叠”的设计逻辑：底层复用原子模块，中层组织为功能完整的Decoder Layer，顶层通过堆叠多层形成全模型。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_244"
+    ],
+    "evidence": {
+      "doc_108_parent_244": "LLaMA2是纯解码器架构的Transformer模型，其核心由多个结构相同的Decoder Layer堆叠而成；每个Decoder Layer内部依次包含Attention模块和MLP模块，并辅以RMSNorm归一化、残差连接等组件；在已实现Attention与MLP这两个核心子模块后，将其按标准Decoder Layer结构（含归一化、残差连接及模块顺序）封装为可复用的层单元，是构建完整模型的自然步骤；这体现了LLaMA2“模块化分层堆叠”的设计逻辑——底层复用原子模块，中层组织为功能完整的Decoder Layer，顶层堆叠多层形成全模型。"
+    }
+  },
+  {
+    "id": "q_178",
+    "question": "为什么说大模型Agent比普通大模型更适合处理复杂模糊的多步骤任务？请结合工具调用闭环和规划调度能力来解释其根本区别。",
+    "difficulty": "complex",
+    "ground_truth": "大模型Agent比普通大模型更适合处理复杂模糊的多步骤任务，根本区别在于：大模型Agent具备工具调用闭环和规划调度能力，能将任务自动拆解为有序子任务，依据工具执行结果动态调整规划，实现多步推理与自我纠错；其闭环流程为“模型决策调用工具→格式化输出指令→框架调度执行→结果回传→二次推理并规划下一步”，形成“感知-决策-行动-反馈-再决策”的完整循环；而普通大模型仅支持单点问答，既无任务拆解与动态重规划能力，也无工具交互闭环，无法自主推进多步骤任务。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_646"
+    ],
+    "evidence": {
+      "doc_106_parent_646": "大模型Agent能将复杂模糊的多步骤任务拆解为有序子任务，并依据工具执行结果动态调整规划，具备多步推理与自我纠错能力；其核心在于工具调用闭环：模型决策调用工具→格式化输出指令→框架调度执行→结果回传→二次推理并规划下一步，形成“感知-决策-行动-反馈-再决策”的完整循环。普通大模型仅支持单点问答，缺乏规划调度能力与工具交互闭环，无法自主推进多步骤任务。"
+    }
+  },
+  {
+    "id": "q_179",
+    "question": "这份学习资料主要围绕哪些经典算法主题进行组织？这些主题之间在图论和数据结构的学习路径中存在怎样的逻辑关联？",
+    "difficulty": "complex",
+    "ground_truth": "这份学习资料主要围绕冗余连接、最小生成树（Prim算法、Kruskal算法）、拓扑排序、最短路径算法（Dijkstra原始/优化版、Bellman-Ford原始/优化/负权回路判断、单源有限最短路、Floyd算法、A*算法）及单调栈等经典算法主题进行组织；这些主题在图论和数据结构学习路径中呈现递进逻辑：冗余连接与最小生成树聚焦无向图的连通性与树结构，构成图基础建模与优化的起点；拓扑排序处理有向无环图的依赖关系，实现从无向到有向、从静态连通到动态序关系的过渡；最短路径算法系统覆盖单源与多源、非负权与含负权等不同图场景，是图上距离与路径规划的核心深化；单调栈作为典型线性数据结构技巧，虽属数据结构范畴，但支撑部分图相关问题（如某些最短路径变体或图遍历优化）的高效实现，体现数据结构对图算法的底层支撑作用。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_578"
+    ],
+    "evidence": {
+      "doc_106_parent_578": "这份学习资料主要围绕冗余连接、最小生成树（Prim算法、Kruskal算法）、拓扑排序、最短路径算法（Dijkstra原始/优化版、Bellman-Ford原始/优化/负权回路判断、单源有限最短路、Floyd算法、A*算法）及单调栈等经典算法主题组织。这些主题在图论和数据结构学习路径中呈现递进逻辑：冗余连接与最小生成树聚焦无向图的连通性与树结构；拓扑排序处理有向无环图的依赖关系；最短路径算法系统覆盖单源与多源、非负权与含负权等不同图场景；单调栈则作为典型线性数据结构技巧，支撑部分图相关问题的高效实现。"
+    }
+  },
+  {
+    "id": "q_180",
+    "question": "为什么在RAG系统中，除了使用快速但粗粒度的向量检索（bi-encoder）外，还需要引入rerank精排环节（cross-encoder）？",
+    "difficulty": "complex",
+    "ground_truth": "因为bi-encoder向量检索虽速度快，但仅对query和chunk分别编码，缺乏交互建模，导致语义匹配精度不足；而cross-encoder reranker能联合输入query和chunk进行深度交互建模，实现更细粒度、更精准的相关性打分，从而有效弥补向量检索的精度缺陷，提升最终召回结果的质量。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_41"
+    ],
+    "evidence": {
+      "doc_107_parent_41": "向量检索通常采用bi-encoder，速度快但判断较粗；reranker则采用cross-encoder，能同时输入query和chunk进行联合建模，实现更细粒度、更精准的相关性打分，从而弥补向量检索在语义匹配精度上的不足，提升最终召回结果的质量。"
+    }
+  },
+  {
+    "id": "q_181",
+    "question": "在LLM时代，为什么Transformers框架逐渐成为学界和业界NLP开发的主流选择，而不是继续依赖自定义模型实现或从头构建训练流程？",
+    "difficulty": "complex",
+    "ground_truth": "因为LLM时代以复用预训练大模型为主，开发者重心转向Post-Train和SFT等下游适配任务，而非从头预训练；Transformers框架原生支持主流开源LLM的权重加载、推理与高效微调，深度集成DeepSpeed等分布式训练工具，显著降低工程门槛；同时其标准化接口、活跃社区与生态支持（如即时适配DeepSeek、Qwen等新模型）使其成为学界科研与工业级交付的统一首选。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_392"
+    ],
+    "evidence": {
+      "doc_108_parent_392": "在LLM时代，模型结构调整和重新预训练减少，开发者更多聚焦于使用预训练LLM进行Post-Train和SFT以支持下游应用；预训练模型体量大，便捷集成DeepSpeed等分布式训练框架成为必备技能；Transformers框架高效、便捷支持LLM训练与开发，实现工业级交付；新发布的开源LLM（如DeepSeek、Qwen）均第一时间在Transformers社区开放预训练权重与调用Demo；学界与业界在科研及企业开发中普遍首选Transformers进行模型实现。"
+    }
+  },
+  {
+    "id": "q_182",
+    "question": "为什么在Spring中两个相互依赖的Bean（如A依赖B、B又依赖A）会导致循环依赖问题，而通过三级缓存机制中的‘半成品对象’可以解决这一问题？",
+    "difficulty": "complex",
+    "ground_truth": "因为两个相互依赖的Bean在初始化过程中会陷入无限递归：A创建时需注入B，而B创建时又需注入A，导致彼此等待、无法完成初始化；Spring通过三级缓存机制解决该问题——在A仅完成构造实例化（尚未属性注入和初始化）后，立即将其“半成品对象”对应的ObjectFactory放入三级缓存；当B初始化时发现依赖A，便通过该ObjectFactory提前获取并引用A的半成品实例，从而打破循环；待B初始化完成后，再回过头为A完成属性注入和初始化，最终使双方均能正常构建完毕。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_353"
+    ],
+    "evidence": {
+      "doc_106_parent_353": "当两个Bean（如A依赖B、B依赖A）在初始化过程中互相依赖时，会陷入无限递归。Spring通过三级缓存机制解决：首先实例化A（仅调用构造函数，未注入属性和初始化），生成“半成品对象”，并将其ObjectFactory存入三级缓存；当B初始化时发现依赖A，便从三级缓存中获取A的ObjectFactory，提前暴露未初始化的A实例供B注入；待B初始化完成后，再继续完成A的属性注入和初始化。半成品对象即仅完成实例化、尚未进行属性注入和初始化的空壳对象，使循环依赖双方能相互引用并最终完成完整初始化。"
+    }
+  },
+  {
+    "id": "q_183",
+    "question": "为什么LLaMA系列模型（尤其是LLaMA-3）被视为推动全球AI技术应用与创新的重要力量？请结合其技术演进、能力提升及生态建设等方面综合说明。",
+    "difficulty": "complex",
+    "ground_truth": "LLaMA系列模型（尤其是LLaMA-3）因开源性、持续技术演进、显著能力提升和系统化生态建设，成为推动全球AI技术应用与创新的重要力量：LLaMA-1开源即被社区广泛采用，奠定开放基础；LLaMA-2和LLaMA-3引入分组查询注意力机制、支持更长上下文输入，大幅提升推理效率与任务适配性；LLaMA-3采用128K词表的高效tokenizer和15T token训练数据，在多语言理解、多任务泛化及复杂推理能力上取得重大突破；模型参数规模覆盖7亿至数百亿，兼顾边缘部署与高性能场景；Meta同步强化安全对齐、提供高质量文档与工具链，并持续投入社区支持，全面加速全球开发者创新与产业落地。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_154"
+    ],
+    "evidence": {
+      "doc_108_parent_154": "LLaMA系列模型（尤其是LLaMA-3）因开源性、技术演进与生态建设成为全球AI创新重要推动力。LLaMA-1开源即获社区广泛采用；LLaMA-2和LLaMA-3引入分组查询注意力机制、支持更长文本输入，显著提升性能与应用广度。LLaMA-3采用128K词表的高效tokenizer及15T token训练数据，在多语言、多任务处理上取得重大进步。模型参数覆盖7亿至数百亿，适配多元应用场景。Meta持续强化模型安全性与社区支持，有力促进全球AI技术应用与生态繁荣。"
+    }
+  },
+  {
+    "id": "q_184",
+    "question": "在构建智能体系统时，为什么既要设计 skill 又要引入 subagent，它们各自解决的核心问题有什么不同？",
+    "difficulty": "complex",
+    "ground_truth": "Skill 用于解决复杂任务中固定步骤执行不稳的问题，通过按需激活、减少主上下文负担、沉淀方法论，确保流程（如检查状态→读取资料→生成结果→验证）稳定可靠；subagent 用于解决主 Agent 角色过载问题，通过将专门任务交由具备特定工具和约束的独立子单元处理，实现职责分离与能力专业化。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_26"
+    ],
+    "evidence": {
+      "doc_107_parent_26": "Skill 用于解决复杂任务中固定步骤执行不稳的问题，通过按需激活、减少主上下文负担、沉淀方法论，确保流程（如检查状态→读取资料→生成结果→验证）稳定可靠；subagent 则用于解决主 Agent 角色过载问题，通过将专门任务交由具备特定工具和约束的独立子单元处理，实现职责分离与能力专业化。"
+    }
+  },
+  {
+    "id": "q_185",
+    "question": "在分布式系统中，Redis常被用作缓存和分布式锁的基础设施，但实际使用中会面临热Key、大Key、高可用性、数据一致性、持久化可靠性以及缓存异常（如击穿、穿透、雪崩）等多重挑战。请结合这些典型问题，说明为什么Redis虽以高性能著称，但在真实生产环境中要保障其稳定、安全、一致地服务于业务，不能仅依赖其单线程和内存特性，而必须综合考虑架构设计、机制选型与风险应对策略？",
+    "difficulty": "complex",
+    "ground_truth": "Redis虽以单线程和内存操作实现高性能，但生产中热Key会导致节点过载、大Key会阻塞主线程并拖慢网络传输、主从异步复制引发数据丢失与一致性弱保障、哨兵故障转移存在延迟且Cluster分片管理复杂影响高可用、RDB快照可能丢数据、AOF重写会阻塞主线程、混合持久化配置不当则可靠性下降，同时缓存击穿（无锁并发查库）、穿透（无效key压垮DB）、雪崩（大量key集中失效）等异常会直接冲击下游数据库；因此，必须通过分片/读写分离架构缓解负载压力，采用多级缓存与降级策略增强容错能力，依据场景选型RDB/AOF/混合持久化并调优参数，使用Redisson等具备看门狗机制的分布式锁保障锁安全，结合热点探测与本地缓存分散热Key访问，并实施布隆过滤器防穿透、逻辑过期+互斥锁防击穿、随机TTL+分层预热防雪崩等综合机制，才能在真实生产环境中实现稳定、安全、一致的服务。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_720"
+    ],
+    "evidence": {
+      "doc_106_parent_720": "Redis虽以单线程、内存操作实现高性能，但在生产中面临热Key（请求集中导致节点过载）、大Key（阻塞主线程、网络传输慢）、高可用性（主从同步延迟、哨兵故障转移不及时、Cluster分片管理复杂）、数据一致性（异步复制丢数据、AP模型下强一致难保障）、持久化可靠性（RDB快照丢失数据、AOF重写阻塞、混合持久化配置不当）、缓存异常（击穿—无锁并发查库、穿透—无效key压垮DB、雪崩—大量key同时失效）等多重挑战。因此，仅靠单线程与内存特性无法保障稳定、安全、一致服务，必须结合分片/读写分离架构设计、多级缓存与降级策略、合理持久化选型、分布式锁（如Redisson看门狗机制）、热点探测与本地"
+    }
+  },
+  {
+    "id": "q_186",
+    "question": "在构建检索系统时，为什么不能只依赖向量库进行召回，而需要结合BM25、RRF融合和rerank等多个环节？这一整套链路设计背后的核心权衡逻辑是什么？",
+    "difficulty": "complex",
+    "ground_truth": "因为向量库仅擅长语义召回，难以处理精确匹配（如专有名词、数字、代码等），需BM25等关键词召回互补；dense与sparse召回的分数不可比，故采用RRF进行无标度、鲁棒的排名融合；融合后的候选集仍含噪声且规模较大，需通过计算开销更高的rerank进行精细化重排序；但rerank成本高，只能作用于有限窗口以控制延迟；整套链路设计的核心权衡逻辑是在召回率（recall）、平均倒数排名（MRR）、引用精度（citation precision）等效果指标与系统响应延迟（latency）等性能指标之间取得最优平衡。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_69"
+    ],
+    "evidence": {
+      "doc_107_parent_69": "向量库解决语义召回，但不擅长所有精确匹配，所以需要BM25等关键词召回补充；dense和sparse召回分数尺度不同，用RRF基于排名融合；融合后候选仍可能有噪声，需rerank精排；rerank成本高，仅对有限候选窗口执行；整套链路是效果（recall、MRR、citation precision）与性能（latency）的权衡。"
+    }
+  },
+  {
+    "id": "q_187",
+    "question": "为什么说RAG Agent的核心不在于堆砌更多上下文和工具，而在于构建一条‘从问题到证据、从证据到工具调用、从工具调用到答案、从答案到评测’的可信链路？这条链路如何体现其与传统简单增强型模型的本质区别？",
+    "difficulty": "complex",
+    "ground_truth": "因为RAG Agent的核心是通过证据驱动的动态决策、能力编排与闭环验证，构建可追溯、可验证、可干预的系统性机制：生成严格受证据约束，证据不足时主动拒答，通过Tool/skill/subagent协同实现可控能力调用，依托Runtime/中间件/工作台支撑工程化交付，并以评测回归验证效果；而传统简单增强型模型仅依赖静态上下文注入与单次生成，缺乏证据驱动、动态决策、能力编排、运行时管控及闭环评测等关键环节。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_105"
+    ],
+    "evidence": {
+      "doc_107_parent_105": "RAG Agent的核心在于构建一条“从问题到证据、从证据到工具调用、从工具调用到答案、从答案到评测”的可信链路，而非堆砌更多上下文和工具。该链路体现为：生成受证据约束（3），证据不足时主动拒答（4），Tool/skill/subagent协同形成可控能力（5），Runtime/中间件/工作台支撑工程化交付（6），优化效果通过评测回归验证（7）。这区别于传统简单增强型模型——后者仅依赖静态上下文注入与单次生成，缺乏证据驱动、动态决策、能力编排、运行时管控及闭环评测等多环节可追溯、可验证、可干预的系统性机制。"
+    }
+  },
+  {
+    "id": "q_188",
+    "question": "作者为什么强调要将理论学习与实践结合，并鼓励读者参与开源社区和项目贡献？这反映了本书在LLM学习路径上倡导怎样的核心理念和价值观？",
+    "difficulty": "complex",
+    "ground_truth": "作者强调将理论学习与实践结合，并鼓励参与开源社区和项目贡献，是因为LLM领域发展迅速、高度实践导向，唯有通过复现代码、参与项目与比赛、在开源社区（如Datawhale）提问与协作，才能真正掌握技术、提升能力；这反映了本书倡导“知行合一、以用促学”的核心理念，以及崇尚自由、平等、共建共享的开源价值观，致力于通过大众化参与和持续贡献，降低LLM学习门槛，推动开源LLM生态繁荣发展。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_5"
+    ],
+    "evidence": {
+      "doc_108_parent_5": "LLM是快速发展、注重实践的领域，需将理论与实际结合，多投入实战、复现代码、参与项目与比赛；鼓励关注Datawhale等开源社区，在issue区提问，并在学成后加入LLM开发者行列；倡导以自由、平等的开源精神，聚集共创者，丰富开源LLM世界，打造全面特色教程；欢迎报告Bug、提功能建议、完善内容、优化代码等任何形式贡献；强调“星火点点，汇聚成海”，致力于成为LLM与普罗大众的阶梯。"
+    }
+  },
+  {
+    "id": "q_189",
+    "question": "为什么TCP连接关闭需要四次挥手，且主动关闭方会进入TIME_WAIT状态并等待2MSL时间，而这一机制的设计考量与Java泛型中采用类型擦除来保证向后兼容的设计思路，在解决‘兼容性与可靠性’问题上存在怎样的共性？",
+    "difficulty": "multi-hop",
+    "ground_truth": "TCP四次挥手与Java泛型类型擦除的共性在于：二者均通过主动牺牲部分运行时能力（TCP放弃即时资源释放以维持连接状态，Java放弃运行时泛型类型信息以保持字节码结构），在系统演进过程中优先保障关键维度的稳定性——即TCP确保网络通信的可靠性与新旧连接间的互不干扰，Java确保语言特性升级后对旧JVM和既有程序的完全向后兼容；其本质是面向长期演化所采取的稳健性设计，以兼容性为约束换取整体生态的可靠性和互操作性。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_690",
+      "doc_106_parent_380",
+      "doc_106_parent_28"
+    ],
+    "evidence": {
+      "doc_106_parent_690": "TCP四次挥手确保双方都明确关闭连接，避免数据丢失或重复；主动关闭方进入TIME_WAIT并等待2MSL，是为了可靠处理网络中可能滞留的旧报文，防止新连接收到旧连接的残留数据，保障通信可靠性与协议兼容性。Java泛型采用类型擦除，使泛型代码在运行时与非泛型字节码兼容，确保新泛型代码可无缝运行于旧JVM，维持向后兼容性。二者均通过牺牲部分运行时能力（如TCP的即时资源释放、Java的运行时类型信息），换取系统在演进过程中对旧版本行为的兼容保障和整体通信/执行的可靠性。",
+      "doc_106_parent_380": "TCP四次挥手因双方需独立确认数据传输完毕：客户端发FIN仅表示停止发送，服务端需先回ACK再发自身FIN；TIME_WAIT状态确保第四次挥手的ACK丢失时，服务端重发FIN可被客户端捕获并重应答，2MSL覆盖网络中报文最大往返生存时间，保障连接可靠关闭。Java泛型类型擦除则通过编译期抹去泛型信息、运行期保持字节码兼容，使新泛型代码可运行于旧JVM，避免因类型系统升级破坏既有程序。二者共性在于：均以“牺牲部分表达能力（如TCP双向关闭分离、泛型运行时类型信息）”为代价，换取系统演进中关键维度（连接可靠性/平台兼容性）的强保障，本质是面向长期演化的稳健性设计。",
+      "doc_106_parent_28": "类型擦除是Java为保障向后兼容性而采取的妥协方案，使泛型代码能在不支持泛型的旧环境中运行；TCP四次挥手及TIME_WAIT等待2MSL，是为了确保连接可靠终止、防止旧连接报文干扰新连接，兼顾网络环境的异构性与历史兼容性。二者均通过牺牲部分功能（如泛型运行时类型信息、连接立即释放）换取系统在演化过程中的稳定性与兼容性，核心设计考量均为在变化环境中维持既有行为的可靠性与新旧组件的互操作性。"
+    }
+  },
+  {
+    "id": "q_190",
+    "question": "在模型配置中，如果args.n_heads为32、args.dim为4096、args.n_kv_heads为8，并且训练时warmup_iters设为1000、learning_rate设为3e-4，那么每个注意力头的维度head_dim是多少？预热阶段第500次迭代的学习率又是多少？",
+    "difficulty": "multi-hop",
+    "ground_truth": "每个注意力头的维度head_dim是128；预热阶段第500次迭代的学习率是1.5e-4。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_227",
+      "doc_108_parent_350"
+    ],
+    "evidence": {
+      "doc_108_parent_227": "每个注意力头的维度head_dim是args.dim // args.n_heads，即4096 // 32 = 128。预热阶段第500次迭代的学习率按线性预热公式计算：learning_rate × (iter / warmup_iters) = 3e-4 × (500 / 1000) = 1.5e-4。",
+      "doc_108_parent_350": "每个注意力头的维度head_dim = args.dim // args.n_heads = 4096 // 32 = 128。预热阶段第500次迭代的学习率按线性预热公式计算：args.learning_rate * it / warmup_iters = 3e-4 * 500 / 1000 = 1.5e-4。"
+    }
+  },
+  {
+    "id": "q_191",
+    "question": "在秒杀系统中，为什么既要使用Redis的布隆过滤器防止重复秒杀（片段350），又要依赖类加载器的双亲委派机制保障核心安全（片段495），这两者分别解决了系统哪一层的什么关键问题？",
+    "difficulty": "multi-hop",
+    "ground_truth": "Redis布隆过滤器作用于应用层，解决高并发下用户重复提交请求导致的超卖问题，通过快速判断请求是否可能已存在来拦截无效秒杀请求，防止重复请求穿透至后端、降低数据库压力；类加载器双亲委派机制作用于JVM运行时安全层，保障核心安全，防止恶意自定义类替换或篡改系统关键类（如java.lang.Object、ClassLoader、SecurityManager），避免秒杀核心逻辑被篡改、权限校验被绕过，维护基础运行环境的唯一性与安全性。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_511",
+      "doc_106_parent_145",
+      "doc_106_parent_445"
+    ],
+    "evidence": {
+      "doc_106_parent_511": "Redis布隆过滤器用于服务层防止重复秒杀，解决高并发下用户重复提交导致的超卖问题；类加载器双亲委派机制保障核心安全，属于JVM运行时安全层，防止恶意自定义类篡改核心逻辑、绕过权限校验等安全风险。",
+      "doc_106_parent_145": "Redis布隆过滤器用于秒杀系统前端，解决应用层的重复请求问题，通过快速判断请求是否可能已存在，防止无效请求穿透到后端，降低数据库压力；类加载器双亲委派机制作用于JVM运行时层，保障核心安全，确保Java核心类（如java.lang.Object）不被用户自定义类替换或篡改，维护系统类的唯一性与安全性，防止恶意代码破坏基础运行环境。",
+      "doc_106_parent_445": "Redis布隆过滤器用于应用层，解决高并发下重复请求导致的超卖问题，通过快速判断请求是否可能已存在来拦截无效秒杀请求；类加载器双亲委派机制作用于JVM运行时层，保障核心安全，防止恶意自定义类替换系统关键类（如ClassLoader、SecurityManager），避免秒杀逻辑被篡改或绕过权限校验。"
+    }
+  },
+  {
+    "id": "q_192",
+    "question": "TCP协议中，接收方如何通过窗口大小字段实现流量控制以防止缓冲区溢出，同时又依赖序列号和确认号机制来确保数据按序可靠传输？这两个机制在连接管理（如三握四挥）和拥塞控制（如慢启动、拥塞避免）过程中各自扮演什么角色？",
+    "difficulty": "multi-hop",
+    "ground_truth": "TCP接收方通过窗口大小字段通告自身接收缓冲区剩余空间，发送方据此限制未确认数据量，实现流量控制以防止缓冲区溢出；序列号为每个字节分配唯一编号以标识数据顺序，确认号指示期望接收的下一个字节序号，二者协同确保数据按序、可靠传输。在连接管理中，三次握手和四次挥手依赖序列号与确认号实现可靠连接建立与终止，保证报文唯一性和状态一致性；在拥塞控制中，窗口大小字段反映接收窗口（rwnd），与拥塞窗口（cwnd）共同决定发送上限，慢启动、拥塞避免等算法动态调整cwnd以防止网络拥塞，而序列号和确认号用于丢包检测（如超时重传、重复ACK），触发拥塞响应。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_12",
+      "doc_106_parent_384"
+    ],
+    "evidence": {
+      "doc_106_parent_12": "TCP接收方在ACK报文中通过“窗口大小”字段通告当前接收缓冲区剩余空间，发送方据此限制未确认数据量，实现流量控制，防止缓冲区溢出。序列号标识每个字节的顺序，确认号指示期望接收的下一个字节序号，二者协同确保数据按序、可靠传输。在连接管理中，三握四挥不直接依赖窗口和序列/确认号实现同步与终止，但依赖序列号保证握手报文的唯一性和状态一致性；在拥塞控制中，窗口大小字段被扩展为拥塞窗口（cwnd）与接收窗口（rwnd）共同决定发送上限，慢启动、拥塞避免等算法动态调整cwnd，而序列号和确认号用于检测丢包（如超时或重复ACK），触发拥塞响应。",
+      "doc_106_parent_384": "接收方通过TCP头部的窗口大小字段告知发送方自身接收缓冲区剩余空间，发送方据此调整发送速率，防止缓冲区溢出。序列号为每个字节分配唯一编号以标识数据顺序；确认号由接收方发出，指示期望接收的下一个字节序号（如收到1–1000，则确认号为1001），确保按序可靠传输。在连接管理中，三握四挥依赖序列号与确认号实现可靠建立和关闭；在拥塞控制中，慢启动、拥塞避免等机制独立调节拥塞窗口，与窗口大小字段协同但目标不同——前者防网络拥塞，后者防接收方溢出。"
+    }
+  },
+  {
+    "id": "q_193",
+    "question": "在训练一个具有涌现能力的大语言模型时，为什么预训练（Pretrain）阶段要对整个文本计算损失，而监督微调（SFT）阶段只对指令对应的输出部分计算损失？这一差异如何体现在代码实现中，例如在加载模型、构建训练样本以及使用Trainer进行训练时的具体逻辑一致性与关键修改点？",
+    "difficulty": "multi-hop",
+    "ground_truth": "预训练阶段对整个文本计算损失，是因为其目标是学习通用语言建模能力，即基于前缀预测下一个词，需通过全序列自回归建模优化所有token的预测；监督微调（SFT）阶段仅对指令对应的输出部分计算损失，是为了精准对齐人类指令意图、强化模型遵循指令生成的能力，并避免输入指令部分的梯度干扰导致模型遗忘或混淆任务结构。该差异仅体现在数据预处理环节：构建SFT样本时，需将instruction部分在labels张量中对应位置全部设为-100（PyTorch交叉熵损失默认忽略该值），仅保留response部分的token ID作为有效标签；模型加载、Trainer配置及训练主逻辑与预训练完全一致，关键修改点在于data_collator必须正确生成掩码后的labels张量，确保Trainer在计算损失时自动跳过instruction区域，仅对output token进行反向传播。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_419",
+      "doc_108_parent_176",
+      "doc_108_parent_427"
+    ],
+    "evidence": {
+      "doc_108_parent_419": "预训练阶段对整个文本计算损失，因目标是学习通用语言建模能力；监督微调（SFT）阶段仅对指令输出部分计算损失，以聚焦模型遵循指令的生成能力，避免输入部分干扰梯度更新。代码中体现为：数据预处理时，SFT样本需掩码（mask）输入token的loss（如设label=-100），仅保留响应部分有效label；Trainer默认使用labels字段计算交叉熵损失，因此data_collator需确保labels张量中指令部分为-100、响应部分为对应token id；模型加载与训练逻辑一致，关键修改点在于样本构建和label掩码策略。",
+      "doc_108_parent_176": "预训练阶段对整个文本计算损失，是因为模型需学习通用语言建模能力，即根据前缀预测下一个词，故损失覆盖全部token；而监督微调（SFT）阶段仅对指令对应的输出部分（即response）计算损失，以精准对齐人类指令意图，避免模型被输入指令部分的梯度干扰。代码实现中，加载模型保持一致；构建样本时，SFT需mask掉instruction部分的loss（如将对应label设为-100）；Trainer训练时依赖此label掩码自动跳过无效位置，确保仅反向传播output token梯度，体现逻辑一致性与关键修改点。",
+      "doc_108_parent_427": "Pretrain阶段对海量无监督文本进行自监督建模，要求模型预测下一个token，因此对整个文本计算损失；SFT阶段使用指令对数据，仅对指令对应的输出部分计算损失，不计算指令输入部分的损失。这一差异仅体现在数据处理环节：需将指令对构建成训练样本，并在标签（labels）中将指令部分对应位置设为-100（忽略loss），仅保留输出部分的有效token索引用于loss计算；模型加载、Trainer配置及训练主逻辑与Pretrain完全一致，无需修改。"
+    }
+  },
+  {
+    "id": "q_194",
+    "question": "在设计本地缓存时，若要求支持线程安全、具备LRU清除策略、可设置过期时间，并且底层需高效支持频繁的插入/删除/查找操作，那么结合LeetCode中链表（如反转链表II、K个一组翻转链表）和二叉树遍历（如中序、层序遍历）所体现的数据结构特性，以及牛客网大数加法对高精度运算中内存与效率权衡的启示，应优先选用哪种基础数据结构组合来实现该缓存的核心存储与淘汰机制？",
+    "difficulty": "multi-hop",
+    "ground_truth": "应优先选用哈希表与双向链表的组合。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_581",
+      "doc_106_parent_505"
+    ],
+    "evidence": {
+      "doc_106_parent_581": "应优先选用哈希表（HashMap）与双向链表（Doubly Linked List）的组合。哈希表提供O(1)平均时间复杂度的查找、插入和删除，保障高效访问；双向链表支持O(1)头尾操作及节点任意位置的移除与移动，天然适配LRU策略中“最近使用”节点的快速更新与淘汰；二者协同可实现线程安全封装（如Java中ConcurrentHashMap+显式锁或ReentrantLock保护双向链表操作），并方便集成定时过期机制（如结合WeakReference或独立过期队列）。LeetCode链表题体现双向链表对顺序敏感操作的高效性，二叉树遍历强调结构可控性，牛客大数加法启示需兼顾内存紧凑与操作局部性—",
+      "doc_106_parent_505": "应优先选用哈希表（HashMap）与双向链表（Double-Linked List）的组合：哈希表提供O(1)平均时间复杂度的插入、删除和查找，保障高频操作效率；双向链表天然支持LRU策略中节点的快速移动与淘汰（如LeetCode中反转链表、K组翻转所体现的链表结构灵活性），且可与哈希表协同实现键值映射与访问序维护；通过封装保证线程安全（如ConcurrentHashMap+ReentrantLock或Java 8后StampedLock），并为每个节点附加过期时间戳以支持TTL机制。"
+    }
+  },
+  {
+    "id": "q_195",
+    "question": "在上线本地demo时，既要确保用户数据全链路隔离，又要对关键claim做statement-level attribution和claim-level检查，那么当评测发现线上权限控制不足、成本统计不完善，且存在citation存在但不支撑claim的问题时，应该优先从哪些环节加强校验和监控？",
+    "difficulty": "multi-hop",
+    "ground_truth": "应优先在数据接入层强化租户隔离与权限鉴权，在服务层实时统计token消耗与调用成本，在生成层对每个关键claim强制执行statement-level attribution并校验引用证据与claim的语义匹配度，同时建立全链路trace日志以支持溯源分析。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_48",
+      "doc_107_parent_74",
+      "doc_107_parent_90"
+    ],
+    "evidence": {
+      "doc_107_parent_48": "应优先加强 claim-level 检查和 statement-level attribution 校验：生成后必须校验每个关键 claim 是否被本轮检索出的 evidence chunk 真实支撑，而非仅检查 citation 是否存在；在 trace 中严格记录 evidence chunk 与 final citation 的对应关系；杜绝模型自由生成无来源引用（如 [1]）；将 citation existence 与 citation support 严格区分，避免“有引用但不支撑”的问题；同时强化权限控制与成本统计的链路监控。",
+      "doc_107_parent_74": "权限过滤要进入检索链路，用户数据要从文档、chunk、向量 payload、缓存和日志全链路隔离；模型调用要统计成本；线上要监控延迟、错误率、空召回率、拒答率和成本异常；核心评测集要进入回归 gate；对关键claim需做statement-level attribution和claim-level检查。",
+      "doc_107_parent_90": "线上权限控制不足、成本统计不完善，以及citation存在但不支撑claim的问题，应优先加强权限校验、成本计量监控和claim-level citation支撑性验证。需在数据接入、推理服务、结果生成三个环节嵌入细粒度校验：接入层强化租户隔离与权限鉴权；服务层实时统计token消耗与调用成本；生成层对每个claim强制执行statement-level attribution，并校验引用证据与claim语义匹配度。同时建立全链路trace日志，支持溯源分析。"
+    }
+  },
+  {
+    "id": "q_196",
+    "question": "当前时间是2025年4月26日17:01:33，而单词'strawberry'中有3个字母'r'，那么如果以该时间（年、月、日、时、分、秒）的数字序列作为字符串，其中数字'2'共出现几次？",
+    "difficulty": "multi-hop",
+    "ground_truth": "3",
+    "relevant_chunk_ids": [
+      "doc_108_parent_527",
+      "doc_108_parent_67"
+    ],
+    "evidence": {
+      "doc_108_parent_527": "当前的时间是2025年4月26日17:01:33。单词 \"strawberry\" 中有3个字母 'r'。",
+      "doc_108_parent_67": "当前时间是2025年4月26日17:01:33，对应数字序列为“20250426170133”。统计其中数字‘2’的出现次数：  \n- 第1位：2 → 1次  \n- 第3位：2 → 1次  \n- 第7位：2 → 1次  \n共3次。"
+    }
+  },
+  {
+    "id": "q_197",
+    "question": "ALBERT模型通过SOP预训练任务提升了效果，而某段代码中使用了RoPE（旋转位置嵌入）和多头注意力机制；那么，SOP预训练任务与RoPE这种位置编码技术在模型架构中的作用层次有何本质区别？前者属于预训练目标设计，后者属于什么层面的技术组件？",
+    "difficulty": "multi-hop",
+    "ground_truth": "RoPE属于模型架构层面的位置编码技术组件，具体位于嵌入层与多头注意力机制之间的输入表示层面，作用于单层注意力模块内部，在前向传播中直接对查询（Q）和键（K）张量注入位置信息，是结构化建模设计的一部分。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_126",
+      "doc_108_parent_421",
+      "doc_108_parent_235"
+    ],
+    "evidence": {
+      "doc_108_parent_126": "SOP预训练任务属于预训练目标设计，而RoPE（旋转位置嵌入）属于模型架构中的位置编码技术组件，具体位于嵌入层与注意力机制之间的输入表示层面，用于为Transformer的多头注意力提供位置感知能力。",
+      "doc_108_parent_421": "RoPE（旋转位置嵌入）属于模型架构层面的技术组件，具体而言是位置编码（Positional Encoding）模块，用于向Transformer的输入序列注入位置信息；而SOP（Sentence-Order Prediction）预训练任务属于学习目标或训练策略层面的设计，用于引导模型学习句子间逻辑关系。RoPE直接嵌入在模型前向传播路径中，影响注意力计算的方式；它与多头注意力机制协同工作，构成模型的基础结构单元。相比之下，SOP不改变网络结构，仅定义损失函数和数据构造方式，属于训练范式范畴。",
+      "doc_108_parent_235": "RoPE（旋转位置嵌入）属于模型架构中的位置编码层面的技术组件，用于在注意力计算前对查询（Q）和键（K）张量注入位置信息；它作用于单层注意力模块内部，在前向传播中直接修改Q、K的表示，属于结构化建模设计的一部分。"
+    }
+  },
+  {
+    "id": "q_198",
+    "question": "在NLP从统计机器学习向深度学习演进的过程中，文本表示方法经历了哪些关键变化？这些变化与计算机视觉领域发展起来的哪几种核心神经网络架构有关，它们各自的主要特点是什么？",
+    "difficulty": "multi-hop",
+    "ground_truth": "文本表示方法经历了从离散符号（如one-hot）和统计特征（如TF-IDF、n-gram）到分布式稠密向量（词嵌入，如Word2Vec），再到上下文感知的动态表征（如ELMo、BERT）的关键变化。这些变化与计算机视觉领域发展起来的三种核心神经网络架构密切相关：全连接神经网络（FNN）每层神经元与上下层所有神经元完全连接；卷积神经网络（CNN）采用参数量更少的卷积层进行特征提取，具有局部感受野、权值共享和平移不变性，擅长捕捉局部模式；循环神经网络（RNN）及其变体（LSTM/GRU）具有环状结构和自重复机制，通过隐状态传递建模序列依赖，适合处理时序信息；Transformer引入自注意力机制，支持并行化训练，具备强大的长程依赖建模能力，已成为当前主流架构。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_43",
+      "doc_108_parent_308"
+    ],
+    "evidence": {
+      "doc_108_parent_43": "文本表示方法从统计学习的向量空间模型、语言模型，经Word2Vec单层神经网络，发展为深度学习驱动的神经网络表示。与计算机视觉领域发展起来的三种核心神经网络架构相关：（1）全连接神经网络（FNN），每层神经元与上下层所有神经元完全连接；（2）卷积神经网络（CNN），采用参数量更少的卷积层进行特征提取；（3）循环神经网络（RNN），具有环状结构和自重复机制，可利用历史信息作为输入。",
+      "doc_108_parent_308": "文本表示方法从离散符号（如one-hot）和统计特征（如TF-IDF、n-gram）转向分布式稠密向量（词嵌入），再发展为上下文感知的动态表征（如ELMo、BERT）。这些变化与CV领域三大核心神经网络架构密切相关：CNN（局部感受野、权值共享、平移不变性，擅长捕捉局部模式）；RNN/LSTM/GRU（序列建模、隐状态传递，适合处理时序依赖）；Transformer（自注意力机制、并行化训练、长程依赖建模能力强，成为当前主流架构）。"
+    }
+  },
+  {
+    "id": "q_199",
+    "question": "在RAG系统评测中，为什么既要设计包含‘能从单个片段找到明确答案’的事实类问题（如golden set要求），又需要通过overlap策略降低定义、结论等被切分边界切断的风险？这两者分别对应评测体系中的哪两个关键层级或指标？",
+    "difficulty": "multi-hop",
+    "ground_truth": "设计“能从单个片段找到明确答案”的事实类问题（golden set）旨在评估检索模块的精准召回能力，对应评测体系中的检索层；采用overlap策略是为了降低定义、结论等语义完整单元被切分边界切断的风险，保障关键语义单元完整性，从而支撑claim coverage（主张覆盖度），对应评测体系中的生成与归因层。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_3",
+      "doc_107_parent_17"
+    ],
+    "evidence": {
+      "doc_107_parent_3": "在RAG系统评测中，设计“能从单个片段找到明确答案”的事实类问题（golden set）旨在评估检索模块的精准召回能力，对应“片段级召回准确率”这一底层指标；而采用overlap策略是为了降低定义、结论等语义完整单元被切分边界切断的风险，保障答案完整性，对应“语义单元完整性”这一更高层级的评测要求。二者分别支撑评测体系中的“片段粒度有效性”与“语义结构鲁棒性”两个关键层级。",
+      "doc_107_parent_17": "在RAG系统评测中，设计“能从单个片段找到明确答案”的事实类问题（golden set要求）旨在评估检索召回率（retrieval recall），对应评测体系中的**检索层**；而通过overlap策略降低定义、结论等被切分边界切断的风险，是为了保障关键语义单元的完整性，从而支撑更可靠的**claim coverage（主张覆盖度）**，对应评测体系中的**生成与归因层**。两者分别聚焦于检索准确性与语义单元完整性，共同构成多层级评测的关键基础。"
+    }
+  },
+  {
+    "id": "q_200",
+    "question": "在处理BelleGroup的SFT数据时，代码将原始对话转换为包含system、user和assistant角色的标准message格式；而处理seq_monkey_datawhale数据时，则按行读取JSONL文件并切分text字段生成多个chunk写入新文件。那么，如果要将BelleGroup数据也像seq_monkey_datawhale那样进行文本切分（如按长度分块）后再写入SFT格式文件，需要在convert_message函数调用之后、写入sft文件之前插入哪两个关键操作？",
+    "difficulty": "multi-hop",
+    "ground_truth": "一是将convert_message返回的message列表序列化为完整对话文本（如通过拼接system、user、assistant内容或json.dumps）；二是调用split_text函数对该文本按指定长度切分为多个chunk，并将每个chunk重新构造成包含role和content字段的独立SFT格式message结构。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_291",
+      "doc_108_parent_464"
+    ],
+    "evidence": {
+      "doc_108_parent_291": "在convert_message函数调用之后、写入sft文件之前，需插入两个关键操作：一是对convert_message返回的message列表进行序列化（如json.dumps）得到完整对话文本；二是调用split_text函数对该文本按长度切分为多个chunk。",
+      "doc_108_parent_464": "在convert_message函数调用之后、写入sft文件之前，需插入两个关键操作：（1）对转换后的标准message格式文本（如拼接system+user+assistant内容）按指定长度进行分块（chunking），例如使用固定窗口滑动或按字符/词元数切分；（2）将每个chunk重新构造成符合SFT要求的独立message结构（含role和content字段），并确保每个chunk为完整对话片段或合理截断。"
+    }
+  },
+  {
+    "id": "q_201",
+    "question": "在生产环境中设计一个支持多租户权限隔离的RAG系统时，如何综合考虑chunk设计（如结构化切分、context prefix、overlap）与混合检索（dense + sparse + metadata filter）的协同作用，以确保既能准确召回跨章节定义或实验结论等语义连贯证据，又能严格满足用户级数据隔离和权限过滤要求？",
+    "difficulty": "multi-hop",
+    "ground_truth": "在生产环境中设计多租户RAG系统时，需将chunk按文档结构（标题、章节、段落、表格、图注）精细切分，为每个chunk添加context prefix（含标题、章节路径、页码）并设置合理overlap以保持跨章节定义或实验结论等语义连贯性；同时为每个chunk写入完备metadata（含文档id、章节、页码、来源、时间及租户scope），并分配稳定chunk id。混合检索中，query同步触发dense embedding检索（捕获语义连贯证据）、sparse keyword检索（保障术语精确匹配）和强制metadata filter（在检索最前端执行租户级权限过滤，确保无权限文档零召回），三者结果合并后去重、重排序；权限过滤必须嵌入检索链路起始环节，结合确定性中间件与元数据约束，实现用户级数据隔离（A用户无法检索B用户数据），并辅以索引版本管理、备份恢复、成本监控、安全防护（API key、PII脱敏、prompt injection防御）及CI gate保障核心评测指标不退化。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_38",
+      "doc_107_parent_34",
+      "doc_107_parent_71"
+    ],
+    "evidence": {
+      "doc_107_parent_38": "Chunk设计需按文档结构（标题、章节、段落、表格、图注）切分，添加context prefix（标题、章节路径、页码），保留overlap避免语义断裂，并为每个chunk写入metadata（含文档id、章节、页码、来源、时间、用户或租户scope）及稳定chunk id。混合检索流程为：query同步进入dense embedding检索（捕获语义连贯证据如跨章节定义/实验结论）、sparse keyword检索（保障术语精确匹配）和metadata filter（强制租户级数据隔离与权限过滤），再合并候选、去重、重排序。三者协同确保语义召回准确性与多租户权限隔离严格性。",
+      "doc_107_parent_34": "生产环境中，权限过滤必须进入检索链路，确保在检索阶段就过滤无权限文档，防止模型获取用户无权访问的证据；需实现用户级数据隔离，即A用户不能检索到B用户数据；同时支持索引版本管理、备份恢复、成本统计、监控告警及安全防护（如API key、PII、prompt injection）；CI gate保障核心评测集不退化。",
+      "doc_107_parent_71": "chunk 是证据最小单元，应结合文档结构切分，加入标题和章节上下文，对跨边界内容保留 overlap；表格和图片需转为可检索摘要并保留原始位置。评估需兼顾 recall、citation precision、latency 和索引体积。权限、状态、证据边界、拒答等关键环节应通过确定性检查或中间件约束实现用户级数据隔离；混合检索（dense + sparse + metadata filter）须与 chunk 设计协同，确保语义连贯证据召回的同时严格满足权限过滤要求。"
+    }
+  },
+  {
+    "id": "q_202",
+    "question": "在准备RAG项目简历时，为什么不能只写‘接入向量数据库和大模型’，而要像片段189建议的那样强调混合检索、引用校验、无证据拒答和golden set评测？这与片段343中提到的POST请求‘不等于加密通信’这一原则，在技术表达的严谨性上有什么共同逻辑？",
+    "difficulty": "multi-hop",
+    "ground_truth": "因为二者均遵循“技术表达必须严格对应实际机制，杜绝以功能调用代替原理实现”的严谨性逻辑：RAG项目中仅写“接入向量数据库和大模型”混淆了表层集成与深层可靠性保障，而混合检索、引用校验、无证据拒答和golden set评测才真实体现系统在召回精度、事实一致性、幻觉防控和效果可验证性上的具体机制；同样，POST请求仅表示传输方法，不蕴含加密属性，“不等于加密通信”揭示了功能行为与安全机制的本质差异——两者都要求技术表述必须精确反映实际采用的策略与保障能力，而非笼统描述表象调用。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_89",
+      "doc_106_parent_405"
+    ],
+    "evidence": {
+      "doc_107_parent_89": "不能只写“接入向量数据库和大模型”，而要强调混合检索、引用校验、无证据拒答和golden set评测，是因为RAG项目的核心价值在于可靠性机制与完整链路设计，而非简单组件拼接；这与“POST请求不等于加密通信”同理——二者均揭示技术表达中“功能实现”不等价于“安全/可靠保障”，必须明确区分表层调用与深层机制，强调具体策略（如重排、校验、拒答、回归评测）才能体现技术严谨性与工程深度。",
+      "doc_106_parent_405": "POST请求“不等于加密通信”强调技术表述需精确反映实际安全机制，而非笼统描述表象；同理，RAG项目中仅写“接入向量数据库和大模型”掩盖了真实技术深度与风险控制能力。片段189要求突出混合检索（提升召回率与精度）、引用校验（保障事实一致性）、无证据拒答（防范幻觉）、golden set评测（量化效果），正是为了准确刻画系统在可靠性、可控性、可验证性上的具体设计，避免用模糊集成表述替代实质性工程实践——二者共同遵循“技术表达必须严格对应实际机制，杜绝以功能调用代替原理实现”的严谨性逻辑。"
+    }
+  },
+  {
+    "id": "q_203",
+    "question": "在系统设计中，当外部接口（如银联支付接口）出现严重超时问题时，可以采取限流、降级或熔断策略；而如果要通过实验方式快速定位某个异常组件（比如从1000瓶药水中找出唯一一瓶有毒的），则需要利用二进制编码思想和并行测试。那么，这两种场景——系统接口容错处理与小白鼠找毒药实验——分别依赖的核心数学原理和工程思想有何本质区别？",
+    "difficulty": "multi-hop",
+    "ground_truth": "系统接口容错处理依赖的核心数学原理是概率统计、排队论与控制理论，工程思想是基于实时监控与反馈控制的动态适应与服务韧性，面向不确定性故障实现弹性应对；小白鼠找毒药实验依赖的核心数学原理是信息论中的对数下界（log₂N）与二进制编码，工程思想是利用位编码实现单轮并行判定的确定性最优识别，面向确定性结构实现测试成本最小化。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_462",
+      "doc_106_parent_589"
+    ],
+    "evidence": {
+      "doc_106_parent_462": "系统接口容错处理（限流、降级、熔断）依赖的是实时监控与反馈控制思想，基于接口响应时间、错误率等运行时指标动态调整系统行为，核心是稳定性保障与有损服务权衡；小白鼠找毒药实验则基于二进制编码与并行测试的组合数学原理，通过信息论最优策略（如log₂n次实验）实现高效定位，本质是确定性问题求解与最小化测试成本。二者根本区别在于：前者面向不确定性故障的弹性应对（工程鲁棒性），后者面向确定性结构的最优识别（数学最优化）。",
+      "doc_106_parent_589": "小白鼠找毒药实验依赖二进制编码思想与并行测试，核心数学原理是信息论中的对数下界（log₂N），通过n只小白鼠的2ⁿ种生死组合唯一标识N瓶中药水，本质是利用位编码实现单轮并行判定；而系统接口容错处理（限流、降级、熔断）依赖的是概率统计、排队论和控制理论，工程思想聚焦于实时响应、资源约束与故障隔离，强调动态适应与服务韧性，不依赖确定性编码逻辑。"
+    }
+  },
+  {
+    "id": "q_204",
+    "question": "在训练对话生成模型时，如果使用BelleGroup的350万条中文对话数据集作为SFT数据，并用<|im_start|>和<|im_end|>作为特殊token，那么tokenizer中这两个token对应的ID分别是多少？同时，为防止模型在自回归生成时看到未来token，应该在注意力层中应用什么样的mask机制？",
+    "difficulty": "multi-hop",
+    "ground_truth": "<|im_start|>和<|im_end|>在tokenizer中对应的ID分别是3和4；为防止模型在自回归生成时看到未来token，应在注意力层中应用因果掩码（causal mask），即上三角矩阵掩码，将对角线以上位置设为负无穷，确保每个位置仅能关注自身及之前的位置。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_300",
+      "doc_108_parent_57",
+      "doc_108_parent_289"
+    ],
+    "evidence": {
+      "doc_108_parent_300": "tokenizer中<|im_start|>和<|im_end|>对应的ID分别是3和4。为防止模型在自回归生成时看到未来token，应在注意力层中应用因果掩码（causal mask），即上三角矩阵掩码，确保每个位置只能关注其自身及之前的位置，不能关注后续位置。",
+      "doc_108_parent_57": "<|im_start|>和<|im_end|>对应的token ID需查tokenizer词表，文本未提供具体数值；为防止模型看到未来token，应在注意力层中应用因果掩码（causal mask），即使用上三角矩阵遮蔽未来位置，将对角线以上元素设为负无穷，确保每个位置仅能关注其自身及之前的位置。",
+      "doc_108_parent_289": "<|im_start|>和<|im_end|>作为特殊token，其对应ID需通过tokenizer.convert_tokens_to_ids(['<|im_start|>', '<|im_end|>'])获取；为防止模型在自回归生成时看到未来token，应在注意力层中应用上三角mask（causal mask），即掩蔽对角线右上方的所有位置，确保每个位置只能关注其左侧及自身位置的token。"
+    }
+  },
+  {
+    "id": "q_205",
+    "question": "在使用联合索引优化查询时，既要考虑字段的区分度和查询频率，又要兼顾where、Order By和Group By子句中的字段组合；而当涉及缓存一致性策略时，延迟双删的第一步是先删除缓存。那么，在一个高并发电商系统中，若对订单表（含user_id、status、create_time字段）建立联合索引以加速‘按用户查最新待支付订单’的查询，同时采用延迟双删策略更新订单状态，这两项设计分别主要解决了什么问题？",
+    "difficulty": "multi-hop",
+    "ground_truth": "联合索引设计主要解决查询性能问题，通过在user_id、status、create_time字段上建立联合索引，高效支持WHERE子句（user_id = ? AND status = 'unpaid'）、ORDER BY子句（create_time DESC）的执行，避免全表扫描和临时文件排序，从而加速“按用户查最新待支付订单”的查询；延迟双删策略主要解决缓存一致性问题，第一步先删除缓存可防止读请求命中脏数据，再通过延迟后的第二次删除覆盖主从复制延迟或并发写导致的缓存更新遗漏，保障订单状态变更后缓存与数据库最终一致。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_496",
+      "doc_106_parent_206"
+    ],
+    "evidence": {
+      "doc_106_parent_496": "联合索引设计主要解决查询性能问题，通过在user_id、status、create_time字段上建立联合索引，满足“按用户查最新待支付订单”中WHERE（user_id和status）、ORDER BY（create_time DESC）的高效执行，避免全表扫描与临时文件排序。延迟双删策略主要解决缓存一致性问题，先删除缓存可防止后续读请求命中脏数据，配合延迟后的第二次删除，覆盖主从复制延迟或并发写导致的缓存更新遗漏，保障订单状态变更后缓存与数据库最终一致。",
+      "doc_106_parent_206": "联合索引设计主要解决查询效率问题，通过将user_id（高区分度、高频查询）、status（where条件）、create_time（Order By字段）组合建索引，加速“按用户查最新待支付订单”的查询；延迟双删策略主要解决缓存一致性问题，先删除缓存再更新数据库，避免高并发下缓存与数据库数据不一致。"
+    }
+  },
+  {
+    "id": "q_206",
+    "question": "在构建 Agentic RAG 系统时，为什么不能仅靠注册 Tool 或堆砌子 Agent 数量来提升可靠性，而必须同时显式化检索决策、证据判断、拒答机制，并对 Tool 设计 schema、错误处理与状态管理？这反映了 Agentic RAG 与通用 Agent 在工程目标上的哪些本质区别？",
+    "difficulty": "multi-hop",
+    "ground_truth": "因为Agentic RAG的核心工程目标是实现知识问答场景下的可靠性、可控性与可验证性，而非通用Agent所追求的自主规划与泛化能力；仅注册Tool或堆砌子Agent数量无法保障检索决策的显式性、证据判断的严谨性、拒答机制的完备性，也无法支撑可调试、可评测、可上线的闭环要求；必须通过显式化检索决策、证据判断和拒答机制，并对Tool严格设计schema、错误处理与状态管理，才能确保系统在检索、反思、引用、拒答等关键环节稳定可控、可追溯、可回归；这本质区别在于：Agentic RAG聚焦于领域任务中证据驱动的确定性闭环，而通用Agent侧重开放环境下的行为泛化与自主探索。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_10",
+      "doc_107_parent_101"
+    ],
+    "evidence": {
+      "doc_107_parent_10": "Agentic RAG 的目标不是让模型自由发挥，而是让系统围绕证据做更可靠的问答决策；它要求将检索、反思、拒答、工具调用和 trace 做成可控的决策流程。通用 Agent 轨迹不稳定，难以评测和回归；而知识问答的核心是检索、证据判断、引用和拒答的稳定可控。显式化检索决策、证据判断、拒答机制，并对 Tool 设计 schema、错误处理与状态管理，才能保障系统可调试、可评测、可上线。这反映了 Agentic RAG 以可靠性、可控性、可验证性为工程目标，区别于通用 Agent 侧重自主规划与泛化能力的本质差异。",
+      "doc_107_parent_101": "Tool注册只是第一步，真正Agent工程还需设计tool schema、权限边界、错误处理、状态管理、trace、tool routing评测和用户级数据隔离。Subagent的价值是职责收束而非堆砌数量，每个应有清晰边界、工具集合、输入输出契约和评测方式。Skill是可复用的任务流程说明，需明确使用时机、执行步骤、输入要求、结果验证及失败处理机制。这表明Agentic RAG强调检索决策显式化、证据判断严谨性、拒答机制完备性，其工程目标聚焦于可控、可验、可追溯的领域任务闭环，而非通用Agent追求的泛化行为能力。"
+    }
+  },
+  {
+    "id": "q_207",
+    "question": "在RAG系统中，为什么RRF比直接加权融合BM25、向量相似度和rewrite query的召回分数更合适，且该融合策略与引用验证（Citation Validation）中的‘只允许引用本轮证据id’这一工程约束之间存在怎样的协同设计逻辑？",
+    "difficulty": "multi-hop",
+    "ground_truth": "RRF比直接加权融合更合适，因其仅依赖各检索源的排序位置而非原始分数，天然解决BM25、向量相似度和rewrite query三者分数尺度不一、不可比的问题，具备归一化、无参数、鲁棒性强等优势，避免人工调权偏差；该融合策略与“只允许引用本轮证据id”的引用验证约束形成闭环协同：RRF输出严格限定于当前轮次检索生成的统一排序ID序列，不引入跨轮次或外部ID，而引用验证强制答案仅能引用该序列中的ID，从而确保召回、排序、引用三环节在ID空间完全对齐，从根源上杜绝伪引用与跨轮引用，保障审计链路闭环、引用可追溯且结果可信。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_47",
+      "doc_107_parent_40"
+    ],
+    "evidence": {
+      "doc_107_parent_47": "RRF（Reciprocal Rank Fusion）比直接加权融合BM25、向量相似度和rewrite query分数更合适，因其对不同排序列表具有归一化、无参数、鲁棒性强等优势，避免了人工调权偏差与尺度不一致问题。该融合策略与引用验证中“只允许引用本轮证据id”的工程约束存在强协同：RRF输出统一排序后的证据ID序列，天然限定了可引用范围即本轮检索结果集合；而引用验证机制强制答案仅能引用该序列中的ID，确保审计链路闭环——既防止跨轮/伪引用，又使召回、排序、引用三环节在ID空间严格对齐，提升可验证性与可信度。",
+      "doc_107_parent_40": "BM25、向量相似度和rewrite query的召回分数尺度不同，直接加权融合脆弱且易受量纲影响；RRF仅依赖排序位置，天然适配异构检索源，避免分数不可比问题。该特性与引用验证中“只允许引用本轮证据id”的工程约束高度协同：RRF输出的是统一排序后的候选ID列表，不引入跨轮次ID或外部分数，确保后续rerank和引用验证严格限定于当前检索轮次产生的证据ID集合，从根源上保障引用可追溯性与一致性。"
+    }
+  },
+  {
+    "id": "q_208",
+    "question": "在调用chat.completions.create接口时，如果设置了tools参数并返回了response，如何结合位置编码设计中提到的‘对角矩阵假设’和‘积化和差’数学性质，来验证模型响应中工具调用决策是否可能受到相对位置编码的影响？",
+    "difficulty": "multi-hop",
+    "ground_truth": "无法验证模型响应中工具调用决策是否受到相对位置编码的影响，因为给定证据中既未提供任何关于“对角矩阵假设”“积化和差”与tools参数响应之间关联的理论推导、数学公式或实证数据，也未说明chat.completions.create返回的response结构（如logprobs、attention权重或token级输出）如何与位置编码机制（如RoPE、ALiBi或T5式偏置）进行技术对接；尽管第三条证据提及对角矩阵假设和积化和差在相对位置建模中的通用性质，但该论述为孤立的理论陈述，未建立与工具调用决策过程的具体映射关系，亦无实验设计、可操作指标或可复现分析路径支撑该验证。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_479",
+      "doc_108_parent_516",
+      "doc_108_parent_87"
+    ],
+    "evidence": {
+      "doc_108_parent_479": "文本未提供关于“对角矩阵假设”“积化和差”数学性质、相对位置编码与tools参数响应之间关系的任何信息；未说明chat.completions.create接口返回的response结构如何与位置编码机制交互；未提及工具调用决策与位置编码设计（如RoPE、ALiBi或T5式相对位置偏置）存在可验证的关联；亦无实验方法、公式推导或实证分析支撑该问题所涉技术路径。该问题所依赖的前提在给定文本中完全缺失。",
+      "doc_108_parent_516": "chat.completions.create接口调用时设置tools参数，若response返回工具调用，则需分析其logprobs或attention权重；但原文未提及位置编码、对角矩阵假设、积化和差等概念，也未提供任何关于相对位置编码影响工具调用决策的机制、验证方法或数学推导；代码片段仅展示基础调用结构与简单响应检查逻辑，缺乏与位置编码理论关联的技术细节或数据支持。",
+      "doc_108_parent_87": "当位置编码矩阵非单位矩阵时，因Embedding层d维向量各维度相关性小、具解耦性，可视为对角矩阵；此时利用积化和差公式，可证明该编码仍能表示相对位置。这一性质表明，模型对token间相对距离的建模能力依赖于位置编码结构，若tools参数触发的工具调用决策涉及多token序列（如tool call name、arguments等在响应中的位置分布），其决策过程可能受相对位置编码影响——尤其当不同工具候选在响应中呈特定相对位置排列时，“对角矩阵假设”与“积化和差”共同保障了模型能区分|m−n|差异，从而潜在影响工具选择的相对位置敏感性。"
+    }
+  },
+  {
+    "id": "q_209",
+    "question": "在使用HyDE进行查询重写以提升Kafka消息幂等性相关文档召回率时，为什么不能直接用HyDE生成的假想文档作为最终答案的依据，而必须结合真实检索到的文档片段来回答‘如何通过配置enable.idempotence=true实现消息不重复消费’这个问题？",
+    "difficulty": "multi-hop",
+    "ground_truth": "因为HyDE生成的假想文档是虚构内容，缺乏Kafka幂等性机制的真实技术细节、准确参数（如enable.idempotence=true）、必要前提条件（如max.in.flight.requests.per.connection=1）、Broker端序列号校验原理及组件协作逻辑，存在幻觉风险；而该问题要求严格依据Kafka官方机制回答，必须依赖真实检索到的文档片段中明确描述的配置项、原理说明、上下文约束和限制条件，假想文档仅用于提升召回率，不参与最终答案生成。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_310",
+      "doc_107_parent_8"
+    ],
+    "evidence": {
+      "doc_106_parent_310": "HyDE生成的假想文档是基于查询语义推测的虚构内容，缺乏真实技术细节的准确性与权威性；而“如何通过配置enable.idempotence=true实现消息不重复消费”需严格依据Kafka官方机制：启用该配置后，Kafka为每条消息分配唯一序列号，并在Broker端进行去重，从源头避免重复发送。该原理涉及具体组件协作（生产者、Broker）、精确参数（enable.idempotence=true）及底层机制（序列号校验），仅靠HyDE虚构文本无法保证正确性，必须依赖真实文档中明确描述的配置项、原理说明和上下文约束。",
+      "doc_107_parent_8": "HyDE 生成的假想文档仅用于提升 dense retrieval 的召回率，不能作为最终答案的依据；它只参与召回阶段，不进入最终答案的证据链。最终答案必须严格基于真实检索到的文档片段，并需进行引用校验和拒答判断。因假想文档存在幻觉风险，若直接用其回答“如何通过配置 enable.idempotence=true 实现消息不重复消费”这类具体技术问题，可能导致错误或不可靠信息；真实 Kafka 文档中关于幂等性配置的准确参数、前提条件（如需设置 max.in.flight.requests.per.connection=1）、broker 端要求及限制等细节，只能由真实 retrieved c"
+    }
+  },
+  {
+    "id": "q_210",
+    "question": "在Tiny-RAG的Demo代码中，如何加载已保存的向量数据库？同时，该代码中使用的Embedding模型和LLM模型分别是什么？",
+    "difficulty": "multi-hop",
+    "ground_truth": "在Tiny-RAG的Demo代码中，加载已保存的向量数据库有两种方式：一是通过`vector.load_vector('./storage')`，二是通过`Chroma(persist_directory=\"./chroma_db\", embedding_function=embedding_function)`；对应的Embedding模型分别为`OpenAIEmbedding()`和`HuggingFaceEmbeddings(model_name=\"sentence-transformers/all-MiniLM-L6-v2\")`，LLM模型分别为`OpenAIChat(model='Qwen/Qwen2.5-32B-Instruct')`和`ChatOllama(model=\"llama3\", temperature=0)`。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_498",
+      "doc_108_parent_325"
+    ],
+    "evidence": {
+      "doc_108_parent_498": "在Tiny-RAG的Demo代码中，通过`vector.load_vector('./storage')`加载已保存的向量数据库。代码中使用的Embedding模型是`OpenAIEmbedding()`，LLM模型是`OpenAIChat(model='Qwen/Qwen2.5-32B-Instruct')`。",
+      "doc_108_parent_325": "在Tiny-RAG的Demo代码中，通过`Chroma(persist_directory=\"./chroma_db\", embedding_function=embedding_function)`加载已保存的向量数据库。该代码使用的Embedding模型是`HuggingFaceEmbeddings(model_name=\"sentence-transformers/all-MiniLM-L6-v2\")`，LLM模型是`ChatOllama(model=\"llama3\", temperature=0)`。"
+    }
+  },
+  {
+    "id": "q_211",
+    "question": "如果工人工作15天可获得一整块金子，老板需每天支付恰好当天应得的份额（不能多也不能少），且参考7天情形中通过2次切割得到1/7、2/7、4/7三段并利用二进制组合实现每日支付，那么15天情形下最少需要切割几次？同时，该策略依赖的数学原理与7天案例中提到的‘本质上是利用二进制’是否一致？请结合两个片段中的切割次数、分段逻辑和二进制表示说明原因。",
+    "difficulty": "multi-hop",
+    "ground_truth": "15天情形下最少需要切割3次；该策略依赖的数学原理与7天案例中提到的“本质上是利用二进制”完全一致：7天对应2³−1=7，需3段（1/7、2/7、4/7），切割2次，覆盖1–7的所有整数，本质是用3位二进制（2⁰,2¹,2²）表示每日份额；15天对应2⁴−1=15，需4段（1/15、2/15、4/15、8/15），切割3次，覆盖1–15的所有整数，本质是用4位二进制（2⁰,2¹,2²,2³）表示每日份额；每日支付即根据当天序号的二进制展开，选取对应分段组合（通过给付与收回实现），两者均基于二进制权重分解与完备覆盖原理。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_590",
+      "doc_106_parent_365"
+    ],
+    "evidence": {
+      "doc_106_parent_590": "15天情形下最少需要切割3次，得到1/15、2/15、4/15、8/15四段（因2⁴−1=15，需4段，故切3次）；该策略依赖的数学原理与7天案例一致，均本质利用二进制：7天用1、2、4（2⁰,2¹,2²）三段覆盖1–7，对应二进制3位；15天用1、2、4、8（2⁰–2³）四段覆盖1–15，对应二进制4位；每日支付即用相应二进制位组合表示当天份额，通过给付与收回实现精确发放。",
+      "doc_106_parent_365": "15天情形下最少需要切割3次，得到1/15、2/15、4/15、8/15四段（因2⁴−1=15，需4段，故切3次）。该策略数学原理与7天案例一致，均基于二进制：7=2³−1，需3段（1/7、2/7、4/7），切2次；15=2⁴−1，需4段（1/15、2/15、4/15、8/15），切3次；每日支付份额对应15以内整数的二进制表示，各段分别对应2⁰、2¹、2²、2³倍单位份额，通过组合实现精确支付。"
+    }
+  },
+  {
+    "id": "q_212",
+    "question": "Kafka中消费者提交的offset从0.9.0版本起存储在哪个内置主题中？该主题默认有多少个分区？为什么Kafka要根据消费组ID和主题名计算哈希值并映射到该主题的特定分区？",
+    "difficulty": "multi-hop",
+    "ground_truth": "Kafka中消费者提交的offset从0.9.0版本起存储在内置主题`__consumer_offsets`中，该主题默认有50个分区；Kafka根据消费组ID和主题名计算哈希值并映射到该主题的特定分区，是为了确保同一消费组对同一主题的offset提交都路由到同一个分区，从而保证offset更新的顺序性和一致性，避免并发写入冲突，并支持通过副本机制实现高可用、容错及高并发、可扩展的offset管理。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_299",
+      "doc_108_parent_173"
+    ],
+    "evidence": {
+      "doc_106_parent_299": "Kafka中消费者提交的offset从0.9.0版本起存储在内置主题`consumer_offsets`中。该主题默认有50个分区。Kafka要根据消费组ID和主题名计算哈希值并映射到该主题的特定分区，是为了将同一消费组对同一主题的offset记录集中存储于同一个分区，确保offset写入的顺序性和一致性，并支持高并发、可扩展的offset管理。",
+      "doc_108_parent_173": "Kafka中消费者提交的offset从0.9.0版本起存储在内置主题__consumer_offsets中。该主题默认有50个分区。Kafka根据消费组ID和主题名计算哈希值并映射到该主题的特定分区，是为了确保同一消费组对同一主题的offset提交都路由到同一个分区，从而保证offset更新的顺序性和一致性，避免并发写入冲突，并支持通过副本机制实现高可用与容错。"
+    }
+  },
+  {
+    "id": "q_213",
+    "question": "为什么互联网公司选择使用RC来提升高并发，而BERT模型在处理这类高并发场景的自然语言任务时，又特别采用了GELU激活函数和融合相对位置编码的自注意力机制？",
+    "difficulty": "multi-hop",
+    "ground_truth": "互联网公司选择使用RC来提升高并发，是因为RC能有效应对高并发场景；BERT模型在处理此类高并发自然语言任务时，采用GELU激活函数，因其引入随机正则思想，依据输入自身的概率分布动态决定神经元保留或丢弃，从而提升模型表达能力、训练稳定性与收敛速度；同时融合相对位置编码的自注意力机制，并将相对位置编码设为可训练参数，以增强对词间相对距离关系的建模能力，进而保障高并发下的语义理解精度与推理效率。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_110",
+      "doc_106_parent_222"
+    ],
+    "evidence": {
+      "doc_108_parent_110": "BERT采用GELU激活函数，因其将随机正则思想引入激活函数，通过输入自身的概率分布决定神经元保留或丢弃，提升模型表达能力与训练稳定性；同时，BERT在自注意力机制中融合相对位置编码，并将其视为可训练的权重参数，增强对序列中词间相对位置关系的建模能力，从而更适应高并发下的自然语言理解任务需求。",
+      "doc_106_parent_222": "互联网公司选择使用RC提升高并发，因其能有效应对高并发场景；BERT模型在处理高并发自然语言任务时，采用GELU激活函数以提升训练稳定性和收敛速度，同时融合相对位置编码的自注意力机制，增强模型对序列中词间距离关系的建模能力，从而在高并发下保持语义理解精度与推理效率。"
+    }
+  },
+  {
+    "id": "q_214",
+    "question": "在使用Qwen系列模型进行SFT微调时，若采用LoRA方式进行高效训练，需要同时完成哪三个关键操作：一是对多轮对话数据中特殊token（如<|im_start|>、<|im_end|>、换行符及角色标识符）的定义与处理；二是对训练损失的计算范围进行调整（仅对Assistant回复部分计算loss）；三是对LoRA层forward函数的修改及参数更新策略（冻结原权重、仅更新A和B矩阵）？",
+    "difficulty": "multi-hop",
+    "ground_truth": "一是定义并处理多轮对话数据中的特殊token（如<|im_start|>、<|im_end|>、换行符及system/human/assistant等角色标识符），将其正确转为input_ids；二是调整损失计算范围，仅对Assistant回复部分计算loss，忽略System和Human指令部分；三是修改LoRA层forward函数，并冻结原始权重，仅更新LoRA矩阵A和B。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_459",
+      "doc_108_parent_429"
+    ],
+    "evidence": {
+      "doc_108_parent_459": "在使用Qwen系列模型进行SFT微调时，若采用LoRA方式进行高效训练，需同时完成三个关键操作：一是对多轮对话数据中特殊token（如<|im_start|>、<|im_end|>、换行符及角色标识符）的定义与处理；二是调整训练损失计算范围，仅对Assistant回复部分计算loss；三是修改LoRA层forward函数，并实施参数更新策略——冻结原始权重，仅更新A和B矩阵。",
+      "doc_108_parent_429": "一是定义特殊token，包括<|im_start|>、<|im_end|>、换行符及角色标识符（如system/human/assistant），并将其转为input_ids；二是仅对Assistant回复部分计算loss，不计算指令（System/User）部分的loss；三是LoRA微调中冻结原始权重，仅更新LoRA矩阵A和B，修改LoRA层forward函数以实现参数高效更新。"
+    }
+  },
+  {
+    "id": "q_215",
+    "question": "在RAG Agent面试中，如果被问到如何确保检索到的证据既高质量又足够支撑回答，需要同时考虑chunk切分策略（比如标题、章节、表格图片的处理）、证据质量评估维度（如数据如何变成可检索证据、语义召回与精确匹配的平衡），以及运行时对证据状态的实时判断（如证据是否足够、是否需调用高成本模型），那么这三方面分别对应哪些具体设计要点？",
+    "difficulty": "multi-hop",
+    "ground_truth": "chunk切分策略的具体设计要点包括：保留标题和章节以维持语义完整性；表格和图片需单独切分为独立chunk并附加结构化文本描述；chunk size控制在256–512 token，overlap设为10%–20%以缓解边界截断问题。  \n证据质量评估维度的具体设计要点包括：原始数据须经清洗、去噪与结构化处理（如表格转文本描述）后才转化为可检索证据；采用混合检索机制（稠密向量+稀疏检索+关键词/正则匹配），并引入重排序模型平衡语义召回与精确匹配。  \n运行时证据状态实时判断的具体设计要点包括：实时统计检索结果的相关性分数、覆盖度与冗余度；依据预设阈值动态决策是否补充检索、调用高成本模型（如LLM重写查询或精排）；结合证据数量、置信度、覆盖度等指标判断证据充分性，并通过middleware实现工具权限过滤、任务级确定性预检、路由trace与评测。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_70",
+      "doc_107_parent_104",
+      "doc_107_parent_59"
+    ],
+    "evidence": {
+      "doc_107_parent_70": "chunk切分策略：标题和章节需保留以维持语义完整性；表格和图片应单独切分为独立chunk并添加结构化描述；chunk size需权衡召回率与精度，通常256–512 token，overlap设为10%–20%以缓解边界截断。证据质量评估维度：原始数据需经清洗、去噪、结构化（如表格转文本描述）后才成为可检索证据；融合语义召回（向量检索）与精确匹配（关键词/正则）提升相关性。运行时证据状态判断：实时统计检索结果的相关性分数、覆盖度与冗余度；设定阈值动态决策是否补充检索或调用高成本模型重排/生成。",
+      "doc_107_parent_104": "1. 数据如何变成可检索证据：涉及chunk切分策略，如标题、章节、表格、图片的合理处理，确保语义完整与结构可读；  \n2. 检索如何兼顾语义召回和精确匹配：需设计混合检索机制（如稠密+稀疏+关键词），并引入重排序模型提升相关性；  \n3. 运行时对证据状态的实时判断：通过证据数量、置信度阈值、覆盖度评估等指标动态判断是否足够，不足时触发高成本模型（如LLM重写查询或精排）或主动扩展检索。",
+      "doc_107_parent_59": "chunk切分策略：标题、章节、表格图片的处理；证据质量评估维度：数据如何变成可检索证据、语义召回与精确匹配的平衡；运行时证据状态实时判断：证据是否足够、是否需调用高成本模型。对应具体设计要点包括：证据状态（当前证据是否足够）、成本状态（是否需要调用昂贵模型或视觉模型）；工程上通过middleware按任务和权限过滤工具、tool description写清适用/不适用场景、对关键任务做deterministic pre-check、对路由结果做trace和评测；Tool routing需结合工具描述、权限过滤、状态检查和中间件协同，高风险动作须先做确定性预检。"
+    }
+  },
+  {
+    "id": "q_216",
+    "question": "如果在Tomcat中运行多个Web应用，且它们依赖相同全限定名但不同版本的类库，此时若JVM发生元空间不足导致OutOfMemoryError: Metaspace，进而触发Full GC，而Full GC又会暂停整个堆（包括年轻代和老年代）的处理，那么这种情况下，Tomcat为支持多应用隔离而破坏双亲委派模型的设计，是否可能间接加剧YoungGC频繁晋升对象至老年代、甚至诱发更多Full GC？请结合Survivor区大小设置不当的影响、CMS中Full GC的触发条件以及元空间回收机制说明原因。",
+    "difficulty": "multi-hop",
+    "ground_truth": "是。Tomcat破坏双亲委派模型导致多个Web应用重复加载相同全限定名但不同版本的类，显著增加元空间占用；元空间不足触发OutOfMemoryError: Metaspace，强制执行Full GC；而Full GC暂停整个堆（含年轻代），使YoungGC无法及时执行，年轻代对象持续堆积；若Survivor区设置过小，YoungGC后本应短期存活的对象因空间不足直接晋升老年代，加速老年代填充；CMS中老年代碎片化或空间不足会进一步触发Full GC；同时，元空间回收依赖类卸载，需ClassLoader无引用且类无实例，但Tomcat热部署/卸载不彻底常致类和ClassLoader残留，阻碍元空间释放，形成“元空间泄漏—频繁Full GC—年轻代晋升失控—更多Full GC”的恶性循环。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_150",
+      "doc_106_parent_146"
+    ],
+    "evidence": {
+      "doc_106_parent_150": "Survivor区过小会导致YoungGC后存活对象直接晋升老年代，不该晋升的晋升了，最终导致Full GC；CMS中Full GC会暂停整个堆（包括年轻代和老年代），且可能在Old GC失败或元空间不足（如OutOfMemoryError: Metaspace）时触发；元空间垃圾回收依赖Full GC；Tomcat破坏双亲委派以实现多应用类隔离，若多个应用加载相同全限定名但不同版本的类，将显著增加元空间占用，加剧Metaspace耗尽风险，从而更频繁触发Full GC；而Full GC暂停期间YoungGC无法执行，年轻代对象持续堆积，若Survivor区设置不当，会进一步加速对象向老年代晋",
+      "doc_106_parent_146": "Tomcat为支持多应用隔离而破坏双亲委派模型，使每个Web应用拥有独立ClassLoader，导致相同全限定名但不同版本的类被重复加载，显著增加元空间占用；元空间不足触发OutOfMemoryError: Metaspace，进而强制Full GC；Full GC暂停整个堆，干扰年轻代对象晋升节奏；若Survivor区过小，短期对象易因分配失败直接晋升老年代；CMS中老年代碎片化或空间不足会触发Full GC；而元空间本身不参与GC，其回收依赖类卸载，需ClassLoader无引用且类无实例——但Tomcat中应用热部署/卸载不彻底常致类和ClassLoader残留，阻碍元空间释放，形成“元"
+    }
+  },
+  {
+    "id": "q_217",
+    "question": "在设计一个企业知识库RAG系统时，为什么既要将权限控制放在检索前的中间件层（而非仅靠Prompt提示模型），又需要在评测阶段专门覆盖‘权限外问题’和‘过期文档问题’？这两个设计分别对应片段255中关于中间件可靠性的哪两个核心原则，以及片段299中评测要求所要防范的哪种系统性风险？",
+    "difficulty": "multi-hop",
+    "ground_truth": "既要将权限控制放在检索前的中间件层，是因为Prompt属于软约束、易被绕过且依赖模型稳定性，而中间件必须提供不可绕过、强一致、前置拦截的硬边界，对应片段255中“不可绕过性”和“强一致性”两个核心原则（二者统一体现为“安全边界不可依赖Prompt”与“系统边界需独立于模型稳定性”的本质要求）；需要在评测阶段专门覆盖‘权限外问题’和‘过期文档问题’，是为了防范因权限索引滞后、逻辑缺陷或文档生命周期管理缺失所导致的敏感信息泄露、事实性错误及可信度坍塌，对应片段299中所要防范的“数据一致性与访问控制失效引发的系统性合规与可信风险”。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_61",
+      "doc_107_parent_88",
+      "doc_107_parent_63"
+    ],
+    "evidence": {
+      "doc_107_parent_61": "权限控制放在检索前中间件层，是因为Prompt是软约束，中间件是硬边界；安全、权限等关键控制必须置于中间件或运行时，确保模型输出不稳定时系统边界仍稳定。这对应片段255中“安全边界不可依赖Prompt”和“系统边界需独立于模型稳定性”两个核心原则。评测阶段覆盖‘权限外问题’和‘过期文档问题’，旨在防范因权限索引滞后或文档生命周期管理缺失导致的越权泄露与事实性错误，对应片段299中所要防范的“数据一致性与访问控制失效引发的系统性合规与可信风险”。",
+      "doc_107_parent_88": "权限控制放在检索前中间件层，是因为中间件需满足“不可绕过性”与“强一致性”两大核心原则（片段255）；仅靠Prompt提示模型易被越权提示词绕过，且无法保证所有请求路径的权限校验一致。评测阶段专门覆盖“权限外问题”和“过期文档问题”，旨在防范因权限逻辑缺陷或时效性管理失效导致的“敏感信息泄露”这一系统性风险（片段299）。",
+      "doc_107_parent_63": "权限控制放在检索前中间件层，是因为权限不是UI功能而是检索前的过滤条件，需确保中间件具备“强一致性”与“前置拦截”两个核心原则；评测阶段覆盖“权限外问题”和“过期文档问题”，旨在防范系统性风险——即RAG系统在真实场景中因权限绕过或陈旧知识导致的“可信度坍塌”。"
+    }
+  },
+  {
+    "id": "q_218",
+    "question": "在RAG系统评测中，为什么既要设置no-answer类问题（如无关问题或权限外问题），又要专门评估no-evidence场景下的拒答行为，且仅靠citation validation还不足以保证答案可靠性？",
+    "difficulty": "multi-hop",
+    "ground_truth": "因为no-answer类问题（包括无关问题、错误前提和权限外问题）能全面检验系统在无有效证据时的拒答能力；no-evidence场景下的拒答行为必须专门评估，以防止系统凭常识硬答而引发高风险错误；而citation validation仅能验证引用是否存在且真实，无法确保答案中每个语义主张（claim）均被证据充分支持、覆盖和绑定，因此必须结合claim-level attribution、gold chunk召回、语义覆盖与依据性等多维评测，才能准确定位并保障检索、引用、生成及拒答各环节的可靠性。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_67",
+      "doc_107_parent_79"
+    ],
+    "evidence": {
+      "doc_107_parent_67": "no-answer类问题需涵盖无关问题、错误前提、权限外问题，以全面检验系统拒答能力；仅靠citation validation无法识别答案是否真正基于证据生成，也无法判断关键语义点是否被覆盖且有依据（grounded），故必须专门评估no-evidence场景下的拒答行为；还需拆解评测为检索、引用、答案、拒答和成本等维度，分别考察gold chunk召回、答案与真实证据绑定、claim eval中语义覆盖与依据性，才能准确定位问题环节（召回、生成或证据绑定）。",
+      "doc_107_parent_79": "no-evidence指知识库无足够证据支持回答时，系统应明确拒答而非凭常识硬答；拒答是高级能力，因错误回答比拒答更危险；citation validation仅能防止伪造引用或引用不存在的chunk，无法保证答案中每一句话都被充分支持，需进一步实现claim-level attribution才能保障答案可靠性。"
+    }
+  },
+  {
+    "id": "q_219",
+    "question": "Datawhale提供的免费课程中，学员将深入理解Transformer架构和注意力机制，并掌握预训练语言模型的基本原理；而预训练语言模型的稳定训练常依赖RMSNorm等归一化技术——那么，RMSNorm中引入小常数ε的主要作用是什么？这一设计又如何支撑课程所强调的‘预训练语言模型基本原理’中的稳定性需求？",
+    "difficulty": "multi-hop",
+    "ground_truth": "RMSNorm中引入小常数ε的主要作用是防止分母为零，确保数值稳定性；该设计通过避免除零错误以及梯度爆炸或消失，保障预训练语言模型在大规模、深层网络、长时间训练过程中的收敛性、平滑优化与鲁棒性，从而直接支撑课程所强调的“预训练语言模型基本原理”中对训练稳定性的核心需求。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_1",
+      "doc_108_parent_136"
+    ],
+    "evidence": {
+      "doc_108_parent_1": "RMSNorm中引入小常数ε的主要作用是防止分母为零，确保数值稳定性；该设计通过避免除零错误和梯度爆炸/消失，保障预训练语言模型在大规模、长时间训练过程中的收敛性与鲁棒性，从而直接支撑课程所强调的“预训练语言模型基本原理”中对训练稳定性的核心需求。",
+      "doc_108_parent_136": "RMSNorm中引入小常数ε的主要作用是确保数值稳定性，避免在计算均方根（RMS）时分母为零。这一设计通过防止除零错误和梯度爆炸/消失，保障训练过程的平滑与收敛，从而支撑预训练语言模型在深层网络中长期、稳定地优化参数——这正是课程所强调的“预训练语言模型基本原理”中对训练稳定性与鲁棒性的核心需求。"
+    }
+  },
+  {
+    "id": "q_220",
+    "question": "在预训练阶段，模型输入X为[BOS, T1, T2, T3, T4, T5, T6, T7]、目标Y为[T1, T2, T3, T4, T5, T6, T7, EOS]且loss_mask为[0,1,1,1,1,1,1,1,1]的情况下，若该批次中某样本经tokenizer后序列长度seqlen=9，并进入多头注意力模块（如片段403所示），其查询张量q的形状为[bsz, seqlen, n_embed]，那么在执行xq.view(bsz, seqlen, self.n_head, -1)并转置维度后，参与注意力计算的实际时间步维度（即每个头对应的序列长度）是多少？为什么这个长度与loss_mask中有效损失位置的数量一致？",
+    "difficulty": "multi-hop",
+    "ground_truth": "参与注意力计算的实际时间步维度是8。因为输入序列X为[BOS, T1, T2, T3, T4, T5, T6, T7]，共8个token，经tokenizer后总序列长度seqlen=9是包含目标Y末尾的EOS所致；但多头注意力模块作用于输入X（即模型实际接收的上下文），其长度为8，故q.view(bsz, seqlen, self.n_head, -1)中的seqlen在注意力计算中有效值为8；loss_mask为[0,1,1,1,1,1,1,1,1]，长度为9，但首位置对应BOS的预测被mask掉（loss_mask[0]=0），其余8个1对应T1至EOS共8个有效损失位置，与输入X长度一致，因此时间步维度等于loss_mask中有效损失位置的数量8。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_62",
+      "doc_108_parent_312"
+    ],
+    "evidence": {
+      "doc_108_parent_62": "在预训练阶段，模型输入X为[BOS, T1, T2, T3, T4, T5, T6, T7]、目标Y为[T1, T2, T3, T4, T5, T6, T7, EOS]且loss_mask为[0,1,1,1,1,1,1,1,1]，该批次某样本tokenizer后seqlen=9；xq.view(bsz, seqlen, self.n_head, -1)并转置后，实际时间步维度（即每个头对应的序列长度）为9；该长度与loss_mask中有效损失位置数量一致，因为loss_mask长度为9，其中1的个数为8，但序列总长（含BOS）为9，而注意力计算覆盖整个输入序列（含BOS），故时间步维度等于se",
+      "doc_108_parent_312": "在预训练阶段，输入X为[BOS, T1, T2, T3, T4, T5, T6, T7]、目标Y为[T1, T2, T3, T4, T5, T6, T7, EOS]，loss_mask为[0,1,1,1,1,1,1,1,1]，样本seqlen=9。此时X实际长度为8（含BOS），但经tokenizer后序列总长为9（含BOS与EOS）。loss_mask中有效损失位置共8个（从T1到EOS），对应Y的全部8个token。q经view和转置后，每个头的时间步维度即为参与注意力计算的序列长度，等于X的长度8；该长度与loss_mask中有效损失位置数（8）一致，因二者均源于同一截断后的上下文窗口，"
+    }
+  },
+  {
+    "id": "q_221",
+    "question": "为什么大模型在药物研发（如AlphaFold）和自动驾驶（如Tesla FSD）等关键领域被广泛应用，却仍可能因‘编造信息’或‘逻辑错误’导致严重风险，这与其在科学计算中无法进行高精度数值计算（比如区分3.9和3.11的大小）以及训练时SFT阶段仅对AI生成部分（loss_mask中标记为1的位置）计算损失的机制之间存在怎样的内在关联？",
+    "difficulty": "multi-hop",
+    "ground_truth": "大模型在药物研发和自动驾驶等领域被广泛应用，是因为其擅长文本理解、生成、多模态感知及广域知识关联，能有效处理AlphaFold中的蛋白质结构模式识别、Tesla FSD中的视觉语义理解等复杂认知任务；但其训练机制中监督微调（SFT）阶段仅对loss_mask中标记为1的位置（即AI生成部分）计算损失，导致模型未被显式优化于数值精度与逻辑严密性——既无法可靠区分3.9与3.11等细微数值差异，也缺乏对事实一致性与数学推理的强制约束；这种以文本匹配为目标、忽略隐式数值与逻辑正确性的训练范式，使其输出虽表面合理，却可能编造信息、产生逻辑错误，进而在依赖高可靠性决策的关键领域引发严重风险。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_634",
+      "doc_108_parent_318"
+    ],
+    "evidence": {
+      "doc_106_parent_634": "大模型在药物研发（如AlphaFold）和自动驾驶（如Tesla FSD）中被广泛应用，因其擅于文本理解、生成、多模态任务及广泛知识问答；但其不擅长高精度数值计算（如区分3.9和3.11的大小），且训练时SFT阶段仅对loss_mask中标记为1的位置（即AI生成部分）计算损失，导致模型未被强制约束于数值精确性与逻辑严密性。这使其易犯逻辑错误、编造信息，虽输出看似合理，却缺乏可验证的事实基础与严格数学推理能力，从而在关键领域引发严重风险。",
+      "doc_108_parent_318": "SFT阶段仅对loss_mask中标记为1的位置（即AI生成部分）计算损失，其余位置不参与训练优化；这导致模型在生成内容时缺乏对数值精度、逻辑一致性等隐式约束的显式学习。由于训练目标局限于文本匹配而非数值计算或逻辑验证，模型难以区分3.9与3.11等细微数值差异，也易产生事实性错误或逻辑矛盾。该机制使大模型在药物研发、自动驾驶等依赖高可靠性输出的领域中，虽能处理复杂模式识别任务（如AlphaFold的结构预测、Tesla FSD的视觉理解），却无法保证生成内容的数学严谨性与事实准确性，从而埋下严重风险隐患。"
+    }
+  },
+  {
+    "id": "q_222",
+    "question": "在RAG Agent的评测体系中，为什么Tool routing的评测不能只看retrieval eval的recall@k指标，而需要结合citation eval和claim eval，并且还要参考工作台提供的trace和feedback闭环能力？",
+    "difficulty": "multi-hop",
+    "ground_truth": "因为recall@k仅衡量检索模块是否召回相关文档，无法验证Agent是否准确理解用户意图、正确选择工具（如检索或非检索工具）、合理设置工具参数，也无法检验引用是否真实精准（需citation eval）、生成主张是否被证据充分支撑且无幻觉（需claim eval）；而工作台提供的trace可完整追溯query改写、工具选择依据、引用锚点等决策链路，feedback闭环能力则能将用户反馈结构化为hard cases并注入golden set，驱动检索、拒答与生成策略的迭代优化，三者协同保障Tool routing在方法、对比、总结、模糊、无证据、错误前提等复杂场景下的鲁棒性、可信度、可观察性、可调试性与可优化性。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_18",
+      "doc_107_parent_93",
+      "doc_107_parent_97"
+    ],
+    "evidence": {
+      "doc_107_parent_18": "Tool routing的评测不能仅依赖retrieval eval的recall@k，因其只衡量证据是否被检索到，未验证引用真实性（需citation eval）和答案语义正确性（需claim eval）。citation eval关注引用是否真实支撑答案，claim eval检查关键语义点是否覆盖且有证据支撑。同时，工作台提供的trace可追溯决策路径，feedback闭环能力支持迭代优化，三者共同保障RAG Agent在复杂问题（如方法、对比、总结、模糊、无证据、错误前提类）中的鲁棒性与可信度。",
+      "doc_107_parent_93": "Tool routing 评测不能仅依赖 retrieval eval 的 recall@k，因其仅衡量检索模块是否召回相关文档，无法反映 Agent 是否正确理解用户意图、准确选择工具（如检索或非检索工具）、合理调用工具参数，以及生成结果是否真实可信。需结合 citation eval（检验引用是否精准对应原文、有无幻觉或张冠李戴）和 claim eval（验证生成主张是否被引用内容充分支撑），以评估信息溯源与事实一致性。此外，工作台提供的 trace 可追溯每步决策链路（如 query 改写、工具选择依据、引用锚点），feedback 闭环则支持人工校验与迭代优化，三者共同保障 Tool ",
+      "doc_107_parent_97": "Tool routing评测不能仅依赖recall@k，因recall@k只衡量检索相关性，无法验证工具调用是否准确、引用是否真实可靠、主张是否被证据充分支持。需结合citation eval（检验引用来源是否真实命中且上下文匹配）和claim eval（验证生成主张是否被引用证据充分支撑）。工作台提供的trace可追溯每步工具调用与证据链路，feedback闭环能力则将用户反馈结构化为hard cases并注入golden set，驱动检索、拒答与生成策略迭代优化，确保系统可观察、可调试、可优化。"
+    }
+  },
+  {
+    "id": "q_223",
+    "question": "在构建一个支持多模态RAG与Agent协同的系统时，如果解析阶段已按片段248要求保留图片、表格等非文本证据，且Agent层已按片段208规范设计了带权限校验、审计追踪和结构化输出的Tool，那么在测试该系统时，应如何设计tool routing的验证用例，才能同时覆盖‘多模态证据是否被正确召回并用于触发工具’‘权限检查是否在tool执行前生效’以及‘多轮追问中是否重新验证证据而非复用缓存结果’这三个关键环节？",
+    "difficulty": "multi-hop",
+    "ground_truth": "应设计三类验证用例：第一类，构造含图片或表格的用户查询，验证RAG能否准确召回对应多模态证据（含原始二进制/结构化数据、页码、caption及上下文），并触发专属Tool（如图表分析Tool），确保tool输入完整承载该多模态证据；第二类，对受限Tool发起越权调用（如无权限用户请求敏感数据导出），验证权限校验在tool execution前强制拦截，返回明确拒绝响应，并生成完整审计日志；第三类，在多轮追问中主动修改原始证据（如更新表格数值、替换图片文件或调整caption），验证系统每轮均重新执行RAG召回与证据比对，不复用首轮缓存结果，确保每次tool调用均基于最新、经校验的多模态证据，同时覆盖retrieval、citation、claim、abstain、tool contract、subagent行为及gateway权限全链路。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_49",
+      "doc_107_parent_33",
+      "doc_107_parent_53"
+    ],
+    "evidence": {
+      "doc_107_parent_49": "解析阶段保留图片、表格、页码、caption和周边上下文；Agent层Tool按片段208规范设计，含权限校验、审计追踪和结构化输出；测试需覆盖三方面：（1）多模态证据是否被正确召回并触发对应Tool；（2）权限检查是否在Tool执行前强制生效；（3）多轮追问中是否对原始多模态证据重新验证而非复用缓存结果。",
+      "doc_107_parent_33": "Tool routing验证用例应覆盖：①多模态证据（图片、表格）是否被正确召回并触发对应工具；②无权限或无数据时是否在tool执行前返回明确错误，体现权限校验前置；③多轮追问中是否保留上下文但重新验证证据，而非复用缓存结果。同时需检验：该检索时调用检索工具、该入库时调用构建工具、该拒答时不调用生成工具、该导出时调用交付物工具。须贯穿retrieval、citation、claim、abstain、tool contract、subagent行为及gateway权限全链路验证。",
+      "doc_107_parent_53": "应设计三类验证用例：（1）构造含图片/表格的用户查询，验证RAG召回的多模态证据能否准确触发对应tool（如图表分析tool），检查tool输入是否包含原始二进制或结构化多模态数据；（2）对受限tool发起越权调用，验证permission check在execution前拦截并返回明确拒绝日志与审计记录；（3）在多轮追问中修改原始证据（如更新表格数值或替换图片），验证系统重新执行RAG召回与证据比对，而非复用首轮缓存结果，确保每轮tool输入均基于最新证据。"
+    }
+  },
+  {
+    "id": "q_224",
+    "question": "在实现单点登录时，如果系统采用CAS方案，用户访问子系统后会被重定向到CAS服务器获取票据；而另一种方案是前端在请求头携带JWT令牌，由各业务系统自行验证签名、有效期并解析用户信息。这两种方案在用户信息存储和验证机制上有什么本质区别？比如，CAS是否依赖共享Redis存储用户信息，而JWT方案是否必须使用公共Redis或数据库来存储Session？",
+    "difficulty": "multi-hop",
+    "ground_truth": "CAS方案中，用户信息由CAS中心统一管理，票据（如ST、TGT）存储在CAS服务器端（可选Redis等共享存储），各子系统不保存用户会话状态，也不依赖共享Redis或数据库存储用户信息；JWT方案中，用户信息直接编码在令牌载荷内，各业务系统通过验证签名和有效期自主解析用户信息，无需共享Redis或数据库存储Session，仅在主动注销或黑名单管理等特殊场景下才可能引入共享存储。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_467",
+      "doc_108_parent_519"
+    ],
+    "evidence": {
+      "doc_106_parent_467": "CAS方案中，用户访问子系统后被重定向至CAS服务器完成认证，CAS生成并返回票据（Ticket），子系统通过CAS校验票据有效性，用户信息由CAS中心统一管理，**不依赖各业务系统共享Redis或数据库存储用户信息**；JWT方案中，前端在请求头携带令牌，各业务系统**自行验证签名、有效期，并直接解析令牌获取用户信息**，无需实时查询中心存储，**不强制要求使用公共Redis或数据库存储Session**，仅在需主动注销或黑名单管理时才可能引入共享存储。",
+      "doc_108_parent_519": "CAS方案中，用户认证和票据验证由中央CAS服务器统一处理，票据（如ST、TGT）通常存储在CAS服务器端（可使用Redis等共享存储），各子系统不保存用户会话状态，仅通过CAS服务器校验票据有效性；JWT方案中，令牌由认证服务签发并携带用户信息（如subject、roles、exp等），各业务系统独立验证签名、有效期并解析载荷，无需共享存储Session，用户信息完全内嵌于JWT中，不依赖Redis或数据库存储会话数据。"
+    }
+  },
+  {
+    "id": "q_225",
+    "question": "为什么像GPT-3这样具备上下文学习能力的大语言模型，能通过仅提供‘用3L和5L水桶量出4L水’的自然语言示例（如片段491中的步骤描述）就直接解决该问题，而传统BERT类预训练语言模型却难以做到——这背后反映了LLM哪项区别于PLM的核心涌现能力？",
+    "difficulty": "multi-hop",
+    "ground_truth": "因为LLM具备由模型规模突破临界点所触发的“涌现能力”，使其首次获得上下文学习能力——即仅通过自然语言示例（如水桶问题的分步推理）即可零样本理解任务逻辑、建模符号操作与抽象关系、完成长程依赖推理并生成正确解法；而传统BERT类PLM受限于架构设计与规模，缺乏该能力，必须依赖有监督微调和人工标注数据。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_168",
+      "doc_106_parent_612"
+    ],
+    "evidence": {
+      "doc_108_parent_168": "LLM区别于PLM的核心涌现能力是“涌现能力”，即在模型规模增大时，某些能力（如上下文学习）从无到有、从弱到强地突然显现，表现为量变引发质变。上下文学习能力由GPT-3首次引入，指模型仅通过自然语言指令或少量任务示例（如“用3L和5L水桶量出4L水”的步骤描述），无需额外训练或参数更新，即可理解上下文并生成正确输出；而传统BERT类PLM缺乏该能力，必须依赖高成本的有监督微调和人工标注数据。",
+      "doc_106_parent_612": "GPT-3等大语言模型具备上下文学习（In-Context Learning）能力，能通过自然语言示例（如水桶问题的分步推理）直接泛化解决新实例；而BERT类预训练语言模型（PLM）缺乏该能力，因其架构未针对长程依赖建模与指令遵循优化。这背后反映的是LLM特有的“涌现能力”——即在模型规模突破临界点后，突然展现出小模型所不具备的推理、任务适应与零样本/少样本泛化能力，尤其体现在对符号操作、逻辑步骤和抽象关系的隐式建模上。"
+    }
+  },
+  {
+    "id": "q_226",
+    "question": "在构建一个支持权限过滤和文档版本管理的RAG系统时，如果要融合多个异构检索器的结果并避免query drift风险，同时还要兼顾召回效率与排序精度，应该选择RRF还是直接加权融合？为什么？并且在rerank阶段和query rewrite环节分别需要注意哪些关键约束？",
+    "difficulty": "multi-hop",
+    "ground_truth": "应选择RRF而非直接加权融合，因为RRF仅依赖各检索器的排序位置，无需对异构检索器的分数尺度进行人工校准或归一化，具有免调参、稳定性高、抑制query drift能力强等优势，能更好兼顾召回效率与排序精度。rerank阶段必须严格注入权限元数据（部门、owner、版本）作为硬约束，拒绝无权限或无证据支持的结果，且仅作用于向量检索召回的有限候选集，不可扩展至全库。query rewrite环节须完整保留原始query及其权限意图（如“仅查看财务部V2.1版合同”），禁止弱化或丢失权限关键词，重写后必须校验改写query能否准确匹配权限与版本metadata，并同步评估改写带来的增益与损害。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_77",
+      "doc_107_parent_62"
+    ],
+    "evidence": {
+      "doc_107_parent_77": "应选择RRF而非直接加权融合，因不同检索器分数尺度不同，直接加权需校准，而RRF仅依赖排名，更适配异构检索结果融合，稳定性更高。rerank阶段需注意其为精排过程，精度高但耗时，不可直接作用于全库，仅适用于向量检索召回的有限候选集；query rewrite环节须严防query drift风险，必须保留原始query，并同步评估改写带来的增益与损害。",
+      "doc_107_parent_62": "应选择RRF而非直接加权融合，因其无需人工调参、对异构检索器归一化友好，能有效抑制query drift并平衡召回与排序。rerank阶段须严格注入权限元数据（部门、owner、版本）作为硬约束，拒绝无权限或无证据结果；query rewrite环节需保留原始权限意图（如“仅查看财务部V2.1版合同”），禁止弱化或丢失权限关键词，且重写后必须校验metadata可匹配性。"
+    }
+  },
+  {
+    "id": "q_227",
+    "question": "在LeetCode的回溯类题目（如46.全排列、39.组合总和）和动态规划类题目（如53.最大子数组和）中，若某次算法执行因输入异常而失败，根据错误处理规范，应如何向用户反馈？具体需包含哪些字段（如error、success、retry），且为何不能直接将Discovery阶段检索到的候选题目（例如仅凭标题匹配的‘路径总和’）作为最终答案的证据？",
+    "difficulty": "multi-hop",
+    "ground_truth": "应返回标准化错误响应，包含error（描述可恢复的失败原因）、success（设为false）、retry（指示是否支持重试及建议操作）三个字段；不能直接将Discovery阶段仅凭标题匹配的候选题目（如“路径总和”）作为最终答案证据，因其仅表明可能相关，未经过Validation阶段的题干语义比对、解法逻辑验证及输入输出约束校验，也未完成入库、解析、切块、索引及本轮检索命中验证，存在误匹配风险，无法保证与用户真实需求一致，且会混淆候选信息与真实证据，损害引用可信度。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_583",
+      "doc_107_parent_31"
+    ],
+    "evidence": {
+      "doc_106_parent_583": "根据错误处理规范，算法执行因输入异常失败时，应返回标准化错误响应，包含error（描述错误类型与原因）、success（设为false）、retry（指示是否支持重试及建议操作）。不得将Discovery阶段仅凭标题匹配的候选题目（如“路径总和”）作为最终答案证据，因其未经过Validation阶段的题干语义比对、解法逻辑验证及输入输出约束校验，存在误匹配风险，无法保证与用户真实需求一致。",
+      "doc_107_parent_31": "error字段需显示可恢复的失败原因；success字段应包含结果、引用、trace和下一步动作，确保可读；retry字段支持用户仅重试失败阶段而非全流程重跑。Discovery阶段检索到的候选题目（如仅凭标题匹配的“路径总和”）不能作为最终答案证据，因其仅表明“可能相关”，通常源于标题、摘要或外部metadata，未经过入库、解析、切块、索引及本轮检索命中验证，直接使用会混淆候选信息与真实证据，损害引用可信度。"
+    }
+  },
+  {
+    "id": "q_228",
+    "question": "在Agent类中，当调用handle_tool_call方法执行工具函数时，其返回的content内容最终会作为哪一类角色的消息被添加到messages列表中？这个消息的结构（如role、content、tool_call_id字段）与片段367中generate_loss_mask函数所处理的input_ids序列里标记为计算损失的token位置（即mask=1的区间）之间，在模型训练阶段存在什么关联？",
+    "difficulty": "multi-hop",
+    "ground_truth": "在Agent类中，当调用handle_tool_call方法执行工具函数时，其返回的content内容最终作为assistant角色的消息被添加到messages列表中；该消息结构包含role=\"assistant\"、content字段及tool_call_id字段；在模型训练阶段，generate_loss_mask函数通过识别input_ids中<|im_start|>assistant\\n子序列后至<|im_end|>（token id=4）前的区间，将对应位置mask设为1以计算损失，此区间恰好覆盖assistant角色消息的content部分，确保仅对模型生成的assistant响应内容计算损失。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_257",
+      "doc_108_parent_515",
+      "doc_108_parent_315"
+    ],
+    "evidence": {
+      "doc_108_parent_257": "文本中未提供关于Agent类的handle_tool_call方法、messages列表结构、role/content/tool_call_id字段定义，也未提及片段367中generate_loss_mask函数、input_ids序列、mask=1区间或其与模型训练阶段的任何关联。所有相关技术细节均缺失，无法从中摘取有效信息回答该问题。",
+      "doc_108_parent_515": "在Agent类中，handle_tool_call方法返回的content内容最终作为\"tool\"角色的消息被添加到messages列表中，其结构包含role=\"tool\"、content=function_call_content、tool_call_id=function_id字段。该消息与片段367中generate_loss_mask函数所处理的input_ids序列中mask=1的token位置无直接关联；模型训练阶段loss mask仅依据对话格式（如用户/助手消息边界）和特殊标记确定，不依赖工具调用消息的具体内容或结构。",
+      "doc_108_parent_315": "在Agent类中，handle_tool_call方法执行工具函数后返回的content内容最终作为assistant角色的消息被添加到messages列表中。该消息结构包含role=\"assistant\"、content字段及tool_call_id字段。在模型训练阶段，generate_loss_mask函数通过识别input_ids中<|im_start|>assistant\\n子序列后至<|im_end|>（token id=4）前的区间，将对应位置mask设为1以计算损失；此区间恰好覆盖assistant角色消息的content部分，确保仅对模型生成的assistant响应内容计算损"
+    }
+  },
+  {
+    "id": "q_229",
+    "question": "在Spring的IOC容器中，如果一个被@Lazy注解修饰的Bean采用懒加载方式初始化，而该Bean又被一个在读已提交（RC）隔离级别下运行的数据库事务所依赖，在事务执行期间首次通过getBean获取该Bean时，其初始化时机与事务中每次查询生成ReadView的机制是否存在潜在的并发一致性风险？为什么？",
+    "difficulty": "multi-hop",
+    "ground_truth": "不存在潜在的并发一致性风险。因为@Lazy Bean的初始化本身不涉及数据库读写，不参与事务管理；其首次getBean触发的初始化若包含数据库操作，则该操作作为事务内的一次正常查询，会按RC语义在执行时创建独立ReadView，可见性由该查询时刻的活跃事务快照严格保证；而RC下每次查询生成新ReadView的机制与Bean初始化时机无本质冲突，只要Bean内部数据访问遵循RC语义，整体一致性即得到保障。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_181",
+      "doc_106_parent_343"
+    ],
+    "evidence": {
+      "doc_106_parent_181": "读已提交（RC）隔离级别下，事务中每次查询前都会创建一个新的ReadView；@Lazy修饰的Bean在事务执行期间首次通过getBean获取时才初始化，此时若该Bean的初始化涉及数据库操作，则该操作将使用当前查询新创建的ReadView；由于每次查询独立生成ReadView，且ReadView基于查询时刻的活跃事务快照构建，因此Bean初始化时机与ReadView生成机制本身不引入额外并发一致性风险——只要Bean内部数据访问遵循RC语义，其可见性仍由对应查询的ReadView严格保证。",
+      "doc_106_parent_343": "@Lazy注解使Bean在第一次被使用时才初始化，即懒加载；Spring IOC容器通过getBean方法获取Bean；事务隔离级别为读已提交（RC）时，每次SELECT会生成新的ReadView；Bean初始化发生在事务执行期间首次getBean调用时，属运行时行为；该初始化过程本身不涉及数据库读写，不参与事务管理；因此Bean初始化时机与ReadView生成机制无直接交集，不存在因ReadView快照不一致导致的并发一致性风险。"
+    }
+  },
+  {
+    "id": "q_230",
+    "question": "在使用Deepspeed启动Qwen模型预训练时，如果脚本中设置了CUDA_VISIBLE_DEVICES=0,1，并且Attention模块的测试显示输入张量形状为[1, 50, 768]、输出形状也为[1, 50, 768]，那么该Attention模块实现中隐含的模型维度（dim）和注意力头数（n_heads）最可能分别是多少？",
+    "difficulty": "multi-hop",
+    "ground_truth": "模型维度（dim）为768，注意力头数（n_heads）为12。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_422",
+      "doc_108_parent_237"
+    ],
+    "evidence": {
+      "doc_108_parent_422": "文本未提供关于Attention模块实现中隐含的模型维度（dim）和注意力头数（n_heads）的具体数值或推导依据，也未给出Qwen模型架构参数、配置文件内容或相关代码细节。",
+      "doc_108_parent_237": "输入张量形状为[1, 50, 768]，输出形状也为[1, 50, 768]；代码中明确使用`dim = args.dim`，且`output.shape`为`[batch_size, seq_len, dim]`；测试中输出为`torch.Size([1, 50, 768])`，故`dim = 768`；又因`freqs_cos, freqs_sin = precompute_freqs_cis(dim // args.n_heads, seq_len)`，而RoPE通常按每个头的维度计算，Qwen-7B等常见配置中`dim=768`对应`n_heads=12`（因768 ÷ 12 = 64"
+    }
+  },
+  {
+    "id": "q_231",
+    "question": "为什么在构建RAG Agent系统时，既要限制主Agent可见的工具数量（避免上下文污染和误调用），又要引入Subagent和HyDE技术，这三者分别解决的是系统架构中的哪些不同层次的问题？",
+    "difficulty": "multi-hop",
+    "ground_truth": "限制主Agent可见工具数量解决的是执行层问题，防止上下文污染、降低误调用概率并节省上下文空间；Subagent解决的是任务分解与协作层问题，通过角色化、专用上下文和工具集实现复杂任务的聚焦执行与协同；HyDE解决的是检索层问题，利用假设性文档嵌入提升查询改写质量与向量检索相关性，弥合语义鸿沟与查询失配，仅用于召回辅助。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_27",
+      "doc_107_parent_78"
+    ],
+    "evidence": {
+      "doc_107_parent_27": "限制主Agent可见工具数量可减少上下文污染、降低误调用概率，并避免tool schema占用过多上下文；主Agent仅负责任务分派与结果整合。Subagent通过角色化、专用上下文和工具集，解决复杂任务的分解与聚焦执行问题。HyDE（假设性文档嵌入）属于检索增强层，用于提升查询改写与向量检索相关性，解决语义鸿沟与查询失配问题。三者分别对应系统架构的接口控制层（工具可见性）、任务编排层（Subagent委派）和检索优化层（HyDE）。",
+      "doc_107_parent_78": "主Agent工具数量限制解决的是执行层问题，防止上下文污染和误调用；Subagent解决的是任务分解与协作层问题，通过专业化子任务提升复杂查询处理能力；HyDE解决的是检索层问题，利用假想答案增强语义召回，但仅限于召回辅助，不可作为最终证据。"
+    }
+  },
+  {
+    "id": "q_232",
+    "question": "当一个应用程序试图通过TCP协议与远程服务器建立连接时，它首先需要经过用户态到内核态的切换来发起SYN请求，而服务器端为防止SYN攻击会启用tcp_syncookies机制并依赖半连接队列（由tcp_max_syn_backlog和somaxconn参数控制）；与此同时，若该连接涉及域名访问，还需先向本地DNS服务器查询解析IP地址。那么，在这一完整过程中，哪些环节分别依赖于内核态权限、哪些环节可能因SYN攻击防护策略失效而失败，又有哪些环节必须依赖本地DNS服务器的正常响应才能继续？",
+    "difficulty": "multi-hop",
+    "ground_truth": "依赖内核态权限的环节包括：发起SYN请求（需用户态到内核态切换）、tcp_syncookies机制启用与执行、半连接队列管理（由tcp_max_syn_backlog和somaxconn参数控制）；  \n因SYN攻击防护策略失效可能导致失败的环节包括：半连接队列溢出导致SYN_RCVD状态连接被丢弃（尤其在syncookies未启用时），以及即使启用syncookies但在极端负载或配置不当下仍出现丢包或响应延迟，致使合法连接无法完成三次握手；  \n必须依赖本地DNS服务器正常响应才能继续的环节是域名解析阶段——若DNS查询超时、失败、宕机或返回错误IP地址，则无法获取目标服务器IP，TCP连接建立流程在应用层即中止。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_429",
+      "doc_106_parent_390",
+      "doc_106_parent_411"
+    ],
+    "evidence": {
+      "doc_106_parent_429": "发起SYN请求需用户态到内核态切换，依赖内核态权限；tcp_syncookies机制、半连接队列（由tcp_max_syn_backlog和somaxconn控制）均在内核态实现，属内核态权限环节。若SYN攻击防护策略失效（如syncookies未启用或半连接队列溢出），会导致SYN洪泛攻击下连接建立失败。域名访问必须先经DNS解析，该环节依赖本地DNS服务器正常响应，若DNS服务器宕机、超时或返回错误结果，则无法获取目标IP，连接过程在应用层即中止。",
+      "doc_106_parent_390": "内核态权限依赖环节：发起SYN请求（用户态到内核态切换）、tcp_syncookies机制启用、半连接队列管理（受tcp_max_syn_backlog和somaxconn控制）。  \nSYN攻击防护策略失效可能导致失败的环节：SYN洪泛导致半连接队列溢出，使合法连接无法完成三次握手；tcp_syncookies虽可缓解，但在极端负载或配置不当下仍可能丢包或延迟响应。  \n必须依赖本地DNS服务器正常响应的环节：域名解析阶段——若DNS查询超时、失败或返回错误IP，后续TCP连接建立无法启动。",
+      "doc_106_parent_411": "发起SYN请求需用户态到内核态切换，依赖内核态权限；tcp_syncookies机制、半连接队列管理（由tcp_max_syn_backlog和somaxconn控制）均在内核态执行。若SYN攻击防护失效（如半连接队列满且syncookies未启用），SYN_RCVD状态连接被丢弃，导致建连失败。域名访问必须依赖本地DNS服务器正常响应解析IP，否则无法进入TCP连接建立流程。"
+    }
+  },
+  {
+    "id": "q_233",
+    "question": "在电商系统中，如果使用ThreadLocal在线程池中存储用户ID作为分片键的上下文信息，以支持订单数据按用户ID分库分表的路由逻辑，这种设计可能带来什么潜在风险？为什么？",
+    "difficulty": "multi-hop",
+    "ground_truth": "在电商系统中，使用ThreadLocal在线程池中存储用户ID作为分片键上下文存在双重风险：一是内存泄漏风险，因线程池核心线程长期存活且强引用ThreadLocalMap，而Entry的Key为弱引用可被GC回收、Value（用户ID）为强引用无法自动回收，导致已失效用户ID长期滞留内存；二是数据错乱风险，因线程复用时若前序任务未显式调用remove()清理ThreadLocal，残留的用户ID会被后续任务误用，造成订单数据写入错误分片或查询错库，引发脏读、数据丢失等严重问题。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_87",
+      "doc_106_parent_548"
+    ],
+    "evidence": {
+      "doc_106_parent_87": "在线程池中使用ThreadLocal存储用户ID存在内存泄漏风险。因为线程池的核心线程会复用，其持有的ThreadLocalMap被线程强引用，无法被GC自动回收；虽然Entry的Key（ThreadLocal）为弱引用可被回收，但Value（如用户ID）为强引用，无法被回收，导致已失效的用户ID数据长期滞留内存，引发内存泄漏。",
+      "doc_106_parent_548": "ThreadLocal在线程池中存储用户ID作为分片键上下文存在严重风险：线程池复用线程，若前一个任务未清理ThreadLocal中的用户ID，后续任务可能误用该残留用户ID进行分库分表路由，导致数据写入错误分片或查询错库，引发数据错乱、脏读、丢失等严重问题。根本原因在于ThreadLocal变量在线程复用场景下不会自动清除，必须显式调用remove()，而实际开发中极易遗漏。"
+    }
+  },
+  {
+    "id": "q_234",
+    "question": "在设计一个可靠的RAG系统时，为什么不能仅依赖LLM来判断是否拒答，而需要结合候选chunk数量、top evidence分数、知识库覆盖范围和citation可用性等多个工程指标？这与面试中强调的‘把每个技术点讲成完整技术决策’有何关联？",
+    "difficulty": "multi-hop",
+    "ground_truth": "因为LLM自身存在幻觉和过度自信风险，缺乏对检索质量的显式感知，仅依赖其判断拒答会导致可靠性差、可解释性弱；必须结合候选chunk数量（反映召回充分性）、top evidence分数（衡量相关性置信度）、知识库覆盖范围（揭示领域空白）、citation可用性（保障可追溯性）等可量化工程指标，构建多维拒答决策机制，实现基于明确系统状态（如无/弱证据）的客观、可验证、可归因的可靠性设计。这正体现了“把每个技术点讲成完整技术决策”——需清晰阐明问题本质（黑箱拒答风险）、设计目标（提升可靠性与可解释性）、权衡取舍（精度vs.召回、开发成本vs.线上稳定性）、具体实现（指标定义、动态阈值、fallback逻辑、用户引导策略）及验证方式（A/B测试、bad case归因），而非孤立使用技术名词。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_46",
+      "doc_107_parent_36"
+    ],
+    "evidence": {
+      "doc_107_parent_46": "可靠RAG系统不能仅依赖LLM判断拒答，因为LLM自身可能幻觉或过度自信；需结合候选chunk数量、top evidence分数、知识库覆盖范围和citation可用性等可量化工程指标，实现证据强度的客观判断。这确保拒答是基于明确、可验证的系统状态（如no/weak evidence），而非黑箱推理。该思路正体现“把每个技术点讲成完整技术决策”——拒答不是能力缺陷，而是权衡错误回答风险与用户体验后，由多维指标驱动的主动可靠性设计，需说明判断依据、阈值逻辑及用户引导策略。",
+      "doc_107_parent_36": "仅依赖LLM判断拒答不可靠，因其缺乏对检索质量的显式感知；需结合候选chunk数量（反映召回充分性）、top evidence分数（衡量相关性置信度）、知识库覆盖范围（揭示领域空白）、citation可用性（保障可追溯性）等工程指标，形成多维拒答决策机制。这与面试中强调的“把每个技术点讲成完整技术决策”直接关联——即需阐明问题本质（LLM黑盒拒答风险）、设计目标（提升可靠性与可解释性）、权衡取舍（如精度vs.召回、开发成本vs.线上稳定性）、具体实现（指标定义、阈值策略、fallback逻辑）及验证方式（A/B测试、bad case归因），而非孤立罗列技术名词。"
+    }
+  },
+  {
+    "id": "q_235",
+    "question": "Redis中QuickList为什么能同时兼顾内存效率和访问性能，而SSO方案中基于Cookie的方式却无法用于跨域场景，这两者在设计上分别通过什么机制来权衡‘紧凑存储/本地共享’与‘跨节点/跨域通信’之间的矛盾？",
+    "difficulty": "multi-hop",
+    "ground_truth": "Redis QuickList通过双向链表连接多个紧凑编码的listpack节点，既利用listpack压缩实现内存高效存储，又借助链表首尾指针实现O(1)级头尾访问，从而在本地紧凑存储与快速访问之间取得平衡；SSO的Cookie方案依赖浏览器同源策略自动携带Cookie，天然支持同域内服务间状态共享，但因该策略严格限制Cookie仅限同域传输，故无法跨域，其设计以牺牲跨域通信能力为代价换取安全性与实现简洁性。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_231",
+      "doc_106_parent_465"
+    ],
+    "evidence": {
+      "doc_106_parent_231": "QuickList通过双向链表结构连接多个listpack节点，在内存中紧凑存储（listpack压缩）的同时，保持O(1)级头尾访问性能，实现内存效率与本地访问性能的平衡；SSO方案中基于Cookie的方式因浏览器同源策略限制，Cookie仅在同域下自动携带，无法跨域共享，故无法用于跨域场景，其设计本质是依赖浏览器本地存储机制实现域内会话共享，牺牲跨域通信能力以保障安全性与简洁性。",
+      "doc_106_parent_465": "Redis QuickList通过压缩链表（ziplist）与双向链表（linkedlist）的组合结构，在内存紧凑性与O(1)首尾访问性能间取得平衡；其节点可动态选择存储格式，兼顾空间效率与局部访问速度。SSO的Cookie方案依赖浏览器同源策略自动携带Cookie，天然实现同域下服务间状态共享，但因浏览器安全限制无法跨域传输；而基于Token的SSO方案将认证信息外置为HTTP Header中传递的标准令牌（如JWT），脱离浏览器Cookie机制，从而支持跨域通信，但以增加网络传输开销和安全风险为代价。"
+    }
+  },
+  {
+    "id": "q_236",
+    "question": "在Spring框架中，如果要为一个需要分库分表的业务系统设计高可用、可扩展的数据访问层，应该结合哪些Spring核心机制和分库分表关键考量点？例如：如何利用Spring的模板类简化数据库操作，又如何借助其事件发布-监听机制应对二次分库/表带来的配置刷新或节点变更通知？同时，在分表数量计算（如7000w总数据量/2000w单表容量=4张表）和避免数据倾斜的前提下，为什么推荐初始就采用一致性哈希分片算法——这与Spring中哪种设计模式的思想（如模板方法模式定义算法骨架、子类实现具体步骤）存在理念上的呼应？",
+    "difficulty": "multi-hop",
+    "ground_truth": "应结合Spring的JdbcTemplate简化数据库操作，利用ApplicationEventPublisher/EventListener事件发布-监听机制（基于观察者模式）实现分库分表配置刷新与节点变更通知；分表数量按数据保留期限内最大总数据量除以单表容量计算（如7000w÷2000w=3.5→4张表），并须规避因分片键不合理导致的数据倾斜；推荐初始采用一致性哈希分片算法，因其在节点增减时仅影响邻近数据、无需大规模迁移，具备高扩展性与负载均衡能力；该算法“统一分片流程骨架+可插拔散列策略”的设计思想，与Spring模板方法模式高度呼应——即由抽象父类定义路由、执行、聚合等核心流程骨架，具体子类或策略实现哈希计算、键解析、节点映射等可变步骤。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_345",
+      "doc_106_parent_563",
+      "doc_106_parent_326"
+    ],
+    "evidence": {
+      "doc_106_parent_345": "Spring提供JdbcTemplate简化数据库操作，其事件发布-监听机制（基于观察者模式）可应对分库分表场景下的配置刷新与节点变更通知；分表数量需按数据总量与单表容量合理计算（如7000w/2000w=4张），并避免数据倾斜；推荐初始采用一致性哈希分片算法，因其具备良好的扩展性与负载均衡能力；该算法设计思想与Spring中模板方法模式理念呼应——均强调算法骨架统一定义、具体实现交由子类或策略灵活定制。",
+      "doc_106_parent_563": "分表数量计算公式为：数据保留期限内最大总数据量 / 单表数据量，如7000w总数据量÷2000w单表容量=3.5→4张表。需规避数据倾斜——因分片键不合理导致数据集中于少数库/表，引发负载不均与性能瓶颈。二次分库/表扩容时，推荐初始即采用一致性哈希分片算法，避免大规模数据迁移。该算法强调节点增减仅影响邻近数据，与Spring模板方法模式理念呼应：定义分片逻辑骨架（如路由、执行、聚合），由具体子类实现哈希策略、键解析等步骤，兼顾扩展性与可维护性。",
+      "doc_106_parent_326": "应结合Spring JDBC Template简化数据库操作，利用ApplicationEventPublisher/EventListener机制实现分库分表配置刷新与节点变更通知；分表数按数据总量/单表容量（如7000w/2000w=4）计算，并采用一致性哈希算法避免数据倾斜；该算法的“固定骨架+可插拔散列策略”设计，呼应Spring中模板方法模式——定义分片流程骨架，由具体子类实现哈希逻辑、路由规则等可变步骤。"
+    }
+  },
+  {
+    "id": "q_237",
+    "question": "在LLaMA2模型的实现中，当输入目标序列（targets）不为空时，损失是如何计算的？这一计算过程涉及哪些关键模块或组件，它们分别来自Seq2Seq模型架构中的哪个部分，又如何与Transformer的Decoder-only结构特性相一致？",
+    "difficulty": "multi-hop",
+    "ground_truth": "当输入目标序列（targets）不为空时，LLaMA2模型将targets右移一位作为Decoder输入，以原始targets为标签，通过output投影层（对应Seq2Seq中Decoder的输出映射/词汇投影层）生成logits，再经torch.nn.functional.cross_entropy计算交叉熵损失；该过程完全基于Transformer Decoder-only结构：词嵌入层（tok_embeddings）、堆叠的DecoderLayer（含因果自注意力与前馈网络）、RMSNorm归一化层（替代传统LayerNorm，位于Decoder子层内）和线性输出层共同构成端到端自回归解码链，其中因果自注意力机制通过下三角掩码确保每位置仅依赖前序token，功能上严格对应Seq2Seq架构中的Decoder部分，不涉及Encoder、Encoder-Decoder交叉注意力或任何编码端组件。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_260",
+      "doc_108_parent_66",
+      "doc_108_parent_251"
+    ],
+    "evidence": {
+      "doc_108_parent_260": "当输入目标序列（targets）不为空时，损失通过交叉熵损失函数计算：logits = self.output(h)，self.last_loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)。关键模块包括output投影层（对应Seq2Seq中Decoder的输出映射）和cross_entropy损失函数（属于训练目标模块）。该过程与Decoder-only结构一致：模型仅使用解码器堆叠，自回归生成logits，对每个位置预测下一个token，无需Encoder或编",
+      "doc_108_parent_66": "当输入目标序列（targets）不为空时，LLaMA2模型通过将targets右移一位作为decoder的输入，并以原始targets为标签计算交叉熵损失；该过程仅使用Transformer的Decoder-only结构，无需Encoder；Decoder中的因果自注意力机制（含下三角掩码）确保预测时仅依赖已生成的前序token，与Seq2Seq中解码器部分功能一致；损失计算模块属于Decoder的输出投影与Softmax交叉熵层，对应Seq2Seq架构中的解码端输出层。",
+      "doc_108_parent_251": "当输入目标序列（targets）不为空时，损失通过交叉熵计算：将模型输出logits与targets对齐后，调用torch.nn.functional.cross_entropy。关键模块包括：词嵌入层（tok_embeddings，对应Seq2Seq的Encoder/Decoder输入嵌入）、堆叠的DecoderLayer（对应Decoder-only结构的核心）、RMSNorm归一化层（Decoder子层中的LN）、线性输出层（output，对应Decoder最终的词汇投影）。这些组件完全遵循Transformer Decoder-only架构，无Encoder、无Encoder-Deco"
+    }
+  },
+  {
+    "id": "q_238",
+    "question": "在构建一个可评测的多模态RAG系统时，既要处理图表类非文本资产（如OCR生成视觉摘要、保留原始路径、单独构建图表评测集），又要确保答案生成阶段严格保留引用并支持证据不足时拒答，那么该系统在入库阶段和回答阶段分别应采取哪些关键设计来同时满足结构化检索、引用一致性、幻觉控制和端到端可评测性？",
+    "difficulty": "multi-hop",
+    "ground_truth": "入库阶段：对图表类非文本资产，采用OCR或视觉模型生成结构化视觉摘要并作为可检索文本入库，同时严格保留原始资产路径或安全引用，将摘要与原始位置绑定；为图表单独构建评测集，确保结构化索引与模态对齐，并复用统一证据与引用格式以支撑结构化检索和引用一致性。  \n回答阶段：答案生成强制实施引用机制，每个答案片段须标注对应文档ID及精确位置（如页码、坐标）；引入citation validation、多轮evidence reflection、工具调用与状态trace，实现幻觉控制；设置证据置信度阈值与跨模态证据冲突检测，触发no-evidence abstain（证据不足时主动拒答），并记录检索路径、引用锚点及拒答理由；端到端评测覆盖检索、生成、引用保留、拒答全链路环节，保障可评测性。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_50",
+      "doc_107_parent_20",
+      "doc_107_parent_98"
+    ],
+    "evidence": {
+      "doc_107_parent_50": "入库阶段：使用OCR、表格解析或视觉模型生成结构化视觉摘要，将其作为可检索文本入库；同时保留原始资产路径或安全引用，确保不丢失原图信息，并将摘要与原始位置绑定。回答阶段：答案生成须严格保留引用，仅基于已入库的可验证证据；证据不足时主动拒答；图表类问题需单独构建评测集，以支持端到端可评测性；避免将视觉摘要视为绝对事实，且不单独存储图片而忽略上下文。",
+      "doc_107_parent_20": "入库阶段：对图表类非文本资产，采用OCR生成视觉摘要并保留原始路径；为图表单独构建评测集，确保结构化索引与模态对齐；答案生成阶段：强制引用机制确保每个答案片段标注对应文档ID及位置（如页码/坐标）；引入拒答策略——当检索证据置信度低于阈值或跨模态证据冲突时主动返回“无法回答”；全程记录检索路径、引用锚点、拒答理由，支撑端到端可评测性。",
+      "doc_107_parent_98": "入库阶段：对图表类非文本资产进行OCR生成视觉摘要、保留原始路径，并单独构建图表评测集；复用同一套证据和citation格式，确保结构化检索与引用一致性。回答阶段：引入citation validation、no-evidence abstain（证据不足时拒答）和golden set回归机制；在答案生成中严格保留引用；通过多轮evidence reflection、工具调用、状态trace和拒答机制实现幻觉控制；端到端评测覆盖检索证据、生成答案、保留引用、拒答等全链路环节，保障可评测性。"
+    }
+  },
+  {
+    "id": "q_239",
+    "question": "在模型配置片段中，max_seq_len被设为512，而网络传输片段中提到的‘快速重传和快速恢复’机制与‘超时重传’机制分别对应怎样的拥塞窗口调整策略？请结合两个片段，说明当模型处理长度接近max_seq_len上限的长序列时，若底层网络因高延迟或丢包触发超时重传（而非快速重传），其对推理请求端到端延迟可能产生的级联影响。",
+    "difficulty": "multi-hop",
+    "ground_truth": "当模型处理接近max_seq_len=512的长序列时，推理请求需传输大量token数据包；若底层网络因高延迟或丢包触发超时重传，拥塞窗口（cwnd）被重置为1个MSS并进入慢启动阶段，发送速率指数级下降，导致后续数据分片传输严重受限、重传耗时延长、请求排队加剧；而快速重传和快速恢复仅将cwnd减半并进入拥塞避免阶段，速率线性恢复，影响相对有限；因此超时重传会引发传输层速率重建与应用层推理等待的深度耦合，造成端到端延迟显著升高甚至成倍延长。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_205",
+      "doc_106_parent_385"
+    ],
+    "evidence": {
+      "doc_108_parent_205": "模型配置中max_seq_len=512，表示最大输入序列长度为512。网络传输中，“超时重传”机制触发时，TCP将拥塞窗口（cwnd）重置为1个MSS并进入慢启动阶段；而“快速重传和快速恢复”仅将cwnd减半并进入拥塞避免。当处理接近512长度的长序列时，若因高延迟或丢包触发超时重传，cwnd骤降导致后续推理请求的数据分片传输速率大幅下降，引发请求排队、响应延迟激增，造成端到端延迟显著升高甚至成倍延长。",
+      "doc_106_parent_385": "当触发超时重传（而非快速重传）时，拥塞窗口被重置为1，进入慢启动阶段，以指数增长方式恢复发送速率；而快速重传/恢复仅将拥塞窗口减半后线性增长。若模型处理接近max_seq_len=512的长序列，其推理请求需传输大量token数据包；一旦网络因高延迟或丢包触发超时重传，拥塞窗口骤降至1，导致后续数据包发送严重受限，重传与速率重建过程显著拉长传输时间，从而在端到端延迟中形成级联放大效应——推理等待网络恢复的时间急剧增加。"
+    }
+  },
+  {
+    "id": "q_240",
+    "question": "在Java中，如果一个方法内部使用throw抛出了一个受检异常（如IOException），那么该方法的声明中必须使用throws关键字来声明这个异常；而如果我们要用大模型解决类似‘最长递增子序列’这样的动态规划问题，为了提升推理效果，应采用哪种推理技术？请结合Java异常处理机制和大模型推理技术两方面的信息，说明为什么不能仅靠思维链（CoT）就保证该方法在调用时不会因未处理受检异常而编译失败。",
+    "difficulty": "multi-hop",
+    "ground_truth": "应采用思维链+程序辅助推理（如ToT、CoT+Code Execution）或思维链+自洽性验证等增强型推理技术；因为仅靠思维链（CoT）是单路径、纯文本的线性推理，无法自动识别受检异常类型、无法协同验证方法签名中是否包含必需的throws声明、无法模拟Java编译器对异常处理的静态语法校验逻辑，故不能保证生成的方法满足Java受检异常必须显式声明的强制要求，导致编译失败。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_53",
+      "doc_106_parent_648",
+      "doc_106_parent_584"
+    ],
+    "evidence": {
+      "doc_106_parent_53": "在Java中，若方法内部用throw抛出受检异常（如IOException），则该方法声明中必须用throws关键字显式声明，否则编译失败。这是Java编译器强制的静态检查机制。而解决“最长递增子序列”等动态规划问题时，为提升大模型推理效果，应采用“思维链+程序辅助推理”（如ToT、CoT+Code Execution）等技术。仅靠纯文本思维链（CoT）无法模拟Java编译期对throws声明的语法校验逻辑，故不能保证生成的方法签名满足受检异常处理要求，导致编译失败。",
+      "doc_106_parent_648": "在Java中，若方法内部用throw抛出受检异常（如IOException），必须在方法声明中用throws显式声明，否则编译失败。而解决“最长递增子序列”等动态规划问题时，为提升推理效果应采用ToT（思维树）技术。因CoT仅为单路径、无回溯、无分支的线性推理，无法覆盖Java异常处理所需的多条件协同验证——如自动识别异常类型、检查调用链中是否声明或捕获、生成符合语法规范的throws声明等；仅靠CoT易遗漏throws声明，导致代码编译失败。",
+      "doc_106_parent_584": "在Java中，若方法内部用throw抛出受检异常（如IOException），其声明必须含throws关键字，否则编译失败；这是编译期强制约束。而解决“最长递增子序列”等动态规划问题时，为提升大模型推理效果，应采用“思维链+自洽性验证”（CoT+Self-Consistency）或“程序辅助推理”（Program-Aided Reasoning），而非仅靠基础思维链（CoT）。因CoT仅生成自然语言推理步骤，无法自动补全Java语法强制要求的throws声明，故不能保证生成代码通过编译——这与异常处理机制的静态检查本质冲突。"
+    }
+  },
+  {
+    "id": "q_241",
+    "question": "在构建RAG Agent时，如果一个Search/QU工具返回了带引用的答案但答案本身是错误的，这反映了哪些环节可能出了问题？结合片段273中关于幻觉成因和拒答策略的要求，以及片段276中对Tool输出结构化、可评测、可审计的设计原则，应如何从工具设计层面（如schema定义、输出字段、错误处理）和系统策略层面（如citation validation、claim-level检查、拒答阈值评估）协同防范此类问题？",
+    "difficulty": "multi-hop",
+    "ground_truth": "该问题反映检索证据边界不清、引用与答案未强绑定、缺乏claim-level验证及拒答机制；工具设计层面须采用结构化JSON schema，强制包含answer、evidence、citations、status、error等字段，其中citations须精确锚定至对应claim，error字段内置可恢复的错误类型与原因，schema严格约束必填项与枚举值；系统策略层面须协同实施citation validation（防伪引用）、claim-level事实核查（确保每个声明有充分且支撑性证据）、动态拒答阈值评估（证据不足或置信度低于阈值时触发拒答或弱答），并依托trace id、输入/输出摘要、耗时等字段实现全程可评测、可审计。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_73",
+      "doc_107_parent_24"
+    ],
+    "evidence": {
+      "doc_107_parent_73": "检索错、证据不足、引用不支撑claim会导致幻觉；citation validation仅防伪引用，还需claim-level检查；证据不足时应拒答或弱答；拒答策略需用no-answer set和真实hard cases评估；Tool输出须结构化、可评测、可审计，包括明确定义schema、强制标注引用来源与对应claim、内置错误标识字段；系统层面需协同实施citation validation、claim-level事实核查、动态拒答阈值评估。",
+      "doc_107_parent_24": "Search/QU工具返回带引用的错误答案，反映检索证据边界不清、引用与答案未强绑定、缺乏claim-level验证及拒答机制。依据片段273，需强化 citation validation 和拒答策略；依据片段276，工具设计须采用结构化JSON输出，明确划分answer、evidence、citations、status、error等字段；schema需严格约束必填项与枚举值；失败时返回可恢复的错误类型与原因；系统层面须实施citation validation、逐声明（claim-level）事实核查，并设定拒答阈值，结合可评测、可审计原则（如trace id、输入/输出摘要、耗时记录）"
+    }
+  },
+  {
+    "id": "q_242",
+    "question": "在设计RAG评测体系时，为什么既要区分事实题、对比题等不同问题类型进行分类评测，又必须同时验证‘检索是否找到证据’和‘答案是否使用了证据’？这与报告生成过程中强调‘先确认资料范围’‘每章独立检索和引用’以及‘导出前做citation validation’的设计原则有什么内在联系？",
+    "difficulty": "multi-hop",
+    "ground_truth": "因为不同问题类型（如事实题、对比题）具有差异化的推理需求和失败模式，混评会掩盖具体缺陷，难以定位优化方向；而单独验证“检索是否找到证据”仅保障证据存在性，“答案是否使用了证据”则确保证据被真实采纳，二者缺一不可，共同构成证据链完整性的双重校验；这与报告生成中“先确认资料范围”（锚定合规检索前提）、“每章独立检索和引用”（实现模块化、可追溯的证据归因）、“导出前做citation validation”（强制闭环验证答案与证据的一致性）三者协同，形成覆盖检索、引用、验证全环节的可审计、可定位、可归责的可信生成质量控制闭环。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_65",
+      "doc_107_parent_87"
+    ],
+    "evidence": {
+      "doc_107_parent_65": "在RAG评测体系中，需区分事实题、对比题等类型进行分类评测，以覆盖不同推理需求；同时必须验证“检索是否找到证据”和“答案是否使用了证据”，确保证据链完整可靠。这与报告生成中“先确认资料范围”（保障证据来源合规）、“每章独立检索和引用”（防止上下文污染、实现模块化归因）、“导出前做citation validation”（闭环校验证据使用真实性）的设计原则高度一致——三者共同构成“检索-引用-验证”的可审计、可定位、可归责的质量控制闭环。",
+      "doc_107_parent_87": "不同问题类型失败原因不同，事实题、对比题、总结题、无证据题不能混在一个总分里，否则难以定位优化方向；高风险场景需重视证据支撑而非仅语义相似性；评测须同时验证“检索是否找到证据”和“答案是否使用了证据”。这与报告生成中“先确认资料范围”确保检索前提可靠、“每章独立检索和引用”保障证据来源可追溯、“导出前做citation validation”强制验证答案与证据的一致性，共同构成以证据链完整性为核心的可信生成闭环。"
+    }
+  },
+  {
+    "id": "q_243",
+    "question": "在大模型评测中，为什么需要关注模型的资源消耗（如计算设备和数据类型选择），而不仅仅是准确性？请结合大模型评测的目标（如揭示适用性、暴露弱点）和训练配置中指定CUDA设备及bfloat16数据类型的实际影响来说明。",
+    "difficulty": "multi-hop",
+    "ground_truth": "因为大模型评测的核心目标是揭示模型在真实场景中的适用性与潜在弱点，而资源消耗（如CUDA设备选择和bfloat16数据类型）直接影响推理速度、显存占用、能效及数值稳定性：指定特定CUDA设备可检验模型在异构硬件环境下的兼容性、调度能力与部署可行性；采用bfloat16虽能在接近FP32精度的前提下显著降低显存需求并加速计算，但也可能放大数值不稳定问题，从而暴露模型对低精度计算的鲁棒性缺陷；若忽略这些配置，评测将脱离实际算力约束，无法反映模型在有限资源下的性能瓶颈、精度退化或内存溢出等关键弱点，严重削弱其对工程落地的指导价值。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_469",
+      "doc_108_parent_343"
+    ],
+    "evidence": {
+      "doc_108_parent_469": "大模型评测需关注资源消耗，因其不仅影响准确性，更关乎模型的实际适用性与部署可行性。评测目标包括揭示适用性、暴露弱点，而资源消耗（如CUDA设备选择、bfloat16数据类型）直接影响推理速度、显存占用和能效。例如，指定特定CUDA设备可反映模型在异构硬件环境下的兼容性与调度能力；采用bfloat16可在保持精度接近FP32的同时显著降低显存需求和计算开销，但可能放大数值不稳定问题，从而暴露模型对低精度计算的鲁棒性缺陷。这些配置差异直接关联模型在真实场景中的落地能力与潜在风险。",
+      "doc_108_parent_343": "在大模型评测中，关注资源消耗（如CUDA设备选择和bfloat16数据类型）不仅关乎效率，更直接关系到模型适用性与弱点暴露：指定CUDA设备决定了模型能否在真实硬件环境（如GPU）中部署与推理；采用bfloat16可在保持数值稳定性的同时显著降低显存占用、加速计算，使评测结果更贴近实际推理场景。若忽略这些配置，评测可能脱离真实约束，无法揭示模型在有限算力或特定硬件下的性能瓶颈、精度退化或内存溢出等关键弱点，从而削弱评测对落地适用性的指导价值。"
+    }
+  },
+  {
+    "id": "q_244",
+    "question": "根据片段336中LoRA的前向计算代码（elif分支）和片段444中赵京胜等人关于自然语言处理中文本表示的研究，LoRA作为一种参数高效微调方法，其在文本表示学习中的具体作用机制是什么？请结合代码中lora_A、lora_B与原权重weight的协同计算方式，以及该研究对文本表示建模目标的阐述进行说明。",
+    "difficulty": "multi-hop",
+    "ground_truth": "LoRA在文本表示学习中的作用机制是：前向计算中，输入x先经Dropout处理，再通过lora_A映射到低维空间，继而经lora_B映射回原维度，所得低秩更新项lora_B @ lora_A @ x（等价于x @ lora_A.T @ lora_B.T）经缩放因子scaling加权后，与原权重weight产生的线性变换输出x @ weight.T相叠加，即最终输出为x @ weight.T + scaling * x @ lora_A.T @ lora_B.T；该增量式、低秩（r ≪ dim）的参数高效更新方式，在不增加推理延迟的前提下，精准建模任务特定的文本语义偏移，使模型在下游任务中增强上下文敏感性、语义丰富性与结构保持能力，从而契合赵京胜等人提出的“学习上下文敏感、语义丰富且结构保持的向量表征”这一文本表示建模目标。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_40",
+      "doc_108_parent_461"
+    ],
+    "evidence": {
+      "doc_108_parent_40": "赵京胜等人指出，文本表示建模目标是学习上下文敏感、语义丰富且结构保持的向量表征。LoRA通过在原权重weight上叠加低秩更新ΔW = lora_B @ lora_A实现参数高效微调：前向计算中，输入x先经lora_A映射至低维空间，再经lora_B映射回原维度，最终输出为x @ weight.T + x @ lora_A.T @ lora_B.T。该机制在不增加推理延迟前提下，使模型聚焦于任务特定的文本语义偏移，提升下游任务中上下文感知表征能力，契合文本表示对动态性与判别性的双重需求。",
+      "doc_108_parent_461": "LoRA在文本表示学习中的作用机制是：在前向计算中，先用原权重weight计算线性变换，再将低秩矩阵lora_A与lora_B级联作用于经Dropout的输入x（即lora_B(lora_A(lora_dropout(x)))），乘以缩放因子scaling后加到原输出上；该增量式更新以极少量参数（r ≪ dim）建模文本表示中任务特定的语义偏移，契合赵京胜等人强调的“通过轻量适配捕捉上下文敏感的表征差异”这一文本表示建模目标。"
+    }
+  },
+  {
+    "id": "q_245",
+    "question": "在预训练模型和SFT微调模型的生成代码中，两者使用的模型检查点路径、最大新生成token数、温度参数以及上下文管理器（ctx）的启用条件分别是什么？请结合片段427和片段490的信息综合说明。",
+    "difficulty": "multi-hop",
+    "ground_truth": "预训练模型检查点路径为'./base_model_215M/pretrain_1024_18_6144.pth'，SFT微调模型检查点路径为'./sft_model_215M/sft_dim1024_layers18_vocab_size6144.pth'；两者最大新生成token数分别为120和128；温度参数分别为0.75和0.6；上下文管理器（ctx）在device_type为\"cpu\"时启用nullcontext()，否则（即GPU且使用float16时）启用torch.cuda.amp.autocast()，代码中均通过with self.ctx:统一调用。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_383",
+      "doc_108_parent_366"
+    ],
+    "evidence": {
+      "doc_108_parent_383": "预训练模型检查点路径为'./base_model_215M/pretrain_1024_18_6144.pth'，SFT微调模型为'./sft_model_215M/sft_dim1024_layers18_vocab_size6144.pth'；两者最大新生成token数分别为120和128；温度参数分别为0.75和0.6；上下文管理器（ctx）在GPU且使用float16时启用，代码中统一通过with self.ctx:调用。",
+      "doc_108_parent_366": "片段427中，预训练模型使用模型检查点路径为`args.ckpt_path`，最大新生成token数为`args.max_new_tokens`，温度参数为`args.temperature`；上下文管理器`ctx`在`device_type == \"cpu\"`时启用`nullcontext()`，否则启用`torch.cuda.amp.autocast()`。片段490中，SFT微调模型同样使用`args.ckpt_path`作为检查点路径，`args.max_new_tokens`和`args.temperature`保持一致；`ctx`启用条件与预训练模型相同，即`device_type"
+    }
+  },
+  {
+    "id": "q_246",
+    "question": "在Kafka中，消费者通过poll()方法定期轮询Broker拉取消息，而JVM中对象的分配可能发生在栈上（如逃逸分析后栈上分配）或堆中（如TLAB或直接堆分配），那么如果一个Kafka消费者应用中某个消息处理对象（如封装了key/value消息的MessageWrapper实例）被设计为仅在poll()回调方法内部临时使用且不作为返回值、不被其他线程共享，JVM是否可能将其分配在栈上？这与Kafka Topic中消息按固定结构存储、且每个Partition分布在不同Broker上的设计，对消费者端内存优化实践有何关联？",
+    "difficulty": "multi-hop",
+    "ground_truth": "是，JVM可能将MessageWrapper实例分配在栈上；Kafka Topic消息的固定结构、Partition在不同Broker上的分布式存储，使得每次poll()获取的消息批次具有结构化、局部化、短生命周期的特征，有利于JVM逃逸分析判定MessageWrapper未逃逸，从而触发栈上分配或标量替换，减少堆内存分配与GC压力，支持消费者端采用轻量、无状态、仅方法内使用的封装对象设计，提升吞吐量与延迟稳定性。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_501",
+      "doc_106_parent_307",
+      "doc_106_parent_127"
+    ],
+    "evidence": {
+      "doc_106_parent_501": "JVM可能将MessageWrapper实例分配在栈上，前提是逃逸分析判定其未逃逸出poll()方法作用域（即不被返回、不被共享、不被存储到堆中）。Kafka Topic消息按固定结构存储、Partition分布于不同Broker的设计，使得消费者每次poll()获取的消息批次具有局部性与短生命周期特征，有利于JVM识别对象的非逃逸行为，从而触发栈上分配或标量替换等优化。这支持在消费者端采用轻量、无状态、仅方法内使用的封装对象设计，减少堆内存分配与GC压力，提升吞吐与延迟稳定性。",
+      "doc_106_parent_307": "Kafka中消息以key/value形式存储，Topic中消息有固定结构；一个Topic的所有Partition分布在不同Broker上。消费者通过poll()方法定期轮询Broker拉取消息，可控制拉取频率和批量大小。若MessageWrapper实例仅在poll()回调内部临时使用、不逃逸、不被共享，JVM经逃逸分析后可能将其分配在栈上。该栈上分配优化依赖于消息结构固定、生命周期明确且局限于单次poll()处理范围，与Topic消息结构化、Partition分布式存储共同支撑消费者端轻量、低GC的内存优化实践。",
+      "doc_106_parent_127": "如果MessageWrapper实例仅在poll()回调方法内部临时使用，不作为返回值、不被其他线程共享，且未发生方法逃逸或线程逃逸，则JVM通过逃逸分析可判定其未逃逸，可能将其栈上分配，避免堆分配与GC开销。这与Kafka Topic消息按固定结构存储、Partition分布于不同Broker的设计形成协同：消费者按Partition顺序拉取结构化消息，处理逻辑高度局部化、生命周期短，有利于JVM识别对象非逃逸特性，从而在高频poll调用中实现栈上分配，显著降低内存分配压力和GC频率，提升吞吐与延迟稳定性。"
+    }
+  },
+  {
+    "id": "q_247",
+    "question": "在使用Redis实现分布式锁时，为什么既要通过Lua脚本保证‘判断锁归属’和‘删除key’的原子性，又要避免TTL设置过短导致业务未执行完就自动释放锁？这两个问题分别对应片段209中提到的哪两种具体风险？",
+    "difficulty": "multi-hop",
+    "ground_truth": "这两个问题分别对应片段209中提到的“误删他人锁”和“锁提前失效”两种具体风险。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_239",
+      "doc_106_parent_203"
+    ],
+    "evidence": {
+      "doc_106_parent_239": "既要通过Lua脚本保证“判断锁归属”和“删除key”的原子性，是为了防止线程1判断完是自己的锁后、删除前因阻塞（如FullGC）导致锁过期释放，线程2获取锁，而线程1仍执行删除，造成误删其他线程的锁；又要避免TTL设置过短，是因为业务执行耗时过长导致TTL到期、锁被自动释放，使线程2获取锁，从而出现多个线程并行执行。这两个问题分别对应片段209中提到的“误删其他线程锁”和“多个线程并行执行”两种具体风险。",
+      "doc_106_parent_203": "在使用Redis实现分布式锁时，通过Lua脚本保证“判断锁归属”和“删除key”的原子性，是为了防止“误删他人锁”的风险；避免TTL设置过短导致业务未执行完就自动释放锁，是为了防止“锁提前失效，引发并发安全问题”的风险。这两个问题分别对应片段209中提到的“误删他人锁”和“锁提前失效”两种具体风险。"
+    }
+  },
+  {
+    "id": "q_248",
+    "question": "在Kafka消费者中手动提交offset时，如果依赖的底层网络连接使用TCP协议，那么当服务端（如Kafka broker）的全连接队列（accept队列）已满时，客户端可能因连接建立失败而无法正常提交offset；此时，若消费者配置了enable.auto.commit=false并采用手动提交方式，结合interval.ms参数控制提交时机，该参数的设置是否能缓解因TCP全连接队列溢出导致的提交失败？为什么？",
+    "difficulty": "multi-hop",
+    "ground_truth": "不能缓解。因为interval.ms仅控制手动提交offset的应用层调度频率，不参与也不影响TCP连接建立过程；当broker全连接队列已满时，客户端无法完成三次握手，导致新建连接持续失败，而offset提交必须依赖已建立的有效TCP连接，因此无论interval.ms如何设置，都无法规避传输层连接建立失败的问题。",
+    "relevant_chunk_ids": [
+      "doc_106_parent_302",
+      "doc_106_parent_408"
+    ],
+    "evidence": {
+      "doc_106_parent_302": "interval.ms 参数仅控制手动提交 offset 的触发时机（即每隔多少毫秒尝试提交一次），并不影响 TCP 连接建立过程本身。当 broker 的 TCP 全连接队列已满时，客户端无法完成三次握手，导致新建连接失败；而 offset 提交依赖于与 broker 的有效 TCP 连接。因此，无论 interval.ms 设置为多大，只要连接建立持续失败，提交操作就会反复超时或抛出 NetworkException，该参数无法缓解底层网络连接建立失败的问题。它不改变连接成功率、重试逻辑或连接池行为，仅调节提交调度频率。",
+      "doc_106_parent_408": "interval.ms参数控制的是消费者定期调用commitSync()或commitAsync()的间隔时间，仅影响应用层提交offset的频率，与底层TCP连接建立过程无关。当broker全连接队列已满时，新TCP连接无法完成三次握手，导致客户端connect()系统调用失败；此时即使增大interval.ms，也无法规避连接建立阶段的失败。该参数无法缓解因accept队列溢出引发的提交失败，因为offset提交依赖已建立的网络连接，而队列满直接阻断连接建立，属于传输层问题，非应用层调度可解决。"
+    }
+  },
+  {
+    "id": "q_249",
+    "question": "在构建RAG系统时，为什么不能直接用memory作为事实来源来生成答案，而需要结合向量检索召回和rerank精排？这三者各自的作用和局限性分别是什么？",
+    "difficulty": "multi-hop",
+    "ground_truth": "因为memory存储的是历史交互摘要，缺乏外部权威事实支撑，直接作为事实来源会导致答案污染，仅适用于上下文理解与query rewrite；向量检索（bi-encoder）速度快、可实现海量文档的粗粒度召回，但语义判断粗糙，易产生语义漂移和无关片段；rerank（cross-encoder）通过联合建模query与chunk实现高精度相关性排序，但计算开销大、延迟高，无法应用于全库检索，只能对向量检索召回的有限候选进行精排。三者必须协同：memory不承担事实供给功能，仅辅助理解；向量检索保障广度覆盖与效率；rerank保障最终答案的准确性与相关性。",
+    "relevant_chunk_ids": [
+      "doc_107_parent_81",
+      "doc_107_parent_7"
+    ],
+    "evidence": {
+      "doc_107_parent_81": "Memory 会污染答案，因其存储的是历史交互摘要而非权威事实，直接作为事实来源不可靠；应仅用于上下文理解和 query rewrite。向量检索负责从海量文档中快速召回相关候选片段，但存在语义漂移和精度不足问题；rerank 精排则对召回结果进行精细化重排序，提升相关性与准确性，但依赖高质量初始召回。三者需协同：memory 辅助理解、向量检索实现广度覆盖、rerank 保障精度，缺一不可。",
+      "doc_107_parent_7": "向量检索（bi-encoder）速度快、适合大规模粗召回，但相关性判断粗糙，易召回语义相似却无关的片段；Rerank（cross-encoder）同时建模query与chunk，相关性判断更准，但计算慢、延迟高，无法全库应用，仅用于精排有限候选；Memory（如对话历史）缺乏外部事实支撑，不能替代权威知识源，仅适合作为上下文补充。三者分工：向量检索负责高效初筛，Rerank负责精准排序，Memory不承担事实供给功能。"
+    }
+  },
+  {
+    "id": "q_250",
+    "question": "在llm.c项目中实现GPT-2/GPT-3预训练时，若要处理SkyPile-150B数据集中的双语文本，需要借助Hugging Face的tokenizers库进行分词；那么，在该流程中，输入张量的形状（如片段408所示randn(1, seq_len, dim)）中的seq_len维度，其长度最终由哪个环节决定？",
+    "difficulty": "multi-hop",
+    "ground_truth": "seq_len维度的长度最终由Hugging Face tokenizers库的分词器对双语文本进行编码后生成的token序列长度决定，具体取决于所用分词器的词汇表、预处理规则（如是否添加特殊token）、以及设定的最大截断长度（max_length）或填充策略（padding）。",
+    "relevant_chunk_ids": [
+      "doc_108_parent_388",
+      "doc_108_parent_247"
+    ],
+    "evidence": {
+      "doc_108_parent_388": "在llm.c项目中处理SkyPile-150B双语文本时，输入张量的seq_len维度长度最终由Hugging Face tokenizers库的分词器（tokenizer）对原始文本进行编码后生成的token序列长度决定；具体取决于所用分词器的词汇表、预处理规则（如是否添加特殊token）、以及分词后的最大截断长度（max_length）或填充策略（padding），而非原始字符数或行数。",
+      "doc_108_parent_247": "seq_len维度的长度最终由Hugging Face tokenizers库对双语文本进行分词后生成的token序列长度决定，即分词器将SkyPile-150B中的原始文本映射为整数token ID序列，该序列的长度（考虑截断或填充）直接确定输入张量的seq_len值。"
+    }
+  }
+]

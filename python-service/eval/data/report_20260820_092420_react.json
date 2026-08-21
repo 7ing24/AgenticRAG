@@ -1,0 +1,125 @@
+{
+  "ir_metrics": {},
+  "ir_by_difficulty": {},
+  "react_stats": {
+    "avg_iterations": 1.8,
+    "max_iterations": 3,
+    "multi_iteration_pct": 50.0
+  },
+  "total_queries": 0,
+  "ir_per_query": [],
+  "ragas_metrics": {
+    "faithfulness": NaN,
+    "context_precision": NaN,
+    "context_recall": 0.8333333333333334,
+    "answer_relevancy": 0.41101740505456136
+  },
+  "ragas_per_query": [
+    {
+      "question": "在设计一个企业知识库RAG系统时，为什么既要采用中间件（而非仅靠Prompt）来保障权限安全和工具调用可控，又需要结合文档结构进行chunk切分并评估recall和citation precision等指标？这两类设计决策分别对应系统架构中的哪一层，又共同服务于Agentic RAG中‘哪些步骤是确",
+      "response": "这是一个极具深度的企业级 RAG 架构洞察题。两类设计决策并非孤立优化，而是围绕 **Agentic RAG 的根本信条——“将确定性、可观测、需强约束的任务剥离出大语言模型，交由代码实现；仅让模型专注不确定性高、需泛化理解的认知任务”** 所做的系统性分层解耦。具体分析如下：\n\n---\n\n### ✅ 一、“采用中间件（而非仅靠 Prompt）保障权限与工具可控”\n- **所属架构层级**：**执行编排层（Orchestration Layer）／运行时治理层（Runtime Governance Layer）**\n- **为何不能依赖 Prompt？**  \n  Prompt 是*声明式指令*，无法提供强制访问控制（RBAC/ABAC）、审计日志、超时熔断、输入清洗、输出沙箱隔离等能力。例如：当某员工尝试通过自然语言请求调阅 HR 敏感政策全文时，Prompt 可能被绕过或误解，而中间件可在 *retrieve() 函数入口前实时拦截并校验 scope='hr:policies:read' 权限*。\n- **它服务的是“确定性”部分**：  \n  权限判断规则（谁能在什么条件下读哪个",
+      "reference": "在设计企业知识库RAG系统时，采用中间件而非仅靠Prompt保障权限安全和工具调用可控，是因为Prompt属于软约束，无法提供稳定、可验证的硬边界，而中间件能在运行时（Runtime层）强制执行用户作用域过滤、工具白名单校验、最大执行步数限制等确定性策略，确保即使模型输出不稳定，系统仍具备强安全与强可控性；结合文档结构进行chunk切分并评估recall和citation precision等指标，是为了在工作区（Workspace层）保障检索证据的语义完整性、定位准确性与引用可验证性，使检索结果具备可衡量、可审计的质量基础。这两类设计决策分别对应系统架构中的“控制层”（或Runtime层/确定性控制层）和“检索层”（或Workspace层/检索增强层），共同服务于Agentic RAG的核心原则：将权限管控、工具准入、流程编排、chunk策略、指标评测等可定义、可验证、需强一致性的步骤设为确定性环节，由系统硬性执行；而意图理解、查询改写、语义推理、答案生成等高不确定性步骤则交由大模型动态处理，在严格可控前提下实现智能决策。",
+      "difficulty": "multi-hop",
+      "faithfulness": NaN,
+      "context_precision": NaN,
+      "context_recall": 0.5,
+      "answer_relevancy": 0.6372067255721999
+    },
+    {
+      "question": "在llm.c项目中实现GPT-2/GPT-3预训练时，若要处理SkyPile-150B数据集中的双语文本，需要借助Hugging Face的tokenizers库进行分词；那么，在该流程中，输入张量的形状（randn(1, seq_len, dim)）中的seq_len维度，其长度最终由哪个环节决定",
+      "response": "在 `llm.c` 项目中处理 SkyPile-150B 双语文本时，输入张量 `randn(1, seq_len, dim)` 中的 `seq_len` 维度长度，最终由**数据预处理阶段设置的 `block_size`（又称 context length 或 maximum sequence length）这一超参决定**。具体而言：\n\n- 该值通过 Hugging Face `tokenizer.encode(..., max_length=block_size, truncation=True, padding=\"max_length\")` 强制统一切割/填充；\n- 随后所有文本均被转换为固定长度 `block_size` 的 token ID 序列，并存为扁平化的二进制文件（如 `train.bin`）；\n- `llm.c` 在训练时从该 bin 文件顺序读取每块 `block_size × sizeof(uint32_t)` 字节，解包为 shape `(1, block_size)` 的输入张量。\n\n因此，`seq_len == block_size` 是编译期/预处理期",
+      "reference": "seq_len维度的长度最终由Hugging Face tokenizers库的分词器对双语文本进行编码后生成的token序列长度决定，具体取决于所用分词器的词汇表、预处理规则（如是否添加特殊token）、以及设定的最大截断长度（max_length）或填充策略（padding）。",
+      "difficulty": "multi-hop",
+      "faithfulness": 0.0,
+      "context_precision": NaN,
+      "context_recall": 1.0,
+      "answer_relevancy": 0.6841705048070349
+    },
+    {
+      "question": "在秒杀系统中，为什么既要使用Redis的布隆过滤器防止重复秒杀，又要依赖类加载器的双亲委派机制保障核心安全，这两者分别解决了系统哪一层的什么关键问题？",
+      "response": "抱歉，知识库中暂无相关信息回答该问题",
+      "reference": "Redis布隆过滤器作用于应用层，解决高并发下用户重复提交请求导致的超卖问题，通过快速判断请求是否可能已存在来拦截无效秒杀请求，防止重复请求穿透至后端、降低数据库压力；类加载器双亲委派机制作用于JVM运行时安全层，保障核心安全，防止恶意自定义类替换或篡改系统关键类（如java.lang.Object、ClassLoader、SecurityManager），避免秒杀核心逻辑被篡改、权限校验被绕过，维护基础运行环境的唯一性与安全性。",
+      "difficulty": "multi-hop",
+      "faithfulness": 0.0,
+      "context_precision": 0.0,
+      "context_recall": 1.0,
+      "answer_relevancy": 0.0
+    },
+    {
+      "question": "在训练一个具有涌现能力的大语言模型时，为什么预训练（Pretrain）阶段要对整个文本计算损失，而监督微调（SFT）阶段只对指令对应的输出部分计算损失？这一差异如何体现在代码实现中，例如在加载模型、构建训练样本以及使用Trainer进行训练时的具体逻辑一致性与关键修改点？",
+      "response": "这一差异源于两个阶段不同的建模范式与优化目标，其实质是**监督信号施加范围的根本区别**, 并在代码中通过 **labels 张量的 mask 策略**严格体现。下面从原理→实现逐层说明：\n\n---\n\n### ✅ 一、为什么这样设计？—— 原理层面\n\n| 维度 | 预训练（Pretrain） | 监督微调（SFT） |\n|------|-------------------|----------------|\n| **任务性质** | 自回归语言建模（Autoregressive LM）：<br>*给定前面所有 token，预测下一个 token*。<br>本质是对整个语料统计规律的学习。 | 指令遵循（Instruction Following）：<br>*给定 Instruction（prompt），生成符合意图的 Response（completion）*。<br>目标是教会模型理解 & 执行人类指令。 |\n\n- 🔹 **Pretrain 必须全序列计算 loss**  \n  因为其目标是建立完整的 world-model 和语法直觉。每一个 token（除了开头 `<s>` 或",
+      "reference": "预训练阶段对整个文本计算损失，是因为其目标是学习通用语言建模能力，即基于前缀预测下一个词，需通过全序列自回归建模优化所有token的预测；监督微调（SFT）阶段仅对指令对应的输出部分计算损失，是为了精准对齐人类指令意图、强化模型遵循指令生成的能力，并避免输入指令部分的梯度干扰导致模型遗忘或混淆任务结构。该差异仅体现在数据预处理环节：构建SFT样本时，需将instruction部分在labels张量中对应位置全部设为-100（PyTorch交叉熵损失默认忽略该值），仅保留response部分的token ID作为有效标签；模型加载、Trainer配置及训练主逻辑与预训练完全一致，关键修改点在于data_collator必须正确生成掩码后的labels张量，确保Trainer在计算损失时自动跳过instruction区域，仅对output token进行反向传播。",
+      "difficulty": "multi-hop",
+      "faithfulness": 0.3541666666666667,
+      "context_precision": 0.99999999998,
+      "context_recall": 1.0,
+      "answer_relevancy": 0.49383137166654717
+    },
+    {
+      "question": "在使用联合索引优化查询时，既要考虑字段的区分度和查询频率，又要兼顾where、Order By和Group By子句中的字段组合；而当涉及缓存一致性策略时，延迟双删的第一步是先删除缓存。那么，在一个高并发电商系统中，若对订单表（含user_id、status、create_time字段）建立联合索引",
+      "response": "抱歉，知识库中暂无相关信息回答该问题",
+      "reference": "联合索引设计主要解决查询性能问题，通过在user_id、status、create_time字段上建立联合索引，高效支持WHERE子句（user_id = ? AND status = 'unpaid'）、ORDER BY子句（create_time DESC）的执行，避免全表扫描和临时文件排序，从而加速“按用户查最新待支付订单”的查询；延迟双删策略主要解决缓存一致性问题，第一步先删除缓存可防止读请求命中脏数据，再通过延迟后的第二次删除覆盖主从复制延迟或并发写导致的缓存更新遗漏，保障订单状态变更后缓存与数据库最终一致。",
+      "difficulty": "multi-hop",
+      "faithfulness": 0.0,
+      "context_precision": NaN,
+      "context_recall": 1.0,
+      "answer_relevancy": 0.0
+    },
+    {
+      "question": "Kafka中消费者提交的offset从0.9.0版本起存储在哪个内置主题中？该主题默认有多少个分区？为什么Kafka要根据消费组ID和主题名计算哈希值并映射到该主题的特定分区？",
+      "response": "抱歉，知识库中暂无相关信息回答该问题",
+      "reference": "Kafka中消费者提交的offset从0.9.0版本起存储在内置主题`__consumer_offsets`中，该主题默认有50个分区；Kafka根据消费组ID和主题名计算哈希值并映射到该主题的特定分区，是为了确保同一消费组对同一主题的offset提交都路由到同一个分区，从而保证offset更新的顺序性和一致性，避免并发写入冲突，并支持通过副本机制实现高可用、容错及高并发、可扩展的offset管理。",
+      "difficulty": "multi-hop",
+      "faithfulness": 0.3333333333333333,
+      "context_precision": 0.9999999999,
+      "context_recall": 0.6666666666666666,
+      "answer_relevancy": 0.0
+    },
+    {
+      "question": "在设计一个可靠的RAG系统时，为什么不能仅依赖LLM来判断是否拒答，而需要结合候选chunk数量、top evidence分数、知识库覆盖范围和citation可用性等多个工程指标？这与面试中强调的‘把每个技术点讲成完整技术决策’有何关联？",
+      "response": "这是一个极具洞察力的问题，触及了现代RAG系统从“能跑通”迈向“可信赖、可交付”的核心跃迁。下面分两层回应：\n\n---\n\n### 一、“为何不能仅依赖LLM拒答？” —— 黑箱判断 vs 可控工程  \nLLM自身具备一定的置信度感知能力（如logprobs、self-evaluation prompt），但它本质上仍是**概率生成器**，面临三大固有缺陷：  \n✅ **幻觉驱动的虚假自信**：当query偏离知识库分布时，LLM可能凭先验强行续写看似合理实则虚构的答案（尤其在few-shot诱导下），且输出常带高确定性语气；  \n✅ **缺乏可观测依据**：LLM无法暴露其“不确定”的底层理由（比如是因为检索空集？还是top-k chunks全部相似度<0.3？抑或是所有chunks都聚焦A主题而query实际问B？）；  \n✅ **无审计追溯链**：一旦出错，你只能看到最终文本，却无法回溯“哪条证据缺失/冲突/弱支持”，导致故障归因困难、AB测试失效、SLO难以承诺。\n\n因此，工业级RAG必须引入**可观测、可配置、可回归的工程护栏（Engineering Guardrails）**",
+      "reference": "因为LLM自身存在幻觉和过度自信风险，缺乏对检索质量的显式感知，仅依赖其判断拒答会导致可靠性差、可解释性弱；必须结合候选chunk数量（反映召回充分性）、top evidence分数（衡量相关性置信度）、知识库覆盖范围（揭示领域空白）、citation可用性（保障可追溯性）等可量化工程指标，构建多维拒答决策机制，实现基于明确系统状态（如无/弱证据）的客观、可验证、可归因的可靠性设计。这正体现了“把每个技术点讲成完整技术决策”——需清晰阐明问题本质（黑箱拒答风险）、设计目标（提升可靠性与可解释性）、权衡取舍（精度vs.召回、开发成本vs.线上稳定性）、具体实现（指标定义、动态阈值、fallback逻辑、用户引导策略）及验证方式（A/B测试、bad case归因），而非孤立使用技术名词。",
+      "difficulty": "multi-hop",
+      "faithfulness": NaN,
+      "context_precision": 0.9666666666473333,
+      "context_recall": 0.6666666666666666,
+      "answer_relevancy": 0.7519066021913366
+    },
+    {
+      "question": "在构建RAG Agent时，如果一个Search/QU工具返回了带引用的答案但答案本身是错误的，这反映了哪些环节可能出了问题？结合关于幻觉成因和拒答策略的要求，以及对Tool输出结构化、可评测、可审计的设计原则，应如何从工具设计层面（如schema定义、输出字段、错误处理）和系统策略层面（如cita",
+      "response": "当 Search/QU 工具返回“带引用但答案错误”的响应时，本质暴露的是 **RAG 系统中证据-主张耦合断裂（Evidence–Claim Decoupling）**，它并非单一模块失效，而反映出多个层级的设计缺陷与协作失配。以下是结合知识库材料（《RAG Agent Interview Guide》）进行的系统性诊断与防护框架：\n\n---\n\n### 一、所反映的关键问题环节（幻觉根源定位）\n根据文档 §27.5 和 §50，此现象揭示三类深层风险：\n- ✅ **Citation Existence ≠ Citation Support**（引文存在≠引文支撑）：工具仅机械拼接检索段落并标注 ID，未验证其是否真能推导出生成陈述（如把背景信息误当论据、时间/主体错位、反讽被忽略等）；\n- ❌ **Retriever–Reader Contract Violation**：检索器返回的相关 chunk 未必包含完整论证链条，而 Reader（或下游 agent）未经 claim-level 对齐就强行归纳，造成“伪溯源幻觉”；\n- ⚠️ **Tool Interface Ambigu",
+      "reference": "该问题反映检索证据边界不清、引用与答案未强绑定、缺乏claim-level验证及拒答机制；工具设计层面须采用结构化JSON schema，强制包含answer、evidence、citations、status、error等字段，其中citations须精确锚定至对应claim，error字段内置可恢复的错误类型与原因，schema严格约束必填项与枚举值；系统策略层面须协同实施citation validation（防伪引用）、claim-level事实核查（确保每个声明有充分且支撑性证据）、动态拒答阈值评估（证据不足或置信度低于阈值时触发拒答或弱答），并依托trace id、输入/输出摘要、耗时等字段实现全程可评测、可审计。",
+      "difficulty": "multi-hop",
+      "faithfulness": NaN,
+      "context_precision": 0.5930555555456712,
+      "context_recall": 1.0,
+      "answer_relevancy": 0.7830951284025508
+    },
+    {
+      "question": "TCP协议中，接收方如何通过窗口大小字段实现流量控制以防止缓冲区溢出，同时又依赖序列号和确认号机制来确保数据按序可靠传输？这两个机制在连接管理（如三握四挥）和拥塞控制（如慢启动、拥塞避免）过程中各自扮演什么角色？",
+      "response": "在TCP协议中，“窗口大小字段”、“序列号/确认号机制”分别承担不同且互补的关键职责，它们协同工作，在连接全生命周期中实现高效、可靠、可控的数据传输：\n\n---\n\n### 一、核心机制的功能定位\n\n#### ▪️ 窗口大小（Window Size）→ 实现**流量控制（Flow Control）**\n- **目的**：防止**接收方应用层处理不过来导致自身接收缓冲区溢出**（而非网络中间设备）。\n- **原理**：接收方在其TCP报头中持续通告一个动态更新的`Window Size`值（单位：字节数），代表当前可用接收缓冲区容量。\n- **行为约束**：发送方必须确保已发出但尚未被确认的数据总量 ≤ min(拥塞窗口 cwnd, 接收窗口 rwnd)，从而主动限速，避免压垮接收端内存资源。\n\n> 🔑 关键辨析：这是**端到端的、单向的、面向接收能力的调控**，仅由接收方主导通知，不感知网络状况。\n\n#### ▪️ 序列号（Sequence Number） & 确认号（Acknowledgment Number）→ 支撑**可靠有序传输（Reliable In-order Deliver",
+      "reference": "TCP接收方通过窗口大小字段通告自身接收缓冲区剩余空间，发送方据此限制未确认数据量，实现流量控制以防止缓冲区溢出；序列号为每个字节分配唯一编号以标识数据顺序，确认号指示期望接收的下一个字节序号，二者协同确保数据按序、可靠传输。在连接管理中，三次握手和四次挥手依赖序列号与确认号实现可靠连接建立与终止，保证报文唯一性和状态一致性；在拥塞控制中，窗口大小字段反映接收窗口（rwnd），与拥塞窗口（cwnd）共同决定发送上限，慢启动、拥塞避免等算法动态调整cwnd以防止网络拥塞，而序列号和确认号用于丢包检测（如超时重传、重复ACK），触发拥塞响应。",
+      "difficulty": "multi-hop",
+      "faithfulness": NaN,
+      "context_precision": 0.9999999999,
+      "context_recall": 1.0,
+      "answer_relevancy": 0.7599637179059444
+    },
+    {
+      "question": "根据LoRA的前向计算代码（elif分支）和赵京胜等人关于自然语言处理中文本表示的研究，LoRA作为一种参数高效微调方法，其在文本表示学习中的具体作用机制是什么？请结合代码中lora_A、lora_B与原权重weight的协同计算方式，以及该研究对文本表示建模目标的阐述进行说明。",
+      "response": "LoRA在文本表示学习中的作用机制，本质上是一种**受控的低维子空间扰动策略**, 它并不重构整个文本表示空间，而是在预训练大模型固有的高维语义流形上施加一个紧凑、可学习且物理含义明晰的方向性偏移。下面分三层次说明：\n\n---\n\n### 一、前向计算视角：`lora_A`, `lora_B` 与 `weight` 的协同方式（对应代码 elif 分支）\n标准LoRA前向流程如下（摘录自 Happy-LLM 材料 p.145 及 Hu et al., 2021）：\n```python\n# 主干投影（保留全部原始能力）\nbase_output = F.linear(x, weight, bias)\n\n# LoRA残差通路（仅引入少量新参数）\ndelta_x = self.lora_dropout(x)      # 输入Dropout防过拟合\nafter_A = F.linear(delta_x, lora_A.T)   # x ∈ ℝ^{B×d} → ℝ^{B×r}, r ≪ d（降维编码）\nafter_B = F.linear(after_A, lora_B.T)   # ℝ^{B×r",
+      "reference": "LoRA在文本表示学习中的作用机制是：前向计算中，输入x先经Dropout处理，再通过lora_A映射到低维空间，继而经lora_B映射回原维度，所得低秩更新项lora_B @ lora_A @ x（等价于x @ lora_A.T @ lora_B.T）经缩放因子scaling加权后，与原权重weight产生的线性变换输出x @ weight.T相叠加，即最终输出为x @ weight.T + scaling * x @ lora_A.T @ lora_B.T；该增量式、低秩（r ≪ dim）的参数高效更新方式，在不增加推理延迟的前提下，精准建模任务特定的文本语义偏移，使模型在下游任务中增强上下文敏感性、语义丰富性与结构保持能力，从而契合赵京胜等人提出的“学习上下文敏感、语义丰富且结构保持的向量表征”这一文本表示建模目标。",
+      "difficulty": "multi-hop",
+      "faithfulness": 0.2,
+      "context_precision": 0.5821428571283035,
+      "context_recall": 0.5,
+      "answer_relevancy": 0.0
+    }
+  ],
+  "mode": "react",
+  "elapsed_seconds": 733.4,
+  "config": {
+    "n_synthetic": 10,
+    "seed": 42
+  }
+}
